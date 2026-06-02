@@ -20,19 +20,19 @@ import {
 } from "react-native";
 
 const COLORS = {
-  paper: "#E8E5DD",
-  paper2: "#DCD8CE",
-  card: "#FFFFFF",
-  card2: "#F4F1E8",
-  ink: "#0A0A0A",
-  muted: "#555555",
-  muted2: "#888888",
-  line: "#1A1A1A",
-  signal: "#FF3B00",
-  gold: "#C9A227",
-  forest: "#2C5234",
-  slate: "#3F4044",
-  plum: "#502B4D",
+  paper: "#F8F9FC",      // Matches legacy canvas
+  paper2: "#E1E6F0",     // Matches legacy selected list/border bg
+  card: "#FFFFFF",       // Matches legacy surface
+  card2: "#F3F6FC",      // Matches legacy cardBackground
+  ink: "#0B1440",        // Matches legacy brandBlue (dark navy) for text/primary elements
+  muted: "#5E6C84",      // A premium cool grey coordinating with the navy theme
+  muted2: "#8996B2",     // Lighter cool grey
+  line: "#D0D7E5",       // Light blue-grey borders/lines
+  signal: "#0B1048",     // Matches legacy AccentColor (navy-blue highlight)
+  gold: "#D0A010",       // Coordinate gold/amber accent with blue theme
+  forest: "#2E6B45",     // Coordinate forest green accent with blue theme
+  slate: "#4A5A80",      // Slate blue-grey (used for CARBS macro bar)
+  plum: "#7E5B8E",       // Coordinated plum/purple (used for FAT macro bar)
 };
 
 const TABS = [
