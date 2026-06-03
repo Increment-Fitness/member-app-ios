@@ -888,8 +888,8 @@ function Header({ caloriesRemaining, currentSplit }) {
 
   return (
     <View style={styles.header}>
-      <View>
-        <Text style={styles.wordmark}>FUEL + INCREMENT</Text>
+      <View style={styles.headerBrand}>
+        <Text style={styles.headerWordmark}>INCREMENT</Text>
         <Text style={styles.headerSub}>{todayLabel} // {currentSplit}</Text>
       </View>
       <View style={styles.badgeHot}>
@@ -1433,17 +1433,9 @@ function WorkoutScreen({
   onCancelLogSet,
 }) {
   return (
-      <View style={styles.workoutScreen}>
-        <View style={[styles.card, styles.workoutPanel]}>
+    <View style={styles.workoutScreen}>
+      <View style={[styles.card, styles.workoutPanel]}>
         <CardHeader id="008" title="TODAY'S WORKOUT" />
-        <View style={styles.actionColumn}>
-          <ActionButton
-            label="+ ADD LIFT"
-            outline
-            onPress={onOpenAddLift}
-          />
-          <ActionButton label="+ LOG SET" hot onPress={onAdvance} />
-        </View>
         <ScrollView
           style={styles.workoutList}
           contentContainerStyle={styles.workoutListContent}
@@ -1459,6 +1451,14 @@ function WorkoutScreen({
             />
           ))}
         </ScrollView>
+        <View style={styles.actionColumn}>
+          <ActionButton
+            label="+ ADD LIFT"
+            outline
+            onPress={onOpenAddLift}
+          />
+          <ActionButton label="+ LOG SET" hot onPress={onAdvance} />
+        </View>
       </View>
       <LogSetModal
         visible={isLoggingSet}
@@ -1985,7 +1985,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.paper2,
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "flex-start",
+    alignItems: "center",
     flexWrap: "wrap",
     gap: 12,
     borderTopLeftRadius: 24,
@@ -1993,10 +1993,16 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: 24,
     borderBottomRightRadius: 24,
   },
-  wordmark: {
-    fontSize: 11,
-    letterSpacing: 1.4,
-    fontWeight: "800",
+  headerBrand: {
+    flex: 1,
+    minWidth: 0,
+  },
+  headerWordmark: {
+    fontSize: 18,
+    lineHeight: 18,
+    fontWeight: "900",
+    fontStyle: "italic",
+    letterSpacing: -0.6,
     color: COLORS.ink,
   },
   headerSub: {
@@ -2178,7 +2184,7 @@ const styles = StyleSheet.create({
   weightModalOverlay: {
     flex: 1,
     justifyContent: "center",
-    backgroundColor: "rgba(10, 10, 10, 0.28)",
+    backgroundColor: "rgba(255, 255, 255, 0.96)",
     padding: 14,
   },
   weightModalAvoider: {
