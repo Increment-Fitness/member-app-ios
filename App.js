@@ -116,6 +116,64 @@ function makeWorkoutQueue(split) {
   }));
 }
 
+const MAX_LIFT_NAME_LENGTH = 24;
+
+function validateWeightValue(value) {
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return "Add a weight to continue.";
+  }
+
+  if (!/^\d+(\.\d+)?$/.test(trimmed)) {
+    return "Use numbers only, like 185 or 185.5.";
+  }
+
+  return "";
+}
+
+function validateRepsValue(value) {
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return "Add your reps to continue.";
+  }
+
+  if (!/^\d+$/.test(trimmed)) {
+    return "Use a whole number, like 8 or 10.";
+  }
+
+  return "";
+}
+
+function validateLiftDraft(draft, workoutQueue) {
+  const errors = { lift: "" };
+
+  const trimmedLift = draft.lift.trim();
+  if (!trimmedLift) {
+    errors.lift = "Give this lift a name.";
+  } else if (trimmedLift.length < 2) {
+    errors.lift = "Use at least 2 characters.";
+  } else if (trimmedLift.length > MAX_LIFT_NAME_LENGTH) {
+    errors.lift = `Keep the name under ${MAX_LIFT_NAME_LENGTH} characters.`;
+  } else if (!/[A-Za-z]/.test(trimmedLift)) {
+    errors.lift = "Use letters in the lift name.";
+  } else {
+    const normalizedLift = trimmedLift.toUpperCase();
+    const alreadyExists = workoutQueue.some((item) => item.lift === normalizedLift);
+    if (alreadyExists) {
+      errors.lift = "That lift is already on today's workout.";
+    }
+  }
+
+  return errors;
+}
+
+function validateLogSetDraft(draft) {
+  return {
+    weight: validateWeightValue(draft.weight),
+    reps: validateRepsValue(draft.reps),
+  };
+}
+
 const INITIAL_WORKOUT_QUEUE = makeWorkoutQueue("PUSH");
 
 const TREND = [
@@ -180,9 +238,7 @@ function AppContent() {
   const [workoutQueue, setWorkoutQueue] = useState(INITIAL_WORKOUT_QUEUE);
   const [selectedLiftId, setSelectedLiftId] = useState(INITIAL_WORKOUT_QUEUE[0]?.id ?? null);
   const [isAddingLift, setIsAddingLift] = useState(false);
-  const [liftDraft, setLiftDraft] = useState({
-    lift: "",
-  });
+  const [liftDraft, setLiftDraft] = useState({ lift: "" });
   const [isLoggingSet, setIsLoggingSet] = useState(false);
   const [logSetDraft, setLogSetDraft] = useState({
     reps: "",
@@ -200,6 +256,10 @@ function AppContent() {
   const progressPercent = Math.min((caloriesConsumed / caloriesGoal) * 100, 100);
   const progressBar = asciiProgress(progressPercent);
   const selectedLift = workoutQueue.find((item) => item.id === selectedLiftId) ?? workoutQueue[0] ?? null;
+  const liftDraftErrors = validateLiftDraft(liftDraft, workoutQueue);
+  const hasLiftDraftErrors = Object.values(liftDraftErrors).some(Boolean);
+  const logSetDraftErrors = validateLogSetDraft(logSetDraft);
+  const hasLogSetDraftErrors = Object.values(logSetDraftErrors).some(Boolean);
 
   const addMealEntry = (template, source = mealInputMode) => {
     const macroDelta = template.macroDelta ?? parseMacroDetail(template.detail);
@@ -513,6 +573,10 @@ function AppContent() {
   };
 
   const saveLoggedSet = () => {
+    if (hasLogSetDraftErrors) {
+      return false;
+    }
+
     setWorkoutQueue((current) => {
       const targetIndex = current.findIndex((item) => item.id === selectedLiftId);
       if (targetIndex === -1) {
@@ -523,8 +587,8 @@ function AppContent() {
         if (index === targetIndex) {
           const loggedSet = {
             id: `set-${Date.now()}`,
-            reps: logSetDraft.reps.trim() || "--",
-            weight: logSetDraft.weight.trim().toUpperCase() || "--",
+            reps: logSetDraft.reps.trim(),
+            weight: logSetDraft.weight.trim(),
           };
           const loggedSets = [...(item.loggedSets ?? []), loggedSet];
           return {
@@ -539,6 +603,7 @@ function AppContent() {
     });
     setIsLoggingSet(false);
     setLogSetDraft({ reps: "", weight: "" });
+    return true;
   };
 
   const cancelLogSet = () => {
@@ -546,10 +611,24 @@ function AppContent() {
     setLogSetDraft({ reps: "", weight: "" });
   };
 
+  const openAddLift = () => {
+    setLiftDraft({ lift: "" });
+    setIsAddingLift(true);
+  };
+
+  const cancelAddLift = () => {
+    setLiftDraft({ lift: "" });
+    setIsAddingLift(false);
+  };
+
   const addDayLift = () => {
+    if (hasLiftDraftErrors) {
+      return false;
+    }
+
     const nextLift = {
       id: `custom-lift-${Date.now()}`,
-      lift: (liftDraft.lift.trim() || "NEW LIFT").toUpperCase(),
+      lift: liftDraft.lift.trim().toUpperCase(),
       scheme: "--",
       load: "--",
     };
@@ -558,6 +637,7 @@ function AppContent() {
     setSelectedLiftId(nextLift.id);
     setLiftDraft({ lift: "" });
     setIsAddingLift(false);
+    return true;
   };
 
   const deleteDayLift = (liftId) => {
@@ -701,12 +781,17 @@ function AppContent() {
             selectedLiftId={selectedLiftId}
             onSelectLift={setSelectedLiftId}
             isAddingLift={isAddingLift}
-            setIsAddingLift={setIsAddingLift}
             liftDraft={liftDraft}
             setLiftDraft={setLiftDraft}
+            liftDraftErrors={liftDraftErrors}
+            hasLiftDraftErrors={hasLiftDraftErrors}
             isLoggingSet={isLoggingSet}
             logSetDraft={logSetDraft}
+            logSetDraftErrors={logSetDraftErrors}
+            hasLogSetDraftErrors={hasLogSetDraftErrors}
             setLogSetDraft={setLogSetDraft}
+            onOpenAddLift={openAddLift}
+            onCancelAddLift={cancelAddLift}
             onAddLift={addDayLift}
             onDeleteLift={deleteDayLift}
             onAdvance={advanceWorkout}
@@ -757,7 +842,11 @@ function AppContent() {
     isAddingLift,
     isEditingWeight,
     liftDraft,
+    liftDraftErrors,
+    hasLiftDraftErrors,
     logSetDraft,
+    logSetDraftErrors,
+    hasLogSetDraftErrors,
     scannedBarcode,
     todayWeight,
     workoutQueue,
@@ -1326,12 +1415,17 @@ function WorkoutScreen({
   selectedLiftId,
   onSelectLift,
   isAddingLift,
-  setIsAddingLift,
   liftDraft,
   setLiftDraft,
+  liftDraftErrors,
+  hasLiftDraftErrors,
   isLoggingSet,
   logSetDraft,
+  logSetDraftErrors,
+  hasLogSetDraftErrors,
   setLogSetDraft,
+  onOpenAddLift,
+  onCancelAddLift,
   onAddLift,
   onDeleteLift,
   onAdvance,
@@ -1339,30 +1433,17 @@ function WorkoutScreen({
   onCancelLogSet,
 }) {
   return (
-    <View style={styles.workoutScreen}>
-      <View style={[styles.card, styles.workoutPanel]}>
+      <View style={styles.workoutScreen}>
+        <View style={[styles.card, styles.workoutPanel]}>
         <CardHeader id="008" title="TODAY'S WORKOUT" />
         <View style={styles.actionColumn}>
           <ActionButton
-            label={isAddingLift ? "CANCEL ADD" : "+ ADD LIFT"}
-            outline={!isAddingLift}
-            hot={isAddingLift}
-            onPress={() => setIsAddingLift((value) => !value)}
+            label="+ ADD LIFT"
+            outline
+            onPress={onOpenAddLift}
           />
           <ActionButton label="+ LOG SET" hot onPress={onAdvance} />
         </View>
-        {isAddingLift ? (
-          <View style={styles.liftEditor}>
-            <TextInput
-              value={liftDraft.lift}
-              onChangeText={(value) => setLiftDraft((current) => ({ ...current, lift: value }))}
-              placeholder="Lift name"
-              placeholderTextColor={COLORS.muted}
-              style={styles.mealEditorInput}
-            />
-            <ActionButton label="ADD TO TODAY" hot onPress={onAddLift} />
-          </View>
-        ) : null}
         <ScrollView
           style={styles.workoutList}
           contentContainerStyle={styles.workoutListContent}
@@ -1382,24 +1463,126 @@ function WorkoutScreen({
       <LogSetModal
         visible={isLoggingSet}
         logSetDraft={logSetDraft}
+        errors={logSetDraftErrors}
+        hasErrors={hasLogSetDraftErrors}
         setLogSetDraft={setLogSetDraft}
         onSave={onSaveLoggedSet}
         onCancel={onCancelLogSet}
       />
+      <AddLiftModal
+        visible={isAddingLift}
+        liftDraft={liftDraft}
+        setLiftDraft={setLiftDraft}
+        errors={liftDraftErrors}
+        hasErrors={hasLiftDraftErrors}
+        onSave={onAddLift}
+        onCancel={onCancelAddLift}
+      />
     </View>
+  );
+}
+
+function AddLiftModal({
+  visible,
+  liftDraft,
+  setLiftDraft,
+  errors,
+  hasErrors,
+  onSave,
+  onCancel,
+}) {
+  const [showValidation, setShowValidation] = useState(false);
+
+  const closeModal = () => {
+    setShowValidation(false);
+    onCancel();
+  };
+
+  const submitLift = () => {
+    setShowValidation(true);
+    if (onSave()) {
+      setShowValidation(false);
+    }
+  };
+
+  return (
+    <Modal visible={visible} animationType="fade" transparent onRequestClose={closeModal}>
+      <Pressable style={styles.weightModalOverlay} onPress={closeModal}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
+          style={styles.weightModalAvoider}
+        >
+          <Pressable style={styles.weightModalCard} onPress={() => {}}>
+            <CardHeader id="010" title="ADD LIFT" />
+            <Text style={styles.sectionText}>
+              Add a custom movement to today&apos;s queue.
+            </Text>
+            <TextInput
+              value={liftDraft.lift}
+              onChangeText={(value) => {
+                if (!showValidation) {
+                  setShowValidation(true);
+                }
+                setLiftDraft((current) => ({ ...current, lift: value }));
+              }}
+              placeholder="Workout name"
+              placeholderTextColor={COLORS.muted}
+              autoCapitalize="characters"
+              autoCorrect={false}
+              maxLength={MAX_LIFT_NAME_LENGTH}
+              style={[
+                styles.mealEditorInput,
+                showValidation && errors.lift && styles.editorInputError,
+              ]}
+            />
+            <Text style={styles.fieldHint}>
+              {liftDraft.lift.length}/{MAX_LIFT_NAME_LENGTH} characters
+            </Text>
+            {showValidation && errors.lift ? (
+              <Text style={styles.validationText}>{errors.lift}</Text>
+            ) : null}
+            <View style={styles.actionRow}>
+              <ActionButton
+                label="ADD TO TODAY"
+                hot
+                disabled={hasErrors}
+                onPress={submitLift}
+              />
+              <ActionButton label="CANCEL" outline onPress={closeModal} />
+            </View>
+          </Pressable>
+        </KeyboardAvoidingView>
+      </Pressable>
+    </Modal>
   );
 }
 
 function LogSetModal({
   visible,
   logSetDraft,
+  errors,
+  hasErrors,
   setLogSetDraft,
   onSave,
   onCancel,
 }) {
+  const [showValidation, setShowValidation] = useState(false);
+
+  const closeModal = () => {
+    setShowValidation(false);
+    onCancel();
+  };
+
+  const submitSet = () => {
+    setShowValidation(true);
+    if (onSave()) {
+      setShowValidation(false);
+    }
+  };
+
   return (
-    <Modal visible={visible} animationType="fade" transparent onRequestClose={onCancel}>
-      <Pressable style={styles.weightModalOverlay} onPress={onCancel}>
+    <Modal visible={visible} animationType="fade" transparent onRequestClose={closeModal}>
+      <Pressable style={styles.weightModalOverlay} onPress={closeModal}>
         <KeyboardAvoidingView
           behavior={Platform.OS === "ios" ? "padding" : undefined}
           style={styles.weightModalAvoider}
@@ -1408,22 +1591,45 @@ function LogSetModal({
             <CardHeader id="009" title="LOG SET" />
             <TextInput
               value={logSetDraft.weight}
-              onChangeText={(value) => setLogSetDraft((current) => ({ ...current, weight: value }))}
-              placeholder="Weight, e.g. 185 LB"
+              onChangeText={(value) => {
+                if (!showValidation) {
+                  setShowValidation(true);
+                }
+                setLogSetDraft((current) => ({ ...current, weight: value }));
+              }}
+              placeholder="Weight"
               placeholderTextColor={COLORS.muted}
-              style={styles.mealEditorInput}
+              keyboardType="decimal-pad"
+              style={[
+                styles.mealEditorInput,
+                showValidation && errors.weight && styles.editorInputError,
+              ]}
             />
+            {showValidation && errors.weight ? (
+              <Text style={styles.validationText}>{errors.weight}</Text>
+            ) : null}
             <TextInput
               value={logSetDraft.reps}
-              onChangeText={(value) => setLogSetDraft((current) => ({ ...current, reps: value }))}
-              placeholder="Reps, e.g. 8"
+              onChangeText={(value) => {
+                if (!showValidation) {
+                  setShowValidation(true);
+                }
+                setLogSetDraft((current) => ({ ...current, reps: value }));
+              }}
+              placeholder="Reps"
               placeholderTextColor={COLORS.muted}
               keyboardType="number-pad"
-              style={styles.mealEditorInput}
+              style={[
+                styles.mealEditorInput,
+                showValidation && errors.reps && styles.editorInputError,
+              ]}
             />
+            {showValidation && errors.reps ? (
+              <Text style={styles.validationText}>{errors.reps}</Text>
+            ) : null}
             <View style={styles.actionRow}>
-              <ActionButton label="SAVE SET" hot onPress={onSave} />
-              <ActionButton label="CANCEL" outline onPress={onCancel} />
+              <ActionButton label="SAVE SET" hot disabled={hasErrors} onPress={submitSet} />
+              <ActionButton label="CANCEL" outline onPress={closeModal} />
             </View>
           </Pressable>
         </KeyboardAvoidingView>
@@ -1534,14 +1740,16 @@ function CardHeader({ id, title, rightLabel, rightHot = false }) {
   );
 }
 
-function ActionButton({ label, hot = false, outline = false, onPress }) {
+function ActionButton({ label, hot = false, outline = false, disabled = false, onPress }) {
   return (
     <Pressable
       onPress={onPress}
+      disabled={disabled}
       style={({ pressed }) => [
         styles.actionButton,
         hot && styles.actionButtonHot,
         outline && styles.actionButtonOutline,
+        disabled && styles.actionButtonDisabled,
         pressed && styles.pressed,
       ]}
     >
@@ -1550,6 +1758,7 @@ function ActionButton({ label, hot = false, outline = false, onPress }) {
           styles.actionButtonText,
           hot && styles.actionButtonTextHot,
           outline && styles.actionButtonTextOutline,
+          disabled && styles.actionButtonTextDisabled,
         ]}
       >
         {label}
@@ -1594,17 +1803,28 @@ function MacroRow({ label, consumed, target, color }) {
 function WorkoutRow({ item, selected = false, onPress, onDelete }) {
   const weights = item.loggedSets?.length
     ? item.loggedSets.map((set) => set.weight).join(", ")
-    : "--";
+    : item.load ?? "--";
   const reps = item.loggedSets?.length
     ? item.loggedSets.map((set) => set.reps).join(", ")
-    : "--";
+    : item.scheme ?? "--";
 
   return (
     <View style={[styles.workoutRow, selected && styles.selectedRow]}>
       <Pressable onPress={onPress} style={({ pressed }) => [styles.workoutRowMain, pressed && styles.pressed]}>
-        <Text style={[styles.workoutName, selected && styles.activeRowText]}>{item.lift}</Text>
-        <Text style={[styles.workoutCell, selected && styles.activeRowText]}>{weights}</Text>
-        <Text style={[styles.workoutCell, selected && styles.activeRowText]}>{reps}</Text>
+        <View style={styles.workoutTitleBlock}>
+          <Text style={[styles.workoutName, selected && styles.activeRowText]}>
+            {item.lift}
+          </Text>
+        </View>
+        <View style={styles.workoutMetaRow}>
+          <Text style={[styles.workoutMetricInline, selected && styles.activeRowText]}>
+            {weights}
+          </Text>
+          <Text style={[styles.workoutMetricDivider, selected && styles.activeDetailText]}>/</Text>
+          <Text style={[styles.workoutMetricInline, selected && styles.activeRowText]}>
+            {reps}
+          </Text>
+        </View>
       </Pressable>
       <Tag label="DELETE" outline onPress={onDelete} />
     </View>
@@ -2018,6 +2238,10 @@ const styles = StyleSheet.create({
   actionButtonOutline: {
     backgroundColor: COLORS.card,
   },
+  actionButtonDisabled: {
+    backgroundColor: COLORS.paper2,
+    borderColor: COLORS.line,
+  },
   actionButtonText: {
     color: COLORS.paper,
     fontSize: 11,
@@ -2030,6 +2254,9 @@ const styles = StyleSheet.create({
   },
   actionButtonTextOutline: {
     color: COLORS.ink,
+  },
+  actionButtonTextDisabled: {
+    color: COLORS.muted,
   },
   macroRow: {
     flexDirection: "row",
@@ -2354,6 +2581,19 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: COLORS.ink,
   },
+  editorInputError: {
+    borderColor: "#C75B5B",
+  },
+  validationText: {
+    fontSize: 10,
+    fontWeight: "700",
+    color: "#B34848",
+  },
+  fieldHint: {
+    fontSize: 10,
+    color: COLORS.muted,
+    marginTop: -4,
+  },
   editorCalories: {
     fontSize: 10,
     fontWeight: "800",
@@ -2405,7 +2645,6 @@ const styles = StyleSheet.create({
   },
   workoutRow: {
     flexDirection: "row",
-    flexWrap: "wrap",
     alignItems: "center",
     gap: 8,
     paddingVertical: 10,
@@ -2417,31 +2656,33 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: 0,
     flexDirection: "row",
-    alignItems: "flex-start",
-    gap: 8,
+    alignItems: "center",
+    gap: 12,
+  },
+  workoutTitleBlock: {
+    flex: 1,
+    minWidth: 0,
   },
   workoutName: {
-    flex: 1.6,
-    minWidth: 0,
     fontSize: 11,
     fontWeight: "800",
     color: COLORS.ink,
   },
-  workoutCell: {
-    flex: 0.8,
-    minWidth: 0,
+  workoutMetaRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    flexShrink: 0,
+  },
+  workoutMetricInline: {
     fontSize: 10,
     fontWeight: "700",
     color: COLORS.ink,
-    textAlign: "right",
   },
-  liftEditor: {
-    gap: 8,
-    borderWidth: 2,
-    borderColor: COLORS.line,
-    borderRadius: 18,
-    backgroundColor: COLORS.card2,
-    padding: 10,
+  workoutMetricDivider: {
+    fontSize: 10,
+    fontWeight: "700",
+    color: COLORS.muted,
   },
   selectedRow: {
     backgroundColor: COLORS.slate,
