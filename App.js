@@ -1,7 +1,7 @@
 import { StatusBar } from "expo-status-bar";
 import CameraView from "expo-camera/build/CameraView";
 import CameraManager from "expo-camera/build/ExpoCameraManager";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   SafeAreaProvider,
   SafeAreaView,
@@ -10,29 +10,31 @@ import {
   Keyboard,
   KeyboardAvoidingView,
   Modal,
+  PanResponder,
   Platform,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
+  useWindowDimensions,
   View,
 } from "react-native";
 
 const COLORS = {
-  paper: "#E8E5DD",
-  paper2: "#DCD8CE",
+  paper: "#F8F9FC",
+  paper2: "#E1E6F0",
   card: "#FFFFFF",
-  card2: "#F4F1E8",
-  ink: "#0A0A0A",
-  muted: "#555555",
-  muted2: "#888888",
-  line: "#1A1A1A",
-  signal: "#FF3B00",
-  gold: "#C9A227",
-  forest: "#2C5234",
-  slate: "#3F4044",
-  plum: "#502B4D",
+  card2: "#F3F6FC",
+  ink: "#0B1440",
+  muted: "#5E6C84",
+  muted2: "#8996B2",
+  line: "#D0D7E5",
+  signal: "#0B1048",
+  gold: "#D0A010",
+  forest: "#2E6B45",
+  slate: "#4A5A80",
+  plum: "#7E5B8E",
 };
 
 const TABS = [
@@ -116,17 +118,182 @@ function makeWorkoutQueue(split) {
   }));
 }
 
-const INITIAL_WORKOUT_QUEUE = makeWorkoutQueue("PUSH");
+const MAX_LIFT_NAME_LENGTH = 24;
 
-const TREND = [
-  { day: "M", value: 72 },
-  { day: "T", value: 84 },
-  { day: "W", value: 65 },
-  { day: "T", value: 90 },
-  { day: "F", value: 76 },
-  { day: "S", value: 58 },
-  { day: "S", value: 68 },
+function validateWeightValue(value) {
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return "Add a weight to continue.";
+  }
+  if (!/^\d+(\.\d+)?$/.test(trimmed)) {
+    return "Use numbers only, like 185 or 185.5.";
+  }
+  return "";
+}
+
+function validateRepsValue(value) {
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return "Add your reps to continue.";
+  }
+  if (!/^\d+$/.test(trimmed)) {
+    return "Use a whole number, like 8 or 10.";
+  }
+  return "";
+}
+
+function validateLiftDraft(draft, workoutQueue) {
+  const errors = { lift: "" };
+  const trimmedLift = draft.lift.trim();
+  if (!trimmedLift) {
+    errors.lift = "Give this lift a name.";
+  } else if (trimmedLift.length < 2) {
+    errors.lift = "Use at least 2 characters.";
+  } else if (trimmedLift.length > MAX_LIFT_NAME_LENGTH) {
+    errors.lift = `Keep the name under ${MAX_LIFT_NAME_LENGTH} characters.`;
+  } else if (!/[A-Za-z]/.test(trimmedLift)) {
+    errors.lift = "Use letters in the lift name.";
+  } else {
+    const normalizedLift = trimmedLift.toUpperCase();
+    if (workoutQueue.some((item) => item.lift === normalizedLift)) {
+      errors.lift = "That lift is already on today's workout.";
+    }
+  }
+  return errors;
+}
+
+function validateTrackedLiftDraft(draft, trackedLifts) {
+  const errors = { lift: "" };
+  const trimmedLift = draft.lift.trim();
+  if (!trimmedLift) {
+    errors.lift = "Give this lift a name.";
+  } else if (trimmedLift.length < 2) {
+    errors.lift = "Use at least 2 characters.";
+  } else if (trimmedLift.length > MAX_LIFT_NAME_LENGTH) {
+    errors.lift = `Keep the name under ${MAX_LIFT_NAME_LENGTH} characters.`;
+  } else if (!/[A-Za-z]/.test(trimmedLift)) {
+    errors.lift = "Use letters in the lift name.";
+  } else if (trackedLifts.includes(trimmedLift.trim().toUpperCase())) {
+    errors.lift = "That lift is already being tracked.";
+  }
+  return errors;
+}
+
+function validateLogSetDraft(draft) {
+  return {
+    weight: validateWeightValue(draft.weight),
+    reps: validateRepsValue(draft.reps),
+  };
+}
+
+const INITIAL_WORKOUT_QUEUE = makeWorkoutQueue("PUSH");
+const PROGRESS_PERIODS = [
+  { key: "7D", points: 7 },
+  { key: "14D", points: 8 },
+  { key: "30D", points: 10 },
+  { key: "90D", points: 10 },
+  { key: "1Y", points: 10 },
+  { key: "5Y", points: 10 },
+  { key: "ALL", points: Number.MAX_SAFE_INTEGER },
 ];
+const WEIGHT_HISTORY = [
+  { label: "APR 01", value: 191.4 },
+  { label: "APR 08", value: 190.8 },
+  { label: "APR 15", value: 189.9 },
+  { label: "APR 22", value: 189.2 },
+  { label: "APR 29", value: 188.8 },
+  { label: "MAY 06", value: 187.9 },
+  { label: "MAY 13", value: 187.1 },
+  { label: "MAY 20", value: 186.6 },
+  { label: "MAY 27", value: 185.4 },
+  { label: "JUN 03", value: 184.2 },
+];
+const WORKOUT_HISTORY = {
+  BENCH: [
+    { label: "APR 01", value: 205 },
+    { label: "APR 08", value: 210 },
+    { label: "APR 15", value: 210 },
+    { label: "APR 22", value: 215 },
+    { label: "APR 29", value: 215 },
+    { label: "MAY 06", value: 220 },
+    { label: "MAY 13", value: 220 },
+    { label: "MAY 20", value: 225 },
+    { label: "MAY 27", value: 230 },
+    { label: "JUN 03", value: 235 },
+  ],
+  OHP: [
+    { label: "APR 01", value: 125 },
+    { label: "APR 08", value: 125 },
+    { label: "APR 15", value: 130 },
+    { label: "APR 22", value: 130 },
+    { label: "APR 29", value: 135 },
+    { label: "MAY 06", value: 135 },
+    { label: "MAY 13", value: 140 },
+    { label: "MAY 20", value: 140 },
+    { label: "MAY 27", value: 145 },
+    { label: "JUN 03", value: 145 },
+  ],
+  "BACK SQUAT": [
+    { label: "APR 01", value: 245 },
+    { label: "APR 08", value: 245 },
+    { label: "APR 15", value: 255 },
+    { label: "APR 22", value: 255 },
+    { label: "APR 29", value: 265 },
+    { label: "MAY 06", value: 265 },
+    { label: "MAY 13", value: 275 },
+    { label: "MAY 20", value: 275 },
+    { label: "MAY 27", value: 285 },
+    { label: "JUN 03", value: 285 },
+  ],
+  DEADLIFT: [
+    { label: "APR 01", value: 295 },
+    { label: "APR 08", value: 295 },
+    { label: "APR 15", value: 305 },
+    { label: "APR 22", value: 315 },
+    { label: "APR 29", value: 315 },
+    { label: "MAY 06", value: 325 },
+    { label: "MAY 13", value: 325 },
+    { label: "MAY 20", value: 335 },
+    { label: "MAY 27", value: 345 },
+    { label: "JUN 03", value: 345 },
+  ],
+};
+
+const CALENDAR_MONTH = {
+  days: [
+    null,
+    { day: 1, weight: 184.8, workout: "PUSH" },
+    { day: 2, weight: 184.4, workout: "PULL" },
+    { day: 3, weight: 184.2, workout: "LEGS" },
+    { day: 4, weight: null, workout: null },
+    { day: 5, weight: 183.9, workout: "PUSH" },
+    { day: 6, weight: null, workout: null },
+    { day: 7, weight: 183.8, workout: "PULL" },
+    { day: 8, weight: 183.6, workout: null },
+    { day: 9, weight: 183.5, workout: "LEGS" },
+    { day: 10, weight: null, workout: "PUSH" },
+    { day: 11, weight: null, workout: null },
+    { day: 12, weight: 183.2, workout: "PULL" },
+    { day: 13, weight: null, workout: null },
+    { day: 14, weight: 183.1, workout: "LEGS" },
+    { day: 15, weight: 183.0, workout: "PUSH" },
+    { day: 16, weight: null, workout: null },
+    { day: 17, weight: 182.8, workout: "PULL" },
+    { day: 18, weight: null, workout: null },
+    { day: 19, weight: 182.7, workout: "LEGS" },
+    { day: 20, weight: null, workout: null },
+    { day: 21, weight: 182.4, workout: "PUSH" },
+    { day: 22, weight: null, workout: null },
+    { day: 23, weight: 182.3, workout: "PULL" },
+    { day: 24, weight: 182.1, workout: "LEGS" },
+    { day: 25, weight: null, workout: null },
+    { day: 26, weight: 181.9, workout: "PUSH" },
+    { day: 27, weight: null, workout: null },
+    { day: 28, weight: 181.8, workout: "PULL" },
+    { day: 29, weight: null, workout: null },
+    { day: 30, weight: 181.6, workout: "LEGS" },
+  ],
+};
 
 const SETTINGS_ROWS = [
   ["GOAL MODE", "CUT // 2400 KCAL"],
@@ -200,6 +367,10 @@ function AppContent() {
   const progressPercent = Math.min((caloriesConsumed / caloriesGoal) * 100, 100);
   const progressBar = asciiProgress(progressPercent);
   const selectedLift = workoutQueue.find((item) => item.id === selectedLiftId) ?? workoutQueue[0] ?? null;
+  const liftDraftErrors = validateLiftDraft(liftDraft, workoutQueue);
+  const hasLiftDraftErrors = Object.values(liftDraftErrors).some(Boolean);
+  const logSetDraftErrors = validateLogSetDraft(logSetDraft);
+  const hasLogSetDraftErrors = Object.values(logSetDraftErrors).some(Boolean);
 
   const addMealEntry = (template, source = mealInputMode) => {
     const macroDelta = template.macroDelta ?? parseMacroDetail(template.detail);
@@ -513,6 +684,10 @@ function AppContent() {
   };
 
   const saveLoggedSet = () => {
+    if (hasLogSetDraftErrors) {
+      return false;
+    }
+
     setWorkoutQueue((current) => {
       const targetIndex = current.findIndex((item) => item.id === selectedLiftId);
       if (targetIndex === -1) {
@@ -523,8 +698,8 @@ function AppContent() {
         if (index === targetIndex) {
           const loggedSet = {
             id: `set-${Date.now()}`,
-            reps: logSetDraft.reps.trim() || "--",
-            weight: logSetDraft.weight.trim().toUpperCase() || "--",
+            reps: logSetDraft.reps.trim(),
+            weight: logSetDraft.weight.trim(),
           };
           const loggedSets = [...(item.loggedSets ?? []), loggedSet];
           return {
@@ -539,6 +714,7 @@ function AppContent() {
     });
     setIsLoggingSet(false);
     setLogSetDraft({ reps: "", weight: "" });
+    return true;
   };
 
   const cancelLogSet = () => {
@@ -546,10 +722,24 @@ function AppContent() {
     setLogSetDraft({ reps: "", weight: "" });
   };
 
+  const openAddLift = () => {
+    setLiftDraft({ lift: "" });
+    setIsAddingLift(true);
+  };
+
+  const cancelAddLift = () => {
+    setLiftDraft({ lift: "" });
+    setIsAddingLift(false);
+  };
+
   const addDayLift = () => {
+    if (hasLiftDraftErrors) {
+      return false;
+    }
+
     const nextLift = {
       id: `custom-lift-${Date.now()}`,
-      lift: (liftDraft.lift.trim() || "NEW LIFT").toUpperCase(),
+      lift: liftDraft.lift.trim().toUpperCase(),
       scheme: "--",
       load: "--",
     };
@@ -558,6 +748,7 @@ function AppContent() {
     setSelectedLiftId(nextLift.id);
     setLiftDraft({ lift: "" });
     setIsAddingLift(false);
+    return true;
   };
 
   const deleteDayLift = (liftId) => {
@@ -701,12 +892,17 @@ function AppContent() {
             selectedLiftId={selectedLiftId}
             onSelectLift={setSelectedLiftId}
             isAddingLift={isAddingLift}
-            setIsAddingLift={setIsAddingLift}
             liftDraft={liftDraft}
             setLiftDraft={setLiftDraft}
+            liftDraftErrors={liftDraftErrors}
+            hasLiftDraftErrors={hasLiftDraftErrors}
             isLoggingSet={isLoggingSet}
             logSetDraft={logSetDraft}
+            logSetDraftErrors={logSetDraftErrors}
+            hasLogSetDraftErrors={hasLogSetDraftErrors}
             setLogSetDraft={setLogSetDraft}
+            onOpenAddLift={openAddLift}
+            onCancelAddLift={cancelAddLift}
             onAddLift={addDayLift}
             onDeleteLift={deleteDayLift}
             onAdvance={advanceWorkout}
@@ -715,7 +911,7 @@ function AppContent() {
           />
         );
       case "progress":
-        return <ProgressScreen trend={TREND} macros={macros} />;
+        return <ProgressScreen macros={macros} todayWeight={todayWeight} />;
       case "settings":
         return (
           <SettingsScreen
@@ -757,7 +953,11 @@ function AppContent() {
     isAddingLift,
     isEditingWeight,
     liftDraft,
+    liftDraftErrors,
+    hasLiftDraftErrors,
     logSetDraft,
+    logSetDraftErrors,
+    hasLogSetDraftErrors,
     scannedBarcode,
     todayWeight,
     workoutQueue,
@@ -799,8 +999,8 @@ function Header({ caloriesRemaining, currentSplit }) {
 
   return (
     <View style={styles.header}>
-      <View>
-        <Text style={styles.wordmark}>FUEL + INCREMENT</Text>
+      <View style={styles.headerBrand}>
+        <Text style={styles.headerWordmark}>INCREMENT</Text>
         <Text style={styles.headerSub}>{todayLabel} // {currentSplit}</Text>
       </View>
       <View style={styles.badgeHot}>
@@ -1326,12 +1526,17 @@ function WorkoutScreen({
   selectedLiftId,
   onSelectLift,
   isAddingLift,
-  setIsAddingLift,
   liftDraft,
   setLiftDraft,
+  liftDraftErrors,
+  hasLiftDraftErrors,
   isLoggingSet,
   logSetDraft,
+  logSetDraftErrors,
+  hasLogSetDraftErrors,
   setLogSetDraft,
+  onOpenAddLift,
+  onCancelAddLift,
   onAddLift,
   onDeleteLift,
   onAdvance,
@@ -1342,27 +1547,6 @@ function WorkoutScreen({
     <View style={styles.workoutScreen}>
       <View style={[styles.card, styles.workoutPanel]}>
         <CardHeader id="008" title="TODAY'S WORKOUT" />
-        <View style={styles.actionColumn}>
-          <ActionButton
-            label={isAddingLift ? "CANCEL ADD" : "+ ADD LIFT"}
-            outline={!isAddingLift}
-            hot={isAddingLift}
-            onPress={() => setIsAddingLift((value) => !value)}
-          />
-          <ActionButton label="+ LOG SET" hot onPress={onAdvance} />
-        </View>
-        {isAddingLift ? (
-          <View style={styles.liftEditor}>
-            <TextInput
-              value={liftDraft.lift}
-              onChangeText={(value) => setLiftDraft((current) => ({ ...current, lift: value }))}
-              placeholder="Lift name"
-              placeholderTextColor={COLORS.muted}
-              style={styles.mealEditorInput}
-            />
-            <ActionButton label="ADD TO TODAY" hot onPress={onAddLift} />
-          </View>
-        ) : null}
         <ScrollView
           style={styles.workoutList}
           contentContainerStyle={styles.workoutListContent}
@@ -1378,52 +1562,93 @@ function WorkoutScreen({
             />
           ))}
         </ScrollView>
+        <View style={styles.actionColumn}>
+          <ActionButton label="+ ADD LIFT" outline onPress={onOpenAddLift} />
+          <ActionButton label="+ LOG SET" hot onPress={onAdvance} />
+        </View>
       </View>
       <LogSetModal
         visible={isLoggingSet}
         logSetDraft={logSetDraft}
+        errors={logSetDraftErrors}
+        hasErrors={hasLogSetDraftErrors}
         setLogSetDraft={setLogSetDraft}
         onSave={onSaveLoggedSet}
         onCancel={onCancelLogSet}
+      />
+      <AddLiftModal
+        visible={isAddingLift}
+        liftDraft={liftDraft}
+        errors={liftDraftErrors}
+        hasErrors={hasLiftDraftErrors}
+        setLiftDraft={setLiftDraft}
+        onSave={onAddLift}
+        onCancel={onCancelAddLift}
       />
     </View>
   );
 }
 
-function LogSetModal({
+function AddLiftModal({
   visible,
-  logSetDraft,
-  setLogSetDraft,
+  liftDraft,
+  errors,
+  hasErrors,
+  setLiftDraft,
   onSave,
   onCancel,
 }) {
+  const [showValidation, setShowValidation] = useState(false);
+
+  const closeModal = () => {
+    setShowValidation(false);
+    onCancel();
+  };
+
+  const submitLift = () => {
+    setShowValidation(true);
+    if (onSave()) {
+      setShowValidation(false);
+    }
+  };
+
   return (
-    <Modal visible={visible} animationType="fade" transparent onRequestClose={onCancel}>
-      <Pressable style={styles.weightModalOverlay} onPress={onCancel}>
+    <Modal visible={visible} animationType="fade" transparent onRequestClose={closeModal}>
+      <Pressable style={styles.weightModalOverlay} onPress={closeModal}>
         <KeyboardAvoidingView
           behavior={Platform.OS === "ios" ? "padding" : undefined}
           style={styles.weightModalAvoider}
         >
           <Pressable style={styles.weightModalCard} onPress={() => {}}>
-            <CardHeader id="009" title="LOG SET" />
+            <CardHeader id="010" title="ADD LIFT" />
+            <Text style={styles.sectionText}>Add a custom movement to today&apos;s queue.</Text>
             <TextInput
-              value={logSetDraft.weight}
-              onChangeText={(value) => setLogSetDraft((current) => ({ ...current, weight: value }))}
-              placeholder="Weight, e.g. 185 LB"
+              value={liftDraft.lift}
+              onChangeText={(value) => {
+                if (!showValidation) {
+                  setShowValidation(true);
+                }
+                setLiftDraft((current) => ({ ...current, lift: value }));
+              }}
+              placeholder="Workout name"
               placeholderTextColor={COLORS.muted}
-              style={styles.mealEditorInput}
+              autoCapitalize="characters"
+              autoCorrect={false}
+              maxLength={MAX_LIFT_NAME_LENGTH}
+              style={[
+                styles.mealEditorInput,
+                showValidation && errors.lift && styles.editorInputError,
+              ]}
             />
-            <TextInput
-              value={logSetDraft.reps}
-              onChangeText={(value) => setLogSetDraft((current) => ({ ...current, reps: value }))}
-              placeholder="Reps, e.g. 8"
-              placeholderTextColor={COLORS.muted}
-              keyboardType="number-pad"
-              style={styles.mealEditorInput}
-            />
+            <Text style={styles.fieldHint}>
+              {liftDraft.lift.length}/{MAX_LIFT_NAME_LENGTH} characters
+            </Text>
+            {showValidation && errors.lift ? (
+              <Text style={styles.validationText}>{errors.lift}</Text>
+            ) : null}
             <View style={styles.actionRow}>
-              <ActionButton label="SAVE SET" hot onPress={onSave} />
-              <ActionButton label="CANCEL" outline onPress={onCancel} />
+              <ActionButton label="ADD TO TODAY" hot disabled={hasErrors} onPress={submitLift} />
+              <ActionButton label="CANCEL" outline onPress={closeModal} />
             </View>
           </Pressable>
         </KeyboardAvoidingView>
@@ -1432,39 +1657,656 @@ function LogSetModal({
   );
 }
 
-function ProgressScreen({ trend, macros }) {
+function LogSetModal({
+  visible,
+  logSetDraft,
+  errors,
+  hasErrors,
+  setLogSetDraft,
+  onSave,
+  onCancel,
+}) {
+  const [showValidation, setShowValidation] = useState(false);
+
+  const closeModal = () => {
+    setShowValidation(false);
+    onCancel();
+  };
+
+  const submitSet = () => {
+    setShowValidation(true);
+    if (onSave()) {
+      setShowValidation(false);
+    }
+  };
+
+  return (
+    <Modal visible={visible} animationType="fade" transparent onRequestClose={closeModal}>
+      <Pressable style={styles.weightModalOverlay} onPress={closeModal}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
+          style={styles.weightModalAvoider}
+        >
+          <Pressable style={styles.weightModalCard} onPress={() => {}}>
+            <CardHeader id="009" title="LOG SET" />
+            <TextInput
+              value={logSetDraft.weight}
+              onChangeText={(value) => {
+                if (!showValidation) {
+                  setShowValidation(true);
+                }
+                setLogSetDraft((current) => ({ ...current, weight: value }));
+              }}
+              placeholder="Weight"
+              placeholderTextColor={COLORS.muted}
+              keyboardType="decimal-pad"
+              style={[
+                styles.mealEditorInput,
+                showValidation && errors.weight && styles.editorInputError,
+              ]}
+            />
+            {showValidation && errors.weight ? (
+              <Text style={styles.validationText}>{errors.weight}</Text>
+            ) : null}
+            <TextInput
+              value={logSetDraft.reps}
+              onChangeText={(value) => {
+                if (!showValidation) {
+                  setShowValidation(true);
+                }
+                setLogSetDraft((current) => ({ ...current, reps: value }));
+              }}
+              placeholder="Reps"
+              placeholderTextColor={COLORS.muted}
+              keyboardType="number-pad"
+              style={[
+                styles.mealEditorInput,
+                showValidation && errors.reps && styles.editorInputError,
+              ]}
+            />
+            {showValidation && errors.reps ? (
+              <Text style={styles.validationText}>{errors.reps}</Text>
+            ) : null}
+            <View style={styles.actionRow}>
+              <ActionButton label="SAVE SET" hot disabled={hasErrors} onPress={submitSet} />
+              <ActionButton label="CANCEL" outline onPress={closeModal} />
+            </View>
+          </Pressable>
+        </KeyboardAvoidingView>
+      </Pressable>
+    </Modal>
+  );
+}
+
+function ProgressDropdown({
+  label,
+  value,
+  options,
+  onSelect,
+  compact = false,
+  containerStyle,
+}) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <View
+      style={[
+        styles.progressDropdownWrap,
+        compact && styles.progressDropdownWrapCompact,
+        containerStyle,
+      ]}
+    >
+      <Pressable
+        onPress={() => setOpen((current) => !current)}
+        style={({ pressed }) => [
+          styles.progressDropdownButton,
+          compact && styles.progressDropdownButtonCompact,
+          pressed && styles.pressed,
+        ]}
+      >
+        <Text style={[styles.progressDropdownLabel, compact && styles.progressDropdownLabelCompact]}>
+          {label}
+        </Text>
+        <Text style={[styles.progressDropdownValue, compact && styles.progressDropdownValueCompact]}>
+          {value} ▼
+        </Text>
+      </Pressable>
+      {open ? (
+        <View style={styles.progressDropdownMenu}>
+          {options.map((option) => (
+            <Pressable
+              key={option}
+              onPress={() => {
+                onSelect(option);
+                setOpen(false);
+              }}
+              style={({ pressed }) => [
+                styles.progressDropdownItem,
+                option === value && styles.progressDropdownItemActive,
+                pressed && styles.pressed,
+              ]}
+            >
+              <Text
+                style={[
+                  styles.progressDropdownItemText,
+                  option === value && styles.progressDropdownItemTextActive,
+                ]}
+              >
+                {option}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+      ) : null}
+    </View>
+  );
+}
+
+function TrendLineChart({
+  title,
+  data,
+  selectedIndex,
+  onSelect,
+  valueSuffix = "",
+  valueDecimals = 0,
+}) {
+  const { width: screenWidth } = useWindowDimensions();
+  const chartWidth = Math.max(Math.min(screenWidth - 104, 288), 210);
+  const chartHeight = 124;
+  const points = buildTrendCoordinates(data, chartWidth, chartHeight);
+  if (!points.length) {
+    return (
+      <View style={styles.trendCard}>
+        <View style={styles.trendCardHeader}>
+          <Text style={styles.trendCardTitle}>{title}</Text>
+        </View>
+        <View style={[styles.trendEmptyState, { width: chartWidth }]}>
+          <Text style={styles.trendEmptyTitle}>No history yet</Text>
+          <Text style={styles.trendEmptyText}>Log this lift to start seeing progress over time.</Text>
+        </View>
+      </View>
+    );
+  }
+  const activePoint = points[selectedIndex] ?? points[points.length - 1];
+  const previousPoint = points[Math.max(selectedIndex - 1, 0)] ?? activePoint;
+  const delta = activePoint ? activePoint.value - previousPoint.value : 0;
+  const deltaLabel = `${delta < 0 ? "" : "+"}${delta.toFixed(valueDecimals)}${valueSuffix}`;
+
+  return (
+    <View style={styles.trendCard}>
+      <View style={styles.trendCardHeader}>
+        <Text style={styles.trendCardTitle}>{title}</Text>
+        {activePoint ? (
+          <View style={styles.trendCardValueGroup}>
+            <Text style={styles.trendCardValue}>
+              {activePoint.value.toFixed(valueDecimals)}
+              {valueSuffix}
+            </Text>
+            <Text style={styles.trendCardMeta}>
+              {activePoint.label} // {deltaLabel}
+            </Text>
+          </View>
+        ) : null}
+      </View>
+      <View style={[styles.trendCanvas, { width: chartWidth, height: chartHeight }]}>
+        <View style={styles.trendGridLine} />
+        <View style={[styles.trendGridLine, styles.trendGridLineMid]} />
+        {points.map((point, index) => {
+          if (index === 0) {
+            return null;
+          }
+          const previous = points[index - 1];
+          const dx = point.x - previous.x;
+          const dy = point.y - previous.y;
+          const length = Math.sqrt(dx * dx + dy * dy);
+          const angle = Math.atan2(dy, dx);
+          const midX = (point.x + previous.x) / 2;
+          const midY = (point.y + previous.y) / 2;
+
+          return (
+            <View
+              key={`segment-${point.label}-${index}`}
+              style={[
+                styles.trendSegment,
+                {
+                  width: length,
+                  left: midX - length / 2,
+                  top: midY - 1.5,
+                  transform: [{ rotate: `${angle}rad` }],
+                },
+              ]}
+            />
+          );
+        })}
+        {points.map((point, index) => (
+          <Pressable
+            key={`${point.label}-${index}`}
+            onPress={() => onSelect(index)}
+            style={[
+              styles.trendPointHitbox,
+              {
+                left: point.x - 14,
+                top: point.y - 14,
+              },
+            ]}
+          >
+            <View
+              style={[
+                styles.trendPoint,
+                index === selectedIndex && styles.trendPointActive,
+              ]}
+            />
+          </Pressable>
+        ))}
+      </View>
+      <View style={[styles.trendLabelsRow, { width: chartWidth }]}>
+        {points.map((point, index) => (
+          <Text
+            key={`label-${point.label}-${index}`}
+            style={[
+              styles.trendAxisLabel,
+              index === selectedIndex && styles.trendAxisLabelActive,
+            ]}
+          >
+            {point.label}
+          </Text>
+        ))}
+      </View>
+    </View>
+  );
+}
+
+function AddTrackedLiftModal({
+  visible,
+  trackedLiftDraft,
+  errors,
+  hasErrors,
+  setTrackedLiftDraft,
+  onSave,
+  onCancel,
+}) {
+  const [showValidation, setShowValidation] = useState(false);
+
+  const closeModal = () => {
+    setShowValidation(false);
+    onCancel();
+  };
+
+  const submitLift = () => {
+    setShowValidation(true);
+    if (onSave()) {
+      setShowValidation(false);
+    }
+  };
+
+  return (
+    <Modal visible={visible} animationType="fade" transparent onRequestClose={closeModal}>
+      <Pressable style={styles.weightModalOverlay} onPress={closeModal}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
+          style={styles.weightModalAvoider}
+        >
+          <Pressable style={styles.weightModalCard} onPress={() => {}}>
+            <CardHeader id="013" title="ADD TRACKED LIFT" />
+            <Text style={styles.sectionText}>Track another lift in workout progress.</Text>
+            <TextInput
+              value={trackedLiftDraft.lift}
+              onChangeText={(value) => {
+                if (!showValidation) {
+                  setShowValidation(true);
+                }
+                setTrackedLiftDraft({ lift: value });
+              }}
+              placeholder="Lift name"
+              placeholderTextColor={COLORS.muted}
+              autoCapitalize="characters"
+              autoCorrect={false}
+              maxLength={MAX_LIFT_NAME_LENGTH}
+              style={[
+                styles.mealEditorInput,
+                showValidation && errors.lift && styles.editorInputError,
+              ]}
+            />
+            <Text style={styles.fieldHint}>
+              {trackedLiftDraft.lift.length}/{MAX_LIFT_NAME_LENGTH} characters
+            </Text>
+            {showValidation && errors.lift ? (
+              <Text style={styles.validationText}>{errors.lift}</Text>
+            ) : null}
+            <View style={styles.actionRow}>
+              <ActionButton label="ADD LIFT" hot disabled={hasErrors} onPress={submitLift} />
+              <ActionButton label="CANCEL" outline onPress={closeModal} />
+            </View>
+          </Pressable>
+        </KeyboardAvoidingView>
+      </Pressable>
+    </Modal>
+  );
+}
+
+function GoalSlider({ value, max, onChange }) {
+  const [sliderFrame, setSliderFrame] = useState({ width: 0, pageX: 0 });
+  const sliderRef = useRef(null);
+  const thumbSize = 24;
+  const safeValue = Math.max(0, Math.min(value, max));
+  const ratio = max > 0 ? safeValue / max : 0;
+  const thumbCenter = sliderFrame.width * ratio;
+
+  const measureSlider = () => {
+    sliderRef.current?.measureInWindow((pageX, _pageY, width) => {
+      setSliderFrame({ width, pageX });
+    });
+  };
+
+  const updateValueFromPageX = (pageX) => {
+    if (!sliderFrame.width) {
+      return;
+    }
+    const relativeX = pageX - sliderFrame.pageX;
+    const clampedX = Math.max(0, Math.min(relativeX, sliderFrame.width));
+    const nextValue = Math.round((clampedX / sliderFrame.width) * max);
+    onChange(nextValue);
+  };
+
+  const panResponder = useMemo(
+    () =>
+      PanResponder.create({
+        onStartShouldSetPanResponder: () => true,
+        onMoveShouldSetPanResponder: () => true,
+        onPanResponderGrant: (event) => {
+          measureSlider();
+          updateValueFromPageX(event.nativeEvent.pageX);
+        },
+        onPanResponderMove: (event) => {
+          updateValueFromPageX(event.nativeEvent.pageX);
+        },
+        onPanResponderTerminationRequest: () => false,
+      }),
+    [max, sliderFrame.width, sliderFrame.pageX],
+  );
+
+  return (
+    <View style={styles.goalSliderBlock}>
+      <View
+        ref={sliderRef}
+        style={styles.goalSlider}
+        onLayout={measureSlider}
+        {...panResponder.panHandlers}
+      >
+        <View style={styles.goalSliderTrack} />
+        <View
+          style={[
+            styles.goalSliderFill,
+            {
+              width: sliderFrame.width ? thumbCenter : 0,
+            },
+          ]}
+        />
+        <View
+          style={[
+            styles.goalSliderThumb,
+            {
+              left: Math.max(
+                0,
+                Math.min(thumbCenter - thumbSize / 2, Math.max(sliderFrame.width - thumbSize, 0)),
+              ),
+            },
+          ]}
+        />
+      </View>
+      <View style={styles.goalSliderScale}>
+        <Text style={styles.goalSliderScaleText}>0</Text>
+        <Text style={styles.goalSliderScaleText}>{max}</Text>
+      </View>
+    </View>
+  );
+}
+
+function WorkoutGoalModal({
+  visible,
+  windowLabel,
+  value,
+  max,
+  onSelect,
+  onCancel,
+}) {
+  const numericValue = Number.parseInt(value, 10) || 0;
+  const [draftValue, setDraftValue] = useState(numericValue);
+
+  useEffect(() => {
+    if (visible) {
+      setDraftValue(numericValue);
+    }
+  }, [numericValue, visible]);
+
+  return (
+    <Modal visible={visible} animationType="fade" transparent onRequestClose={onCancel}>
+      <Pressable style={styles.weightModalOverlay} onPress={onCancel}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
+          style={styles.weightModalAvoider}
+        >
+          <Pressable style={styles.weightModalCard} onPress={() => {}}>
+            <CardHeader id="010" title={`${windowLabel} GOAL`} />
+            <Text style={styles.sectionText}>Choose how many workouts you want for {windowLabel.toLowerCase()}.</Text>
+            <View style={styles.goalSliderValueWrap}>
+              <Text style={styles.goalSliderValue}>{draftValue}X</Text>
+              <Text style={styles.goalSliderCaption}>workouts</Text>
+            </View>
+            <GoalSlider value={draftValue} max={max} onChange={setDraftValue} />
+            <View style={styles.actionRow}>
+              <ActionButton
+                label="SAVE"
+                hot
+                onPress={() => {
+                  onSelect(String(draftValue));
+                  onCancel();
+                }}
+              />
+              <ActionButton label="CLOSE" outline onPress={onCancel} />
+            </View>
+          </Pressable>
+        </KeyboardAvoidingView>
+      </Pressable>
+    </Modal>
+  );
+}
+
+function ProgressScreen({ macros, todayWeight }) {
+  const [weightPeriod, setWeightPeriod] = useState("30D");
+  const [workoutPeriod, setWorkoutPeriod] = useState("30D");
+  const [selectedWorkoutLift, setSelectedWorkoutLift] = useState("BENCH");
+  const [trackedLifts, setTrackedLifts] = useState(["BENCH", "BACK SQUAT", "DEADLIFT"]);
+  const [isAddingTrackedLift, setIsAddingTrackedLift] = useState(false);
+  const [trackedLiftDraft, setTrackedLiftDraft] = useState({ lift: "" });
+  const [selectedWeightPoint, setSelectedWeightPoint] = useState(0);
+  const [selectedWorkoutPoint, setSelectedWorkoutPoint] = useState(0);
+  const [weeklyWorkoutGoal, setWeeklyWorkoutGoal] = useState("4");
+  const [monthlyWorkoutGoal, setMonthlyWorkoutGoal] = useState("16");
+  const [editingGoalWindow, setEditingGoalWindow] = useState(null);
   const adherence = Math.round(
     macros.reduce((sum, macro) => sum + Math.min(macro.consumed / macro.target, 1), 0) /
       macros.length *
       100,
   );
+  const weightHistory = pickPeriodData(WEIGHT_HISTORY, weightPeriod);
+  const workoutHistory = pickPeriodData(WORKOUT_HISTORY[selectedWorkoutLift] ?? [], workoutPeriod);
+  const weightSummary = trendSummary(weightHistory);
+  const workoutSummary = trendSummary(workoutHistory);
+  const weightDeltaLabel = `${weightSummary.delta <= 0 ? "" : "+"}${weightSummary.delta.toFixed(1)} LB`;
+  const workoutDeltaLabel = `${workoutSummary.delta <= 0 ? "" : "+"}${workoutSummary.delta.toFixed(0)} LB`;
+  const trackedLiftErrors = validateTrackedLiftDraft(trackedLiftDraft, trackedLifts);
+  const hasTrackedLiftErrors = Object.values(trackedLiftErrors).some(Boolean);
+  const today = new Date();
+  const currentMonthDay = Math.min(today.getDate(), 30);
+  const weeklyWorkoutCount = countWorkoutsInWindow(CALENDAR_MONTH.days, Math.max(currentMonthDay - 6, 1), currentMonthDay);
+  const monthlyWorkoutCount = countWorkoutsInWindow(CALENDAR_MONTH.days, 1, currentMonthDay);
+
+  useEffect(() => {
+    setSelectedWeightPoint(Math.max(weightHistory.length - 1, 0));
+  }, [weightPeriod]);
+
+  useEffect(() => {
+    setSelectedWorkoutPoint(Math.max(workoutHistory.length - 1, 0));
+  }, [workoutPeriod, selectedWorkoutLift]);
+
+  const clampedWeightIndex = Math.min(selectedWeightPoint, Math.max(weightHistory.length - 1, 0));
+  const clampedWorkoutIndex = Math.min(selectedWorkoutPoint, Math.max(workoutHistory.length - 1, 0));
+
+  const saveTrackedLift = () => {
+    if (hasTrackedLiftErrors) {
+      return false;
+    }
+    const nextLift = trackedLiftDraft.lift.trim().toUpperCase();
+    setTrackedLifts((current) => [...current, nextLift]);
+    setSelectedWorkoutLift(nextLift);
+    setTrackedLiftDraft({ lift: "" });
+    setIsAddingTrackedLift(false);
+    return true;
+  };
+
+  const cancelTrackedLift = () => {
+    setTrackedLiftDraft({ lift: "" });
+    setIsAddingTrackedLift(false);
+  };
 
   return (
     <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-      <Card>
-        <CardHeader id="011" title="WEEKLY TREND" rightLabel="1RM + WEIGHT" />
-        <View style={styles.chartRow}>
-          {trend.map((item, index) => (
-            <Pressable key={`${item.day}-${index}`} style={styles.chartCol}>
-              <View style={styles.chartTrack}>
-                <View style={[styles.chartFill, { height: `${item.value}%` }]} />
-              </View>
-              <Text style={styles.chartLabel}>{item.day}</Text>
-            </Pressable>
-          ))}
+      <Card style={styles.progressCard}>
+        <CardHeader id="010" title="WORKOUT GOALS" />
+        <View style={styles.progressGoalSummary}>
+          <Pressable
+            onPress={() => setEditingGoalWindow("week")}
+            style={({ pressed }) => [
+              styles.progressGoalSummaryItem,
+              pressed && styles.pressed,
+            ]}
+          >
+            <Text style={styles.progressGoalSummaryLabel}>THIS WEEK</Text>
+            <Text style={styles.progressGoalSummaryValue}>
+              {weeklyWorkoutCount}/{weeklyWorkoutGoal}
+            </Text>
+          </Pressable>
+          <View style={styles.progressGoalSummaryDivider} />
+          <Pressable
+            onPress={() => setEditingGoalWindow("month")}
+            style={({ pressed }) => [
+              styles.progressGoalSummaryItem,
+              pressed && styles.pressed,
+            ]}
+          >
+            <Text style={styles.progressGoalSummaryLabel}>THIS MONTH</Text>
+            <Text style={styles.progressGoalSummaryValue}>
+              {monthlyWorkoutCount}/{monthlyWorkoutGoal}
+            </Text>
+          </Pressable>
         </View>
+      </Card>
+      <Card style={styles.progressCard}>
+        <CardHeader id="011" title="BODYWEIGHT TREND" rightLabel={`${todayWeight.toFixed(1)} LB`} rightHot />
+        <View style={styles.progressToolbar}>
+          <ProgressDropdown
+            label="INTERVAL"
+            value={weightPeriod}
+            options={PROGRESS_PERIODS.map((period) => period.key)}
+            onSelect={(value) => {
+              setWeightPeriod(value);
+              setSelectedWeightPoint(0);
+            }}
+          />
+        </View>
+        <TrendLineChart
+          title="Scale trend"
+          data={weightHistory}
+          selectedIndex={clampedWeightIndex}
+          onSelect={setSelectedWeightPoint}
+          valueSuffix=" LB"
+          valueDecimals={1}
+        />
         <View style={styles.inlineRow}>
-          <Text style={styles.miniStat}>BW -1.8 LB / 14D</Text>
-          <Text style={styles.miniStat}>BENCH +10 LB / 30D</Text>
+          <Text style={styles.miniStat}>CHANGE {weightDeltaLabel}</Text>
+          <Text style={styles.miniStat}>CURRENT {weightSummary.current.toFixed(1)} LB</Text>
         </View>
       </Card>
 
-      <Card>
-        <CardHeader id="012" title="PR REGISTER" />
-        <DataRow left="BENCH" centerTop="CURRENT 235 LB" centerBottom="UP 10 LB THIS BLOCK" right="+" staticRow />
-        <DataRow left="OHP" centerTop="CURRENT 145 LB" centerBottom="UP 5 LB THIS BLOCK" right="+" staticRow />
-        <DataRow left="MACROS" centerTop={`ADHERENCE ${adherence}%`} centerBottom="LIVE FROM FOOD SCREEN" right="OK" staticRow />
+      <Card style={styles.progressCard}>
+        <CardHeader id="012" title="WORKOUT PROGRESS" rightLabel={selectedWorkoutLift} />
+        <View style={styles.progressToolbar}>
+          <ProgressDropdown
+            label="LIFT"
+            value={selectedWorkoutLift}
+            options={trackedLifts}
+            compact
+            containerStyle={styles.progressDropdownLift}
+            onSelect={(value) => {
+              setSelectedWorkoutLift(value);
+              setSelectedWorkoutPoint(0);
+            }}
+          />
+          <ProgressDropdown
+            label="INTERVAL"
+            value={workoutPeriod}
+            options={PROGRESS_PERIODS.map((period) => period.key)}
+            compact
+            containerStyle={styles.progressDropdownInterval}
+            onSelect={(value) => {
+              setWorkoutPeriod(value);
+              setSelectedWorkoutPoint(0);
+            }}
+          />
+          <Pressable
+            onPress={() => setIsAddingTrackedLift(true)}
+            style={({ pressed }) => [
+              styles.progressAddButton,
+              styles.progressAddButtonCompact,
+              pressed && styles.pressed,
+            ]}
+          >
+            <Text style={[styles.progressAddButtonText, styles.progressAddButtonTextCompact]}>+ ADD LIFT</Text>
+          </Pressable>
+        </View>
+        <TrendLineChart
+          title="Performance trend"
+          data={workoutHistory}
+          selectedIndex={clampedWorkoutIndex}
+          onSelect={setSelectedWorkoutPoint}
+          valueSuffix=" LB"
+          valueDecimals={0}
+        />
+        <View style={styles.inlineRow}>
+          <Text style={styles.miniStat}>CHANGE {workoutDeltaLabel}</Text>
+          <Text style={styles.miniStat}>CURRENT {workoutSummary.current.toFixed(0)} LB</Text>
+        </View>
       </Card>
+      <AddTrackedLiftModal
+        visible={isAddingTrackedLift}
+        trackedLiftDraft={trackedLiftDraft}
+        errors={trackedLiftErrors}
+        hasErrors={hasTrackedLiftErrors}
+        setTrackedLiftDraft={setTrackedLiftDraft}
+        onSave={saveTrackedLift}
+        onCancel={cancelTrackedLift}
+      />
+      <WorkoutGoalModal
+        visible={editingGoalWindow === "week"}
+        windowLabel="WEEKLY"
+        value={weeklyWorkoutGoal}
+        max={7}
+        onSelect={(nextValue) => {
+          setWeeklyWorkoutGoal(nextValue);
+        }}
+        onCancel={() => setEditingGoalWindow(null)}
+      />
+      <WorkoutGoalModal
+        visible={editingGoalWindow === "month"}
+        windowLabel="MONTHLY"
+        value={monthlyWorkoutGoal}
+        max={31}
+        onSelect={(nextValue) => {
+          setMonthlyWorkoutGoal(nextValue);
+        }}
+        onCancel={() => setEditingGoalWindow(null)}
+      />
     </ScrollView>
   );
 }
@@ -1517,8 +2359,8 @@ function SettingsScreen({
   );
 }
 
-function Card({ children, grid = false }) {
-  return <View style={[styles.card, grid && styles.gridCard]}>{children}</View>;
+function Card({ children, grid = false, style }) {
+  return <View style={[styles.card, grid && styles.gridCard, style]}>{children}</View>;
 }
 
 function CardHeader({ id, title, rightLabel, rightHot = false }) {
@@ -1534,14 +2376,16 @@ function CardHeader({ id, title, rightLabel, rightHot = false }) {
   );
 }
 
-function ActionButton({ label, hot = false, outline = false, onPress }) {
+function ActionButton({ label, hot = false, outline = false, disabled = false, onPress }) {
   return (
     <Pressable
+      disabled={disabled}
       onPress={onPress}
       style={({ pressed }) => [
         styles.actionButton,
         hot && styles.actionButtonHot,
         outline && styles.actionButtonOutline,
+        disabled && styles.actionButtonDisabled,
         pressed && styles.pressed,
       ]}
     >
@@ -1550,6 +2394,7 @@ function ActionButton({ label, hot = false, outline = false, onPress }) {
           styles.actionButtonText,
           hot && styles.actionButtonTextHot,
           outline && styles.actionButtonTextOutline,
+          disabled && styles.actionButtonTextDisabled,
         ]}
       >
         {label}
@@ -1594,17 +2439,22 @@ function MacroRow({ label, consumed, target, color }) {
 function WorkoutRow({ item, selected = false, onPress, onDelete }) {
   const weights = item.loggedSets?.length
     ? item.loggedSets.map((set) => set.weight).join(", ")
-    : "--";
+    : item.load ?? "--";
   const reps = item.loggedSets?.length
     ? item.loggedSets.map((set) => set.reps).join(", ")
-    : "--";
+    : item.scheme ?? "--";
 
   return (
     <View style={[styles.workoutRow, selected && styles.selectedRow]}>
       <Pressable onPress={onPress} style={({ pressed }) => [styles.workoutRowMain, pressed && styles.pressed]}>
-        <Text style={[styles.workoutName, selected && styles.activeRowText]}>{item.lift}</Text>
-        <Text style={[styles.workoutCell, selected && styles.activeRowText]}>{weights}</Text>
-        <Text style={[styles.workoutCell, selected && styles.activeRowText]}>{reps}</Text>
+        <View style={styles.workoutTitleBlock}>
+          <Text style={[styles.workoutName, selected && styles.activeRowText]}>{item.lift}</Text>
+        </View>
+        <View style={styles.workoutMetaRow}>
+          <Text style={[styles.workoutMetricInline, selected && styles.activeRowText]}>{weights}</Text>
+          <Text style={[styles.workoutMetricDivider, selected && styles.activeDetailText]}>/</Text>
+          <Text style={[styles.workoutMetricInline, selected && styles.activeRowText]}>{reps}</Text>
+        </View>
       </Pressable>
       <Tag label="DELETE" outline onPress={onDelete} />
     </View>
@@ -1745,6 +2595,41 @@ function formatMacroDetail(macroDelta) {
   return `${macroDelta.PROTEIN}P / ${macroDelta.CARBS}C / ${macroDelta.FAT}F`;
 }
 
+function pickPeriodData(history, periodKey) {
+  const period = PROGRESS_PERIODS.find((item) => item.key === periodKey) ?? PROGRESS_PERIODS[0];
+  return history.slice(-period.points);
+}
+
+function trendSummary(history) {
+  if (history.length < 2) {
+    return { delta: 0, current: history[0]?.value ?? 0 };
+  }
+  return {
+    delta: history[history.length - 1].value - history[0].value,
+    current: history[history.length - 1].value,
+  };
+}
+
+function buildTrendCoordinates(history, width, height) {
+  if (!history.length) {
+    return [];
+  }
+  const max = Math.max(...history.map((item) => item.value));
+  const min = Math.min(...history.map((item) => item.value));
+  const range = Math.max(max - min, 1);
+  const step = history.length > 1 ? width / (history.length - 1) : 0;
+
+  return history.map((item, index) => ({
+    ...item,
+    x: history.length > 1 ? index * step : width / 2,
+    y: height - ((item.value - min) / range) * height,
+  }));
+}
+
+function countWorkoutsInWindow(days, startDay, endDay) {
+  return days.filter((entry) => entry && entry.day >= startDay && entry.day <= endDay && entry.workout).length;
+}
+
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
@@ -1765,7 +2650,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.paper2,
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "flex-start",
+    alignItems: "center",
     flexWrap: "wrap",
     gap: 12,
     borderTopLeftRadius: 24,
@@ -1773,10 +2658,16 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: 24,
     borderBottomRightRadius: 24,
   },
-  wordmark: {
-    fontSize: 11,
-    letterSpacing: 1.4,
-    fontWeight: "800",
+  headerBrand: {
+    flex: 1,
+    minWidth: 0,
+  },
+  headerWordmark: {
+    fontSize: 18,
+    lineHeight: 18,
+    fontWeight: "900",
+    fontStyle: "italic",
+    letterSpacing: -0.6,
     color: COLORS.ink,
   },
   headerSub: {
@@ -1958,7 +2849,7 @@ const styles = StyleSheet.create({
   weightModalOverlay: {
     flex: 1,
     justifyContent: "center",
-    backgroundColor: "rgba(10, 10, 10, 0.28)",
+    backgroundColor: "rgba(255, 255, 255, 0.96)",
     padding: 14,
   },
   weightModalAvoider: {
@@ -2018,6 +2909,10 @@ const styles = StyleSheet.create({
   actionButtonOutline: {
     backgroundColor: COLORS.card,
   },
+  actionButtonDisabled: {
+    backgroundColor: COLORS.paper2,
+    borderColor: COLORS.line,
+  },
   actionButtonText: {
     color: COLORS.paper,
     fontSize: 11,
@@ -2029,6 +2924,359 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
   },
   actionButtonTextOutline: {
+    color: COLORS.ink,
+  },
+  actionButtonTextDisabled: {
+    color: COLORS.muted,
+  },
+  progressCard: {
+    borderWidth: 1,
+    padding: 14,
+    shadowColor: "#0B1440",
+    shadowOpacity: 0.06,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 3,
+  },
+  progressGoalSummary: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    borderRadius: 18,
+    backgroundColor: COLORS.card2,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    gap: 12,
+  },
+  progressGoalSummaryItem: {
+    flex: 1,
+    gap: 3,
+    borderRadius: 14,
+    paddingVertical: 4,
+  },
+  progressGoalSummaryDivider: {
+    width: 1,
+    alignSelf: "stretch",
+    backgroundColor: COLORS.line,
+  },
+  progressGoalSummaryLabel: {
+    fontSize: 9,
+    fontWeight: "800",
+    letterSpacing: 0.9,
+    color: COLORS.muted,
+  },
+  progressGoalSummaryValue: {
+    fontSize: 22,
+    lineHeight: 24,
+    fontWeight: "900",
+    letterSpacing: -1,
+    color: COLORS.ink,
+  },
+  goalSliderValueWrap: {
+    alignItems: "center",
+    gap: 2,
+    paddingTop: 2,
+  },
+  goalSliderValue: {
+    fontSize: 32,
+    lineHeight: 34,
+    fontWeight: "900",
+    letterSpacing: -1.4,
+    color: COLORS.ink,
+  },
+  goalSliderCaption: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: COLORS.muted,
+    letterSpacing: 0.3,
+  },
+  goalSliderBlock: {
+    gap: 10,
+    paddingHorizontal: 4,
+  },
+  goalSlider: {
+    position: "relative",
+    height: 36,
+    justifyContent: "center",
+  },
+  goalSliderTrack: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    top: "50%",
+    marginTop: -2,
+    height: 4,
+    borderRadius: 999,
+    backgroundColor: COLORS.line,
+  },
+  goalSliderFill: {
+    position: "absolute",
+    left: 0,
+    top: "50%",
+    marginTop: -2,
+    height: 4,
+    borderRadius: 999,
+    backgroundColor: COLORS.signal,
+  },
+  goalSliderThumb: {
+    position: "absolute",
+    top: "50%",
+    marginTop: -12,
+    width: 24,
+    height: 24,
+    borderRadius: 999,
+    backgroundColor: COLORS.card,
+    borderWidth: 4,
+    borderColor: COLORS.signal,
+    shadowColor: "#0B1440",
+    shadowOpacity: 0.14,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 4,
+  },
+  goalSliderScale: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  goalSliderScaleText: {
+    fontSize: 11,
+    fontWeight: "800",
+    color: COLORS.muted,
+  },
+  progressToolbar: {
+    flexDirection: "row",
+    flexWrap: "nowrap",
+    gap: 6,
+    zIndex: 2,
+    alignItems: "stretch",
+  },
+  progressAddButton: {
+    flexShrink: 0,
+    minHeight: 42,
+    borderWidth: 2,
+    borderColor: COLORS.signal,
+    borderRadius: 16,
+    backgroundColor: COLORS.card,
+    paddingHorizontal: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  progressAddButtonCompact: {
+    width: 86,
+    minHeight: 30,
+    paddingHorizontal: 4,
+    borderRadius: 12,
+  },
+  progressAddButtonText: {
+    fontSize: 11,
+    fontWeight: "800",
+    letterSpacing: 0.8,
+    color: COLORS.signal,
+  },
+  progressAddButtonTextCompact: {
+    fontSize: 8,
+    letterSpacing: 0.2,
+  },
+  progressDropdownWrap: {
+    flex: 1,
+    minWidth: 0,
+    position: "relative",
+    zIndex: 3,
+  },
+  progressDropdownWrapCompact: {
+    flex: 1,
+  },
+  progressDropdownLift: {
+    flex: 1.05,
+  },
+  progressDropdownGoal: {
+    flex: 1,
+  },
+  progressDropdownInterval: {
+    flex: 0.9,
+  },
+  progressDropdownButton: {
+    minHeight: 42,
+    borderWidth: 2,
+    borderColor: COLORS.line,
+    borderRadius: 16,
+    backgroundColor: COLORS.card2,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    justifyContent: "center",
+    gap: 2,
+  },
+  progressDropdownButtonCompact: {
+    minHeight: 30,
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderRadius: 12,
+    gap: 1,
+  },
+  progressDropdownLabel: {
+    fontSize: 9,
+    fontWeight: "800",
+    letterSpacing: 0.8,
+    color: COLORS.muted,
+  },
+  progressDropdownLabelCompact: {
+    fontSize: 7,
+    letterSpacing: 0.3,
+  },
+  progressDropdownValue: {
+    fontSize: 11,
+    fontWeight: "800",
+    color: COLORS.ink,
+  },
+  progressDropdownValueCompact: {
+    fontSize: 8,
+  },
+  progressDropdownMenu: {
+    position: "absolute",
+    top: 46,
+    left: 0,
+    right: 0,
+    borderWidth: 1,
+    borderColor: COLORS.line,
+    borderRadius: 16,
+    backgroundColor: COLORS.card,
+    padding: 6,
+    gap: 4,
+    shadowColor: "#0B1440",
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 4,
+  },
+  progressDropdownItem: {
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 9,
+    backgroundColor: COLORS.card,
+  },
+  progressDropdownItemActive: {
+    backgroundColor: COLORS.signal,
+  },
+  progressDropdownItemText: {
+    fontSize: 11,
+    fontWeight: "800",
+    color: COLORS.ink,
+  },
+  progressDropdownItemTextActive: {
+    color: "#FFFFFF",
+  },
+  trendCard: {
+    marginTop: 6,
+    gap: 12,
+    alignItems: "center",
+    width: "100%",
+    borderRadius: 20,
+    backgroundColor: COLORS.card2,
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+  },
+  trendCardHeader: {
+    width: "100%",
+    gap: 4,
+  },
+  trendCardTitle: {
+    fontSize: 10,
+    fontWeight: "800",
+    letterSpacing: 0.8,
+    color: COLORS.muted,
+  },
+  trendCardValueGroup: {
+    gap: 2,
+  },
+  trendCardValue: {
+    fontSize: 22,
+    lineHeight: 24,
+    fontWeight: "900",
+    letterSpacing: -1,
+    color: COLORS.ink,
+  },
+  trendCardMeta: {
+    fontSize: 9,
+    fontWeight: "700",
+    color: COLORS.muted,
+  },
+  trendEmptyState: {
+    minHeight: 160,
+    borderWidth: 2,
+    borderColor: COLORS.line,
+    borderRadius: 20,
+    backgroundColor: COLORS.card2,
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 18,
+    gap: 8,
+  },
+  trendEmptyTitle: {
+    fontSize: 16,
+    fontWeight: "900",
+    color: COLORS.ink,
+  },
+  trendEmptyText: {
+    fontSize: 11,
+    lineHeight: 16,
+    textAlign: "center",
+    color: COLORS.muted,
+  },
+  trendCanvas: {
+    position: "relative",
+    justifyContent: "center",
+  },
+  trendGridLine: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    top: 0,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.line,
+  },
+  trendGridLineMid: {
+    top: "50%",
+  },
+  trendSegment: {
+    position: "absolute",
+    height: 3,
+    borderRadius: 999,
+    backgroundColor: COLORS.signal,
+  },
+  trendPointHitbox: {
+    position: "absolute",
+    width: 28,
+    height: 28,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  trendPoint: {
+    width: 10,
+    height: 10,
+    borderRadius: 999,
+    backgroundColor: COLORS.card,
+    borderWidth: 2,
+    borderColor: COLORS.signal,
+  },
+  trendPointActive: {
+    width: 14,
+    height: 14,
+    backgroundColor: COLORS.signal,
+  },
+  trendLabelsRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: 6,
+  },
+  trendAxisLabel: {
+    flex: 1,
+    fontSize: 8,
+    fontWeight: "700",
+    color: COLORS.muted,
+    textAlign: "center",
+  },
+  trendAxisLabelActive: {
     color: COLORS.ink,
   },
   macroRow: {
@@ -2354,6 +3602,19 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: COLORS.ink,
   },
+  editorInputError: {
+    borderColor: "#C75B5B",
+  },
+  validationText: {
+    fontSize: 10,
+    fontWeight: "700",
+    color: "#B34848",
+  },
+  fieldHint: {
+    fontSize: 10,
+    color: COLORS.muted,
+    marginTop: -4,
+  },
   editorCalories: {
     fontSize: 10,
     fontWeight: "800",
@@ -2405,7 +3666,6 @@ const styles = StyleSheet.create({
   },
   workoutRow: {
     flexDirection: "row",
-    flexWrap: "wrap",
     alignItems: "center",
     gap: 8,
     paddingVertical: 10,
@@ -2417,31 +3677,33 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: 0,
     flexDirection: "row",
-    alignItems: "flex-start",
-    gap: 8,
+    alignItems: "center",
+    gap: 12,
+  },
+  workoutTitleBlock: {
+    flex: 1,
+    minWidth: 0,
   },
   workoutName: {
-    flex: 1.6,
-    minWidth: 0,
     fontSize: 11,
     fontWeight: "800",
     color: COLORS.ink,
   },
-  workoutCell: {
-    flex: 0.8,
-    minWidth: 0,
+  workoutMetaRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    flexShrink: 0,
+  },
+  workoutMetricInline: {
     fontSize: 10,
     fontWeight: "700",
     color: COLORS.ink,
-    textAlign: "right",
   },
-  liftEditor: {
-    gap: 8,
-    borderWidth: 2,
-    borderColor: COLORS.line,
-    borderRadius: 18,
-    backgroundColor: COLORS.card2,
-    padding: 10,
+  workoutMetricDivider: {
+    fontSize: 10,
+    fontWeight: "700",
+    color: COLORS.muted,
   },
   selectedRow: {
     backgroundColor: COLORS.slate,
@@ -2452,36 +3714,6 @@ const styles = StyleSheet.create({
   },
   activeDetailText: {
     color: "#F5F5F5",
-  },
-  chartRow: {
-    flexDirection: "row",
-    alignItems: "flex-end",
-    gap: 6,
-    height: 138,
-  },
-  chartCol: {
-    flex: 1,
-    alignItems: "center",
-    gap: 8,
-  },
-  chartTrack: {
-    width: "100%",
-    height: 112,
-    borderWidth: 1,
-    borderColor: COLORS.line,
-    backgroundColor: COLORS.card2,
-    justifyContent: "flex-end",
-    borderRadius: 10,
-    overflow: "hidden",
-  },
-  chartFill: {
-    width: "100%",
-    backgroundColor: COLORS.signal,
-  },
-  chartLabel: {
-    fontSize: 9,
-    fontWeight: "700",
-    color: COLORS.ink,
   },
   settingsRow: {
     flexDirection: "row",
