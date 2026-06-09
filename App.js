@@ -347,9 +347,7 @@ function AppContent() {
   const [workoutQueue, setWorkoutQueue] = useState(INITIAL_WORKOUT_QUEUE);
   const [selectedLiftId, setSelectedLiftId] = useState(INITIAL_WORKOUT_QUEUE[0]?.id ?? null);
   const [isAddingLift, setIsAddingLift] = useState(false);
-  const [liftDraft, setLiftDraft] = useState({
-    lift: "",
-  });
+  const [liftDraft, setLiftDraft] = useState({ lift: "" });
   const [isLoggingSet, setIsLoggingSet] = useState(false);
   const [logSetDraft, setLogSetDraft] = useState({
     reps: "",
@@ -2381,6 +2379,7 @@ function ActionButton({ label, hot = false, outline = false, disabled = false, o
     <Pressable
       disabled={disabled}
       onPress={onPress}
+      disabled={disabled}
       style={({ pressed }) => [
         styles.actionButton,
         hot && styles.actionButtonHot,
