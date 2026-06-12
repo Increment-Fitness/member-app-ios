@@ -1,9 +1,14 @@
 # Fuel + Increment
 
 Expo / React Native fitness app for Increment members: daily calorie and
-macro tracking, workout logging, and progress trends. Local-state MVP —
-auth, persistence (Supabase), and AI meal parsing are planned but not built
-yet.
+macro tracking, workout logging, lift history, goals, progress photos, and
+progress trends — backed by Supabase (auth + server-first sync, offline
+cache via AsyncStorage).
+
+The database schema, migrations, RPCs, and Edge Functions live in the
+[`backend`](https://github.com/Increment-Fitness/backend) repo; this app
+talks to it through `src/core/api/` (generated types in
+`src/lib/database.types.ts`).
 
 ## Running
 
