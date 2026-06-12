@@ -1,17 +1,25 @@
 // Pure helpers behind the Progress charts and goal counters.
+import { addDays, todayISO } from "../../../core/storage/dates";
 import { PROGRESS_PERIODS } from "../data/history";
 
 /**
- * Slices a history series down to the selected interval's trailing points.
- * Unknown period keys fall back to the first interval (7D).
+ * Filters a history series to the selected calendar window: points dated
+ * within the last N actual days (ending today), NOT the last N recorded
+ * points. Unknown period keys fall back to the first interval (7D); a null
+ * `days` (ALL) returns the full series.
  *
- * @param {Array<{label: string, value: number}>} history Full series.
+ * @param {Array<{label: string, value: number, date?: string}>} history
  * @param {string} periodKey One of PROGRESS_PERIODS keys.
- * @returns {Array<{label: string, value: number}>}
+ * @param {Date} [now] Injectable clock for tests.
+ * @returns {Array<{label: string, value: number, date?: string}>}
  */
-export function pickPeriodData(history, periodKey) {
+export function pickPeriodData(history, periodKey, now = new Date()) {
   const period = PROGRESS_PERIODS.find((item) => item.key === periodKey) ?? PROGRESS_PERIODS[0];
-  return history.slice(-period.points);
+  if (period.days == null) {
+    return history;
+  }
+  const cutoff = addDays(todayISO(now), -(period.days - 1));
+  return history.filter((point) => !point.date || point.date >= cutoff);
 }
 
 /**
@@ -55,17 +63,4 @@ export function buildTrendCoordinates(history, width, height) {
     x: history.length > 1 ? index * step : width / 2,
     y: height - ((item.value - min) / range) * height,
   }));
-}
-
-/**
- * Counts workout days within an inclusive day-of-month window of the sample
- * calendar.
- *
- * @param {Array<null|{day: number, workout: ?string}>} days CALENDAR_MONTH.days.
- * @param {number} startDay First day of the window (inclusive).
- * @param {number} endDay Last day of the window (inclusive).
- * @returns {number}
- */
-export function countWorkoutsInWindow(days, startDay, endDay) {
-  return days.filter((entry) => entry && entry.day >= startDay && entry.day <= endDay && entry.workout).length;
 }

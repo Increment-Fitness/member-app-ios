@@ -1,28 +1,28 @@
-// PROGRESS tab: workout goals, bodyweight trend, and lift performance trend.
+// PROGRESS tab: workout-frequency goals, bodyweight trend, exercise/body
+// goals, and the progress photo gallery. Per-lift history lives in the LIFT
+// tab (tap an exercise name).
 import { useEffect, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { Card } from "../../core/components/Card";
 import { CardHeader } from "../../core/components/CardHeader";
+import { Tag } from "../../core/components/Tag";
 import { COLORS } from "../../core/design/colors";
 import { sharedStyles } from "../../core/design/sharedStyles";
-import { AddTrackedLiftModal } from "./AddTrackedLiftModal";
+import { GoalsCard } from "./GoalsCard";
 import { ProgressDropdown } from "./ProgressDropdown";
+import { ProgressPhotosCard } from "./ProgressPhotosCard";
 import { TrendLineChart } from "./TrendLineChart";
-import { WorkoutGoalModal } from "./WorkoutGoalModal";
 import { PROGRESS_PERIODS } from "./data/history";
 import { pickPeriodData, trendSummary } from "./utils/trend";
-import { countWorkoutsBetween, getLiftHistory, getWeightHistory, getWorkoutDates } from "../../core/api/progressApi";
-import { getTrackedLifts, getWorkoutFrequencyGoal, saveWorkoutFrequencyGoal, trackLift } from "../../core/api/goalsApi";
+import { countWorkoutsBetween, getWeightHistory, getWorkoutDates } from "../../core/api/progressApi";
+import { getWorkoutFrequencyGoal, saveWorkoutFrequencyGoal } from "../../core/api/goalsApi";
 import { addDays, todayISO } from "../../core/storage/dates";
-import { GoalsCard } from "./GoalsCard";
-import { validateTrackedLiftDraft } from "./validation";
 
 /**
- * Progress screen. Unlike the other tabs, this screen owns its state
- * (periods, tracked lifts, goals, selected chart points) because nothing
- * here is shared with other features yet — it all runs off the sample
- * history data.
+ * Progress screen. Chart and counter data comes from the backend (including
+ * every workout migrated from the legacy app); the weekly/monthly targets
+ * edit inline (tap a counter) and persist immediately.
  *
  * @param {object} props
  * @param {Array} props.macros Macro totals (for the adherence calc).
@@ -30,19 +30,13 @@ import { validateTrackedLiftDraft } from "./validation";
  */
 export function ProgressScreen({ macros, todayWeight }) {
   const [weightPeriod, setWeightPeriod] = useState("30D");
-  const [workoutPeriod, setWorkoutPeriod] = useState("30D");
-  const [selectedWorkoutLift, setSelectedWorkoutLift] = useState(null);
-  const [trackedLifts, setTrackedLifts] = useState([]);
-  const [weightHistoryAll, setWeightHistoryAll] = useState([]);
-  const [liftHistoryAll, setLiftHistoryAll] = useState([]);
-  const [workoutDates, setWorkoutDates] = useState([]);
-  const [isAddingTrackedLift, setIsAddingTrackedLift] = useState(false);
-  const [trackedLiftDraft, setTrackedLiftDraft] = useState({ lift: "" });
   const [selectedWeightPoint, setSelectedWeightPoint] = useState(0);
-  const [selectedWorkoutPoint, setSelectedWorkoutPoint] = useState(0);
+  const [weightHistoryAll, setWeightHistoryAll] = useState([]);
+  const [workoutDates, setWorkoutDates] = useState([]);
   const [weeklyWorkoutGoal, setWeeklyWorkoutGoal] = useState("4");
   const [monthlyWorkoutGoal, setMonthlyWorkoutGoal] = useState("16");
-  const [editingGoalWindow, setEditingGoalWindow] = useState(null);
+  const [editingGoalWindow, setEditingGoalWindow] = useState(null); // "week" | "month" | null
+
   // Average macro adherence (currently unrendered; kept for the upcoming
   // adherence card).
   const adherence = Math.round(
@@ -50,41 +44,24 @@ export function ProgressScreen({ macros, todayWeight }) {
       macros.length *
       100,
   );
+
   const weightHistory = pickPeriodData(weightHistoryAll, weightPeriod);
-  const workoutHistory = pickPeriodData(liftHistoryAll, workoutPeriod);
   const weightSummary = trendSummary(weightHistory);
-  const workoutSummary = trendSummary(workoutHistory);
   const weightDeltaLabel = `${weightSummary.delta <= 0 ? "" : "+"}${weightSummary.delta.toFixed(1)} LB`;
-  const workoutDeltaLabel = `${workoutSummary.delta <= 0 ? "" : "+"}${workoutSummary.delta.toFixed(0)} LB`;
-  const trackedLiftErrors = validateTrackedLiftDraft(trackedLiftDraft, trackedLifts);
-  const hasTrackedLiftErrors = Object.values(trackedLiftErrors).some(Boolean);
+
   const todayIso = todayISO();
   const weeklyWorkoutCount = countWorkoutsBetween(workoutDates, addDays(todayIso, -6), todayIso);
   const monthlyWorkoutCount = countWorkoutsBetween(workoutDates, `${todayIso.slice(0, 8)}01`, todayIso);
 
-  // Jump the highlighted point to the newest sample whenever the visible
-  // series changes.
   useEffect(() => {
     setSelectedWeightPoint(Math.max(weightHistory.length - 1, 0));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [weightPeriod]);
 
-  useEffect(() => {
-    setSelectedWorkoutPoint(Math.max(workoutHistory.length - 1, 0));
-  }, [workoutPeriod, selectedWorkoutLift]);
-
-  // Server data: histories, tracked lifts, and frequency goals (includes
-  // every workout migrated from the legacy app).
+  // Server data: weight history, workout dates, and frequency goals.
   useEffect(() => {
     getWeightHistory().then(setWeightHistoryAll).catch(() => {});
     getWorkoutDates().then(setWorkoutDates).catch(() => {});
-    getTrackedLifts()
-      .then((lifts) => {
-        if (lifts.length) {
-          setTrackedLifts(lifts);
-          setSelectedWorkoutLift((current) => current ?? lifts[0]);
-        }
-      })
-      .catch(() => {});
     getWorkoutFrequencyGoal()
       .then((goal) => {
         if (goal) {
@@ -95,33 +72,17 @@ export function ProgressScreen({ macros, todayWeight }) {
       .catch(() => {});
   }, []);
 
-  useEffect(() => {
-    if (!selectedWorkoutLift) {
-      setLiftHistoryAll([]);
-      return;
-    }
-    getLiftHistory(selectedWorkoutLift).then(setLiftHistoryAll).catch(() => {});
-  }, [selectedWorkoutLift]);
-
   const clampedWeightIndex = Math.min(selectedWeightPoint, Math.max(weightHistory.length - 1, 0));
-  const clampedWorkoutIndex = Math.min(selectedWorkoutPoint, Math.max(workoutHistory.length - 1, 0));
 
-  const saveTrackedLift = () => {
-    if (hasTrackedLiftErrors) {
-      return false;
-    }
-    const nextLift = trackedLiftDraft.lift.trim().toUpperCase();
-    trackLift(nextLift, trackedLifts.length).catch(() => {});
-    setTrackedLifts((current) => [...current, nextLift]);
-    setSelectedWorkoutLift(nextLift);
-    setTrackedLiftDraft({ lift: "" });
-    setIsAddingTrackedLift(false);
-    return true;
-  };
-
-  const cancelTrackedLift = () => {
-    setTrackedLiftDraft({ lift: "" });
-    setIsAddingTrackedLift(false);
+  /** Adjusts a frequency target inline and persists immediately. */
+  const adjustGoal = (window, delta) => {
+    const isWeek = window === "week";
+    const current = Number(isWeek ? weeklyWorkoutGoal : monthlyWorkoutGoal) || 0;
+    const next = Math.max(0, Math.min(current + delta, isWeek ? 14 : 62));
+    const weekly = isWeek ? next : Number(weeklyWorkoutGoal) || 0;
+    const monthly = isWeek ? Number(monthlyWorkoutGoal) || 0 : next;
+    (isWeek ? setWeeklyWorkoutGoal : setMonthlyWorkoutGoal)(String(next));
+    saveWorkoutFrequencyGoal({ weekly, monthly }).catch(() => {});
   };
 
   return (
@@ -130,7 +91,7 @@ export function ProgressScreen({ macros, todayWeight }) {
         <CardHeader id="010" title="WORKOUT GOALS" />
         <View style={styles.progressGoalSummary}>
           <Pressable
-            onPress={() => setEditingGoalWindow("week")}
+            onPress={() => setEditingGoalWindow(editingGoalWindow === "week" ? null : "week")}
             style={({ pressed }) => [
               styles.progressGoalSummaryItem,
               pressed && sharedStyles.pressed,
@@ -143,7 +104,7 @@ export function ProgressScreen({ macros, todayWeight }) {
           </Pressable>
           <View style={styles.progressGoalSummaryDivider} />
           <Pressable
-            onPress={() => setEditingGoalWindow("month")}
+            onPress={() => setEditingGoalWindow(editingGoalWindow === "month" ? null : "month")}
             style={({ pressed }) => [
               styles.progressGoalSummaryItem,
               pressed && sharedStyles.pressed,
@@ -155,7 +116,22 @@ export function ProgressScreen({ macros, todayWeight }) {
             </Text>
           </Pressable>
         </View>
+        {editingGoalWindow && (
+          <View style={styles.goalStepperRow}>
+            <Text style={styles.goalStepperLabel}>
+              {editingGoalWindow === "week" ? "WEEKLY TARGET" : "MONTHLY TARGET"}
+            </Text>
+            <View style={styles.goalStepperControls}>
+              <Tag label="−" outline onPress={() => adjustGoal(editingGoalWindow, -1)} />
+              <Text style={styles.goalStepperValue}>
+                {editingGoalWindow === "week" ? weeklyWorkoutGoal : monthlyWorkoutGoal}
+              </Text>
+              <Tag label="+" onPress={() => adjustGoal(editingGoalWindow, 1)} />
+            </View>
+          </View>
+        )}
       </Card>
+
       <Card style={styles.progressCard}>
         <CardHeader
           id="011"
@@ -188,93 +164,8 @@ export function ProgressScreen({ macros, todayWeight }) {
         </View>
       </Card>
 
-      <Card style={styles.progressCard}>
-        <CardHeader id="012" title="WORKOUT PROGRESS" rightLabel={selectedWorkoutLift ?? "--"} />
-        <View style={styles.progressToolbar}>
-          <ProgressDropdown
-            label="LIFT"
-            value={selectedWorkoutLift}
-            options={trackedLifts}
-            compact
-            containerStyle={styles.progressDropdownLift}
-            onSelect={(value) => {
-              setSelectedWorkoutLift(value);
-              setSelectedWorkoutPoint(0);
-            }}
-          />
-          <ProgressDropdown
-            label="INTERVAL"
-            value={workoutPeriod}
-            options={PROGRESS_PERIODS.map((period) => period.key)}
-            compact
-            containerStyle={styles.progressDropdownInterval}
-            onSelect={(value) => {
-              setWorkoutPeriod(value);
-              setSelectedWorkoutPoint(0);
-            }}
-          />
-          <Pressable
-            onPress={() => setIsAddingTrackedLift(true)}
-            style={({ pressed }) => [
-              styles.progressAddButton,
-              styles.progressAddButtonCompact,
-              pressed && sharedStyles.pressed,
-            ]}
-          >
-            <Text style={[styles.progressAddButtonText, styles.progressAddButtonTextCompact]}>+ ADD LIFT</Text>
-          </Pressable>
-        </View>
-        <TrendLineChart
-          title="Performance trend"
-          data={workoutHistory}
-          selectedIndex={clampedWorkoutIndex}
-          onSelect={setSelectedWorkoutPoint}
-          valueSuffix=" LB"
-          valueDecimals={0}
-        />
-        <View style={sharedStyles.inlineRow}>
-          <Text style={sharedStyles.miniStat}>CHANGE {workoutDeltaLabel}</Text>
-          <Text style={sharedStyles.miniStat}>CURRENT {workoutSummary.current.toFixed(0)} LB</Text>
-        </View>
-      </Card>
       <GoalsCard todayWeight={todayWeight} />
-      <AddTrackedLiftModal
-        visible={isAddingTrackedLift}
-        trackedLiftDraft={trackedLiftDraft}
-        errors={trackedLiftErrors}
-        hasErrors={hasTrackedLiftErrors}
-        setTrackedLiftDraft={setTrackedLiftDraft}
-        onSave={saveTrackedLift}
-        onCancel={cancelTrackedLift}
-      />
-      <WorkoutGoalModal
-        visible={editingGoalWindow === "week"}
-        windowLabel="WEEKLY"
-        value={weeklyWorkoutGoal}
-        max={7}
-        onSelect={(nextValue) => {
-          setWeeklyWorkoutGoal(nextValue);
-          saveWorkoutFrequencyGoal({
-            weekly: Number(nextValue),
-            monthly: Number(monthlyWorkoutGoal),
-          }).catch(() => {});
-        }}
-        onCancel={() => setEditingGoalWindow(null)}
-      />
-      <WorkoutGoalModal
-        visible={editingGoalWindow === "month"}
-        windowLabel="MONTHLY"
-        value={monthlyWorkoutGoal}
-        max={31}
-        onSelect={(nextValue) => {
-          setMonthlyWorkoutGoal(nextValue);
-          saveWorkoutFrequencyGoal({
-            weekly: Number(weeklyWorkoutGoal),
-            monthly: Number(nextValue),
-          }).catch(() => {});
-        }}
-        onCancel={() => setEditingGoalWindow(null)}
-      />
+      <ProgressPhotosCard />
     </ScrollView>
   );
 }
@@ -323,49 +214,39 @@ const styles = StyleSheet.create({
     letterSpacing: -1,
     color: COLORS.ink,
   },
+  goalStepperRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    borderRadius: 14,
+    borderWidth: 2,
+    borderColor: COLORS.line,
+    backgroundColor: COLORS.paper2,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  goalStepperLabel: {
+    fontSize: 9,
+    fontWeight: "800",
+    letterSpacing: 0.9,
+    color: COLORS.muted,
+  },
+  goalStepperControls: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  goalStepperValue: {
+    minWidth: 28,
+    textAlign: "center",
+    fontSize: 16,
+    fontWeight: "900",
+    color: COLORS.ink,
+  },
   progressToolbar: {
     flexDirection: "row",
     flexWrap: "nowrap",
     gap: 6,
     zIndex: 2,
-    alignItems: "stretch",
-  },
-  progressAddButton: {
-    flexShrink: 0,
-    minHeight: 42,
-    borderWidth: 2,
-    borderColor: COLORS.signal,
-    borderRadius: 16,
-    backgroundColor: COLORS.card,
-    paddingHorizontal: 12,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  progressAddButtonCompact: {
-    width: 86,
-    minHeight: 30,
-    paddingHorizontal: 4,
-    borderRadius: 12,
-  },
-  progressAddButtonText: {
-    fontSize: 11,
-    fontWeight: "800",
-    letterSpacing: 0.8,
-    color: COLORS.signal,
-  },
-  progressAddButtonTextCompact: {
-    fontSize: 8,
-    letterSpacing: 0.2,
-  },
-  progressDropdownLift: {
-    flex: 1.05,
-  },
-  // Kept from the monolith though currently unused: reserved flex preset for
-  // a goal dropdown in the toolbar.
-  progressDropdownGoal: {
-    flex: 1,
-  },
-  progressDropdownInterval: {
-    flex: 0.9,
   },
 });

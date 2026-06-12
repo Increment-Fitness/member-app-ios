@@ -111,6 +111,37 @@ export function progressPhotoUrl(path) {
 }
 
 /**
+ * Every progress photo, newest first, with signed display URLs.
+ *
+ * @returns {Promise<Array<{date: string, url: string}>>}
+ */
+export async function listProgressPhotos() {
+  const { data, error } = await supabase
+    .from("workout_sessions")
+    .select("performed_at, progress_photo_path")
+    .not("progress_photo_path", "is", null)
+    .order("performed_at", { ascending: false });
+  if (error) {
+    throw new Error(error.message);
+  }
+  if (!data?.length) {
+    return [];
+  }
+  const { data: signed, error: signError } = await supabase.storage
+    .from(PROGRESS_BUCKET)
+    .createSignedUrls(data.map((row) => row.progress_photo_path), 3600);
+  if (signError) {
+    throw new Error(signError.message);
+  }
+  return data
+    .map((row, index) => ({
+      date: row.performed_at.slice(0, 10),
+      url: signed?.[index]?.signedUrl ?? null,
+    }))
+    .filter((photo) => photo.url);
+}
+
+/**
  * The day's progress photo, if any.
  *
  * @param {string} isoDate
