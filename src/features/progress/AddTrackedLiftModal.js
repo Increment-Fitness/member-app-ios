@@ -11,7 +11,6 @@ import {
 } from "react-native";
 
 import { ActionButton } from "../../core/components/ActionButton";
-import { CardHeader } from "../../core/components/CardHeader";
 import { COLORS } from "../../core/design/colors";
 import { sharedStyles } from "../../core/design/sharedStyles";
 import { MAX_LIFT_NAME_LENGTH } from "../../core/validation/liftName";
@@ -61,8 +60,7 @@ export function AddTrackedLiftModal({
           style={sharedStyles.weightModalAvoider}
         >
           <Pressable style={sharedStyles.weightModalCard} onPress={() => {}}>
-            <CardHeader id="013" title="ADD TRACKED LIFT" />
-            <Text style={sharedStyles.sectionText}>Track another lift in workout progress.</Text>
+                        <Text style={sharedStyles.sectionText}>Track another lift in workout progress.</Text>
             <TextInput
               value={trackedLiftDraft.lift}
               onChangeText={(value) => {

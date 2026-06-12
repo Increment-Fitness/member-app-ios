@@ -11,7 +11,6 @@ import {
 } from "react-native";
 
 import { ActionButton } from "../../core/components/ActionButton";
-import { CardHeader } from "../../core/components/CardHeader";
 import { COLORS } from "../../core/design/colors";
 import { sharedStyles } from "../../core/design/sharedStyles";
 
@@ -59,8 +58,7 @@ export function LogSetModal({
           style={sharedStyles.weightModalAvoider}
         >
           <Pressable style={sharedStyles.weightModalCard} onPress={() => {}}>
-            <CardHeader id="009" title="LOG SET" />
-            <TextInput
+                        <TextInput
               value={logSetDraft.weight}
               onChangeText={(value) => {
                 if (!showValidation) {

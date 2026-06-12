@@ -11,7 +11,6 @@ import {
 } from "react-native";
 
 import { ActionButton } from "../../core/components/ActionButton";
-import { CardHeader } from "../../core/components/CardHeader";
 import { COLORS } from "../../core/design/colors";
 import { sharedStyles } from "../../core/design/sharedStyles";
 
@@ -51,7 +50,6 @@ export function WeightModal({
           style={sharedStyles.weightModalAvoider}
         >
           <Pressable style={sharedStyles.weightModalCard} onPress={() => {}}>
-            <CardHeader id="004" title="UPDATE WEIGHT" />
             <Text style={styles.weightCurrentLabel}>
               CURRENT {todayWeight != null ? `${todayWeight.toFixed(1)} LB` : "--"}
             </Text>

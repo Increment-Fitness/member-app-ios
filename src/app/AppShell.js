@@ -9,7 +9,8 @@ import { Keyboard, Pressable, StyleSheet, Text, View } from "react-native";
 
 import { COLORS } from "../core/design/colors";
 import { blankDay, fromStoredRecord, isEmptyDay, toStoredRecord } from "../core/storage/dayRecord";
-import { getDatesWithData, getDay, saveDay } from "../core/storage/dayStore";
+import { getDatesWithData, getDay, saveDay } from "../core/api/dayApi";
+import { getProfile, getSplitDays, onSplitsChanged } from "../core/api/profileApi";
 import {
   addDays,
   formatHeaderDate,
@@ -17,7 +18,6 @@ import {
   isWithinEditWindow,
   todayISO,
 } from "../core/storage/dates";
-import { seedIfEmpty } from "../core/storage/seed";
 import { CalendarModal } from "./CalendarModal";
 import { DashboardScreen } from "../features/dashboard/DashboardScreen";
 import { asciiProgress } from "../features/dashboard/utils/asciiProgress";
@@ -31,7 +31,7 @@ import {
 import { ProgressScreen } from "../features/progress/ProgressScreen";
 import { SettingsScreen } from "../features/settings/SettingsScreen";
 import { WorkoutScreen } from "../features/workout/WorkoutScreen";
-import { makeWorkoutQueue } from "../features/workout/data/workoutSplits";
+import { WORKOUT_SPLITS, makeWorkoutQueue } from "../features/workout/data/workoutSplits";
 import { validateLiftDraft, validateLogSetDraft } from "../features/workout/validation";
 import { Header } from "./Header";
 import { TABS } from "./tabs";
@@ -61,6 +61,8 @@ export function AppShell() {
   const [selectedDate, setSelectedDate] = useState(() => todayISO());
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [datesWithData, setDatesWithData] = useState([]);
+  // Server split templates (legacy custom splits or the seeded presets).
+  const [splitDays, setSplitDays] = useState([]);
   // True while the next state change came from loading a day (not the user),
   // so the autosave effect skips exactly one run.
   const skipNextSaveRef = useRef(true);
@@ -116,7 +118,7 @@ export function AppShell() {
   const [coachEnabled, setCoachEnabled] = useState(true);
 
   const caloriesConsumed = meals.reduce((sum, meal) => sum + meal.calories, 0);
-  const caloriesGoal = 2400;
+  const [caloriesGoal, setCaloriesGoal] = useState(2400);
   const caloriesRemaining = Math.max(caloriesGoal - caloriesConsumed, 0);
   const progressPercent = Math.min((caloriesConsumed / caloriesGoal) * 100, 100);
   const progressBar = asciiProgress(progressPercent);
@@ -169,13 +171,20 @@ export function AppShell() {
     setBarcodeScannerTarget(null);
   };
 
-  // First launch: seed demo history, then hydrate today.
+  // Boot: hydrate the calorie target, the calendar index, and today.
   useEffect(() => {
     (async () => {
-      await seedIfEmpty(todayISO());
+      getProfile()
+        .then((profile) => setCaloriesGoal(profile?.calorie_target ?? 2400))
+        .catch(() => {});
+      getSplitDays().then(setSplitDays).catch(() => {});
       await refreshDatesWithData();
       await loadDay(todayISO());
     })();
+    // Keep the split picker in step with edits made in Settings.
+    return onSplitsChanged(() => {
+      getSplitDays().then(setSplitDays).catch(() => {});
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -694,12 +703,31 @@ export function AppShell() {
   };
 
   /** Switches splits and rebuilds the queue, resetting any open modals. */
+  /**
+   * Builds the queue for a split: a server template's exercises when the
+   * member has one by that name, else the built-in preset.
+   */
+  const queueForSplit = (split) => {
+    const template = splitDays.find((day) => day.name.toUpperCase() === split.toUpperCase());
+    if (template && template.exercises.length) {
+      return template.exercises.map((exercise) => ({
+        id: exercise.id,
+        lift: exercise.name.toUpperCase(),
+        scheme: "--",
+        load: "--",
+      }));
+    }
+    return Object.prototype.hasOwnProperty.call(WORKOUT_SPLITS, split)
+      ? makeWorkoutQueue(split)
+      : [];
+  };
+
   const changeSplit = (split) => {
     if (!canEditSelectedDay()) {
       return;
     }
     setCurrentSplit(split);
-    const nextQueue = makeWorkoutQueue(split);
+    const nextQueue = queueForSplit(split);
     setWorkoutQueue(nextQueue);
     setSelectedLiftId(nextQueue[0]?.id ?? null);
     setIsAddingLift(false);
@@ -746,6 +774,10 @@ export function AppShell() {
 
   const screen = useMemo(() => {
     const dashboardProps = {
+      selectedDate,
+      splitOptions: splitDays.length
+        ? splitDays.map((day) => day.name.toUpperCase())
+        : Object.keys(WORKOUT_SPLITS),
       caloriesRemaining,
       caloriesConsumed,
       caloriesGoal,
@@ -865,6 +897,7 @@ export function AppShell() {
     caloriesGoal,
     caloriesRemaining,
     currentSplit,
+    splitDays,
     activeMealCategory,
     barcodeScannerTarget,
     cameraPermission,

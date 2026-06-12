@@ -10,8 +10,12 @@ import { AddTrackedLiftModal } from "./AddTrackedLiftModal";
 import { ProgressDropdown } from "./ProgressDropdown";
 import { TrendLineChart } from "./TrendLineChart";
 import { WorkoutGoalModal } from "./WorkoutGoalModal";
-import { CALENDAR_MONTH, PROGRESS_PERIODS, WEIGHT_HISTORY, WORKOUT_HISTORY } from "./data/history";
-import { countWorkoutsInWindow, pickPeriodData, trendSummary } from "./utils/trend";
+import { PROGRESS_PERIODS } from "./data/history";
+import { pickPeriodData, trendSummary } from "./utils/trend";
+import { countWorkoutsBetween, getLiftHistory, getWeightHistory, getWorkoutDates } from "../../core/api/progressApi";
+import { getTrackedLifts, getWorkoutFrequencyGoal, saveWorkoutFrequencyGoal, trackLift } from "../../core/api/goalsApi";
+import { addDays, todayISO } from "../../core/storage/dates";
+import { GoalsCard } from "./GoalsCard";
 import { validateTrackedLiftDraft } from "./validation";
 
 /**
@@ -27,8 +31,11 @@ import { validateTrackedLiftDraft } from "./validation";
 export function ProgressScreen({ macros, todayWeight }) {
   const [weightPeriod, setWeightPeriod] = useState("30D");
   const [workoutPeriod, setWorkoutPeriod] = useState("30D");
-  const [selectedWorkoutLift, setSelectedWorkoutLift] = useState("BENCH");
-  const [trackedLifts, setTrackedLifts] = useState(["BENCH", "BACK SQUAT", "DEADLIFT"]);
+  const [selectedWorkoutLift, setSelectedWorkoutLift] = useState(null);
+  const [trackedLifts, setTrackedLifts] = useState([]);
+  const [weightHistoryAll, setWeightHistoryAll] = useState([]);
+  const [liftHistoryAll, setLiftHistoryAll] = useState([]);
+  const [workoutDates, setWorkoutDates] = useState([]);
   const [isAddingTrackedLift, setIsAddingTrackedLift] = useState(false);
   const [trackedLiftDraft, setTrackedLiftDraft] = useState({ lift: "" });
   const [selectedWeightPoint, setSelectedWeightPoint] = useState(0);
@@ -43,19 +50,17 @@ export function ProgressScreen({ macros, todayWeight }) {
       macros.length *
       100,
   );
-  const weightHistory = pickPeriodData(WEIGHT_HISTORY, weightPeriod);
-  const workoutHistory = pickPeriodData(WORKOUT_HISTORY[selectedWorkoutLift] ?? [], workoutPeriod);
+  const weightHistory = pickPeriodData(weightHistoryAll, weightPeriod);
+  const workoutHistory = pickPeriodData(liftHistoryAll, workoutPeriod);
   const weightSummary = trendSummary(weightHistory);
   const workoutSummary = trendSummary(workoutHistory);
   const weightDeltaLabel = `${weightSummary.delta <= 0 ? "" : "+"}${weightSummary.delta.toFixed(1)} LB`;
   const workoutDeltaLabel = `${workoutSummary.delta <= 0 ? "" : "+"}${workoutSummary.delta.toFixed(0)} LB`;
   const trackedLiftErrors = validateTrackedLiftDraft(trackedLiftDraft, trackedLifts);
   const hasTrackedLiftErrors = Object.values(trackedLiftErrors).some(Boolean);
-  const today = new Date();
-  // Sample calendar only has 30 days, so clamp the real date into it.
-  const currentMonthDay = Math.min(today.getDate(), 30);
-  const weeklyWorkoutCount = countWorkoutsInWindow(CALENDAR_MONTH.days, Math.max(currentMonthDay - 6, 1), currentMonthDay);
-  const monthlyWorkoutCount = countWorkoutsInWindow(CALENDAR_MONTH.days, 1, currentMonthDay);
+  const todayIso = todayISO();
+  const weeklyWorkoutCount = countWorkoutsBetween(workoutDates, addDays(todayIso, -6), todayIso);
+  const monthlyWorkoutCount = countWorkoutsBetween(workoutDates, `${todayIso.slice(0, 8)}01`, todayIso);
 
   // Jump the highlighted point to the newest sample whenever the visible
   // series changes.
@@ -67,6 +72,37 @@ export function ProgressScreen({ macros, todayWeight }) {
     setSelectedWorkoutPoint(Math.max(workoutHistory.length - 1, 0));
   }, [workoutPeriod, selectedWorkoutLift]);
 
+  // Server data: histories, tracked lifts, and frequency goals (includes
+  // every workout migrated from the legacy app).
+  useEffect(() => {
+    getWeightHistory().then(setWeightHistoryAll).catch(() => {});
+    getWorkoutDates().then(setWorkoutDates).catch(() => {});
+    getTrackedLifts()
+      .then((lifts) => {
+        if (lifts.length) {
+          setTrackedLifts(lifts);
+          setSelectedWorkoutLift((current) => current ?? lifts[0]);
+        }
+      })
+      .catch(() => {});
+    getWorkoutFrequencyGoal()
+      .then((goal) => {
+        if (goal) {
+          setWeeklyWorkoutGoal(String(goal.weekly));
+          setMonthlyWorkoutGoal(String(goal.monthly));
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    if (!selectedWorkoutLift) {
+      setLiftHistoryAll([]);
+      return;
+    }
+    getLiftHistory(selectedWorkoutLift).then(setLiftHistoryAll).catch(() => {});
+  }, [selectedWorkoutLift]);
+
   const clampedWeightIndex = Math.min(selectedWeightPoint, Math.max(weightHistory.length - 1, 0));
   const clampedWorkoutIndex = Math.min(selectedWorkoutPoint, Math.max(workoutHistory.length - 1, 0));
 
@@ -75,6 +111,7 @@ export function ProgressScreen({ macros, todayWeight }) {
       return false;
     }
     const nextLift = trackedLiftDraft.lift.trim().toUpperCase();
+    trackLift(nextLift, trackedLifts.length).catch(() => {});
     setTrackedLifts((current) => [...current, nextLift]);
     setSelectedWorkoutLift(nextLift);
     setTrackedLiftDraft({ lift: "" });
@@ -152,7 +189,7 @@ export function ProgressScreen({ macros, todayWeight }) {
       </Card>
 
       <Card style={styles.progressCard}>
-        <CardHeader id="012" title="WORKOUT PROGRESS" rightLabel={selectedWorkoutLift} />
+        <CardHeader id="012" title="WORKOUT PROGRESS" rightLabel={selectedWorkoutLift ?? "--"} />
         <View style={styles.progressToolbar}>
           <ProgressDropdown
             label="LIFT"
@@ -200,6 +237,7 @@ export function ProgressScreen({ macros, todayWeight }) {
           <Text style={sharedStyles.miniStat}>CURRENT {workoutSummary.current.toFixed(0)} LB</Text>
         </View>
       </Card>
+      <GoalsCard todayWeight={todayWeight} />
       <AddTrackedLiftModal
         visible={isAddingTrackedLift}
         trackedLiftDraft={trackedLiftDraft}
@@ -216,6 +254,10 @@ export function ProgressScreen({ macros, todayWeight }) {
         max={7}
         onSelect={(nextValue) => {
           setWeeklyWorkoutGoal(nextValue);
+          saveWorkoutFrequencyGoal({
+            weekly: Number(nextValue),
+            monthly: Number(monthlyWorkoutGoal),
+          }).catch(() => {});
         }}
         onCancel={() => setEditingGoalWindow(null)}
       />
@@ -226,6 +268,10 @@ export function ProgressScreen({ macros, todayWeight }) {
         max={31}
         onSelect={(nextValue) => {
           setMonthlyWorkoutGoal(nextValue);
+          saveWorkoutFrequencyGoal({
+            weekly: Number(weeklyWorkoutGoal),
+            monthly: Number(nextValue),
+          }).catch(() => {});
         }}
         onCancel={() => setEditingGoalWindow(null)}
       />

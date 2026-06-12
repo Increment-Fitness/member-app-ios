@@ -10,6 +10,7 @@ import { sharedStyles } from "../../core/design/sharedStyles";
 import { WORKOUT_SPLITS } from "../workout/data/workoutSplits";
 import { MacroRow } from "./MacroRow";
 import { WeightModal } from "./WeightModal";
+import { ProgressPhotoCard } from "./ProgressPhotoCard";
 
 /**
  * Dashboard screen. A read-mostly summary of the day: calorie budget with
@@ -22,6 +23,8 @@ import { WeightModal } from "./WeightModal";
  * @param {boolean} props.showEmptyState True for read-only days with no data.
  */
 export function DashboardScreen({
+  selectedDate,
+  splitOptions,
   caloriesRemaining,
   caloriesConsumed,
   caloriesGoal,
@@ -92,7 +95,7 @@ export function DashboardScreen({
         </View>
         {isEditable ? (
           <View style={sharedStyles.chipWrap}>
-            {Object.keys(WORKOUT_SPLITS).map((split) => (
+            {(splitOptions ?? Object.keys(WORKOUT_SPLITS)).map((split) => (
               <Tag
                 key={split}
                 label={split}
@@ -133,6 +136,7 @@ export function DashboardScreen({
           </View>
         ) : null}
       </Card>
+      <ProgressPhotoCard selectedDate={selectedDate} isEditable={isEditable} />
       <WeightModal
         visible={isEditingWeight}
         todayWeight={todayWeight}

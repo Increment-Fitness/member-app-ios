@@ -15,9 +15,10 @@ import { sharedStyles } from "../../core/design/sharedStyles";
  * @param {boolean} [props.selected=false] Highlights the active lift.
  * @param {() => void} [props.onPress] Selects this lift.
  * @param {() => void} [props.onDelete] Removes the lift from today's queue.
+ * @param {() => void} [props.onHistory] Opens this lift's history (tap the name).
  * @param {boolean} [props.editable=true] Hides DELETE when false.
  */
-export function WorkoutRow({ item, selected = false, onPress, onDelete, editable = true }) {
+export function WorkoutRow({ item, selected = false, onPress, onDelete, onHistory, editable = true }) {
   const weights = item.loggedSets?.length
     ? item.loggedSets.map((set) => set.weight).join(", ")
     : item.load ?? "--";
@@ -28,9 +29,13 @@ export function WorkoutRow({ item, selected = false, onPress, onDelete, editable
   return (
     <View style={[styles.workoutRow, selected && sharedStyles.selectedRow]}>
       <Pressable onPress={onPress} style={({ pressed }) => [styles.workoutRowMain, pressed && sharedStyles.pressed]}>
-        <View style={styles.workoutTitleBlock}>
+        <Pressable
+          onPress={onHistory ?? onPress}
+          hitSlop={8}
+          style={({ pressed }) => [styles.workoutTitleBlock, pressed && sharedStyles.pressed]}
+        >
           <Text style={[styles.workoutName, selected && sharedStyles.activeRowText]}>{item.lift}</Text>
-        </View>
+        </Pressable>
         <View style={styles.workoutMetaRow}>
           <Text style={[styles.workoutMetricInline, selected && sharedStyles.activeRowText]}>{weights}</Text>
           <Text style={[styles.workoutMetricDivider, selected && sharedStyles.activeDetailText]}>/</Text>
@@ -48,9 +53,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 8,
     paddingVertical: 10,
-    paddingHorizontal: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.muted2,
+    paddingHorizontal: 12,
+    borderRadius: 16,
+    borderWidth: 2,
+    borderColor: COLORS.line,
+    backgroundColor: COLORS.card2,
+    marginBottom: 8,
   },
   workoutRowMain: {
     flex: 1,

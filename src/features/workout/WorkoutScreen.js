@@ -1,10 +1,12 @@
 // LIFT tab: today's workout queue with add-lift and log-set modals.
+import { useState } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
 
 import { ActionButton } from "../../core/components/ActionButton";
 import { CardHeader } from "../../core/components/CardHeader";
 import { sharedStyles } from "../../core/design/sharedStyles";
 import { AddLiftModal } from "./AddLiftModal";
+import { LiftHistoryModal } from "./LiftHistoryModal";
 import { LogSetModal } from "./LogSetModal";
 import { WorkoutRow } from "./WorkoutRow";
 
@@ -40,6 +42,7 @@ export function WorkoutScreen({
   isToday,
   isEditable,
 }) {
+  const [historyLift, setHistoryLift] = useState(null);
   return (
     <View style={styles.workoutScreen}>
       <View style={[sharedStyles.card, styles.workoutPanel]}>
@@ -56,6 +59,7 @@ export function WorkoutScreen({
               selected={item.id === selectedLiftId}
               onPress={() => onSelectLift(item.id)}
               onDelete={() => onDeleteLift(item.id)}
+              onHistory={() => setHistoryLift(item.lift)}
               editable={isEditable}
             />
           ))}
@@ -67,6 +71,11 @@ export function WorkoutScreen({
           </View>
         ) : null}
       </View>
+      <LiftHistoryModal
+        visible={historyLift != null}
+        liftName={historyLift}
+        onClose={() => setHistoryLift(null)}
+      />
       <LogSetModal
         visible={isLoggingSet}
         logSetDraft={logSetDraft}
