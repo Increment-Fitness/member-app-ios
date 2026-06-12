@@ -82,14 +82,16 @@ with checks(check_name, legacy_value, new_value) as (
          (select count(*) from public.body_weight_logs where source = 'workout')
   union all
   -- Invariants below expect 0 = 0.
-  select 'legacy max_weight mismatches vs max(sets.weight) (expect 0)',
+  -- Compares against the MIGRATED sets, so the synthesized orphan-max sets
+  -- (migration ..._10, gate-3 decision) count toward the derived max.
+  select 'legacy max_weight mismatches vs max(exercise_sets.weight) (expect 0)',
          (select count(*) from public.workouts w
             cross join lateral jsonb_array_elements(w.exercises) e(elem)
            where w.user_id is not null
              and e.elem ->> 'max_weight' is not null
              and (e.elem ->> 'max_weight')::numeric is distinct from
-                 (select max((s.elem ->> 'weight')::numeric)
-                    from jsonb_array_elements(e.elem -> 'sets') s(elem))),
+                 (select max(es.weight) from public.exercise_sets es
+                   where es.workout_exercise_id = (e.elem ->> 'id')::uuid)),
          0
   union all
   select 'legacy template_ids without a catalog mapping (expect 0)',
