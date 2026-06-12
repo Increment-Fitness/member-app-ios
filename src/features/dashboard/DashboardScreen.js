@@ -1,5 +1,6 @@
-// HOME tab: calories remaining, macros, today's lift, and today's weight.
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+// HOME tab: stat row (calories left / weight / progress photo), macros,
+// and today's lift.
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { ActionButton } from "../../core/components/ActionButton";
 import { Card } from "../../core/components/Card";
@@ -10,7 +11,7 @@ import { sharedStyles } from "../../core/design/sharedStyles";
 import { WORKOUT_SPLITS } from "../workout/data/workoutSplits";
 import { MacroRow } from "./MacroRow";
 import { WeightModal } from "./WeightModal";
-import { ProgressPhotoCard } from "./ProgressPhotoCard";
+import { ProgressPhotoTile } from "./ProgressPhotoCard";
 
 /**
  * Dashboard screen. A read-mostly summary of the day: calorie budget with
@@ -64,13 +65,27 @@ export function DashboardScreen({
 
   return (
     <ScrollView contentContainerStyle={sharedStyles.scrollContent} showsVerticalScrollIndicator={false}>
-      <Card grid>
-        <CardHeader id="001" title="CALORIES REMAINING" />
-        <Text style={styles.heroValue}>{String(caloriesRemaining).padStart(4, "0")}</Text>
-        <View style={sharedStyles.inlineRow}>
-          <Text style={sharedStyles.miniStat}>CONSUMED {caloriesConsumed}</Text>
-          <Text style={[sharedStyles.miniStat, styles.signalText]}>GOAL {caloriesGoal}</Text>
+      <View style={styles.statRow}>
+        <View style={styles.statTile}>
+          <Text style={styles.statLabel}>CALORIES LEFT</Text>
+          <Text style={styles.statValue}>{caloriesRemaining}</Text>
+          <Text style={styles.statSub}>
+            {caloriesConsumed} EATEN · GOAL {caloriesGoal}
+          </Text>
         </View>
+        <Pressable
+          onPress={isEditable ? startWeightEdit : undefined}
+          style={({ pressed }) => [styles.statTile, pressed && isEditable && sharedStyles.pressed]}
+        >
+          <Text style={styles.statLabel}>{isToday ? "TODAY'S WEIGHT" : "WEIGHT"}</Text>
+          <Text style={styles.statValue}>{todayWeight != null ? todayWeight.toFixed(1) : "--"}</Text>
+          <Text style={styles.statSub}>{isEditable ? "LB · TAP TO LOG" : "LB"}</Text>
+        </Pressable>
+        <ProgressPhotoTile selectedDate={selectedDate} isEditable={isEditable} />
+      </View>
+
+      <Card grid>
+        <CardHeader id="001" title="CALORIE BUDGET" />
         <Text style={styles.asciiBar}>
           {progressBar} {progressPercent.toFixed(1)}%
         </Text>
@@ -123,20 +138,6 @@ export function DashboardScreen({
         </View>
       </Card>
 
-      <Card>
-        <CardHeader id="004" title={isToday ? "TODAY'S WEIGHT" : "WEIGHT"} />
-        <View style={styles.weightRow}>
-          <Text style={styles.weightValue}>{todayWeight != null ? todayWeight.toFixed(1) : "--"}</Text>
-          <Text style={styles.weightUnit}>LB</Text>
-        </View>
-        <Text style={sharedStyles.sectionText}>Apple Health sync can plug into this later, but for now you can log today's weight manually.</Text>
-        {isEditable ? (
-          <View style={sharedStyles.actionRow}>
-            <ActionButton label="UPDATE WEIGHT" hot onPress={startWeightEdit} />
-          </View>
-        ) : null}
-      </Card>
-      <ProgressPhotoCard selectedDate={selectedDate} isEditable={isEditable} />
       <WeightModal
         visible={isEditingWeight}
         todayWeight={todayWeight}
@@ -151,15 +152,39 @@ export function DashboardScreen({
 }
 
 const styles = StyleSheet.create({
-  heroValue: {
-    fontSize: 52,
-    lineHeight: 52,
-    letterSpacing: -2.6,
+  statRow: {
+    flexDirection: "row",
+    gap: 8,
+  },
+  statTile: {
+    flex: 1,
+    borderRadius: 20,
+    borderWidth: 2,
+    borderColor: COLORS.line,
+    backgroundColor: COLORS.card,
+    padding: 10,
+    gap: 4,
+    alignItems: "flex-start",
+    minHeight: 92,
+  },
+  statLabel: {
+    fontSize: 8,
+    fontWeight: "800",
+    letterSpacing: 0.8,
+    color: COLORS.muted,
+  },
+  statValue: {
+    fontSize: 22,
+    lineHeight: 24,
     fontWeight: "900",
+    letterSpacing: -0.8,
     color: COLORS.ink,
   },
-  signalText: {
-    color: COLORS.signal,
+  statSub: {
+    fontSize: 8,
+    fontWeight: "700",
+    letterSpacing: 0.6,
+    color: COLORS.muted2,
   },
   asciiBar: {
     fontSize: 10,
@@ -199,23 +224,5 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: COLORS.muted,
     textAlign: "right",
-  },
-  weightRow: {
-    flexDirection: "row",
-    alignItems: "flex-end",
-    gap: 8,
-  },
-  weightValue: {
-    fontSize: 36,
-    lineHeight: 38,
-    fontWeight: "900",
-    color: COLORS.ink,
-    letterSpacing: -1.2,
-  },
-  weightUnit: {
-    fontSize: 14,
-    fontWeight: "800",
-    color: COLORS.muted,
-    marginBottom: 4,
   },
 });

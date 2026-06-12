@@ -1,13 +1,14 @@
-// Progress photo for the selected day: view the stored shot or upload one
-// (legacy ProgressPhotoUploadView parity). Photos attach to an exercise-less
-// session so they never count toward workout goals.
+// Progress photo tile for the dashboard stat row: shows the selected day's
+// photo (tap to view full screen) or an add affordance on editable days.
+// Photos attach to an exercise-less session so they never count toward
+// workout goals (legacy ProgressPhotoUploadView parity).
 import { useEffect, useState } from "react";
-import { Alert, Image, Pressable, StyleSheet, Text, View } from "react-native";
+import { Alert, Image, Modal, Pressable, StyleSheet, Text, View } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 
-import { Card } from "../../core/components/Card";
-import { CardHeader } from "../../core/components/CardHeader";
+import { ActionButton } from "../../core/components/ActionButton";
 import { COLORS } from "../../core/design/colors";
+import { sharedStyles } from "../../core/design/sharedStyles";
 import { getProgressPhotoForDate, uploadProgressPhoto } from "../../core/api/photosApi";
 
 /**
@@ -15,9 +16,10 @@ import { getProgressPhotoForDate, uploadProgressPhoto } from "../../core/api/pho
  * @param {string} props.selectedDate ISO day string.
  * @param {boolean} props.isEditable Only today/yesterday accept uploads.
  */
-export function ProgressPhotoCard({ selectedDate, isEditable }) {
+export function ProgressPhotoTile({ selectedDate, isEditable }) {
   const [photoUrl, setPhotoUrl] = useState(null);
   const [busy, setBusy] = useState(false);
+  const [viewing, setViewing] = useState(false);
 
   useEffect(() => {
     let alive = true;
@@ -58,56 +60,111 @@ export function ProgressPhotoCard({ selectedDate, isEditable }) {
     }
   };
 
-  if (!photoUrl && !isEditable) {
-    return null; // read-only past day with no photo: nothing to show
-  }
+  const onPress = () => {
+    if (busy) {
+      return;
+    }
+    if (photoUrl) {
+      setViewing(true);
+    } else if (isEditable) {
+      pickAndUpload();
+    }
+  };
 
   return (
-    <Card>
-      <CardHeader id="021" title="PROGRESS PHOTO" />
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [styles.tile, pressed && sharedStyles.pressed]}
+    >
+      <Text style={styles.tileLabel}>PROGRESS PHOTO</Text>
       {photoUrl ? (
-        <Pressable onPress={isEditable ? pickAndUpload : undefined}>
-          <Image source={{ uri: photoUrl }} style={styles.photo} resizeMode="cover" />
-          {isEditable && <Text style={styles.hint}>TAP TO REPLACE</Text>}
-        </Pressable>
+        <Image source={{ uri: photoUrl }} style={styles.thumb} resizeMode="cover" />
       ) : (
-        <Pressable onPress={busy ? undefined : pickAndUpload} style={styles.empty}>
-          <Text style={styles.emptyLabel}>{busy ? "UPLOADING..." : "+ ADD PROGRESS PHOTO"}</Text>
-        </Pressable>
+        <>
+          <Text style={styles.tileValue}>{busy ? "..." : isEditable ? "+" : "--"}</Text>
+          <Text style={styles.tileSub}>{busy ? "UPLOADING" : isEditable ? "TAP TO ADD" : "NONE"}</Text>
+        </>
       )}
-    </Card>
+
+      <Modal visible={viewing} animationType="fade" transparent onRequestClose={() => setViewing(false)}>
+        <Pressable style={styles.viewerOverlay} onPress={() => setViewing(false)}>
+          <Pressable style={styles.viewerCard} onPress={() => {}}>
+            <Image source={{ uri: photoUrl }} style={styles.viewerImage} resizeMode="contain" />
+            <View style={sharedStyles.actionRow}>
+              {isEditable && (
+                <ActionButton
+                  label="REPLACE"
+                  hot
+                  onPress={() => {
+                    setViewing(false);
+                    pickAndUpload();
+                  }}
+                />
+              )}
+              <ActionButton label="CLOSE" outline onPress={() => setViewing(false)} />
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
+    </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  photo: {
-    borderRadius: 16,
-    width: "100%",
-    height: 220,
+  tile: {
+    flex: 1,
+    borderRadius: 20,
     borderWidth: 2,
     borderColor: COLORS.line,
+    backgroundColor: COLORS.card,
+    padding: 10,
+    gap: 4,
+    alignItems: "flex-start",
+    minHeight: 92,
   },
-  hint: {
-    marginTop: 6,
-    fontSize: 9,
-    fontWeight: "700",
+  tileLabel: {
+    fontSize: 8,
+    fontWeight: "800",
     letterSpacing: 0.8,
     color: COLORS.muted,
-    textAlign: "center",
   },
-  empty: {
-    borderRadius: 16,
-    borderWidth: 2,
-    borderStyle: "dashed",
+  tileValue: {
+    fontSize: 22,
+    lineHeight: 24,
+    fontWeight: "900",
+    letterSpacing: -0.8,
+    color: COLORS.ink,
+  },
+  tileSub: {
+    fontSize: 8,
+    fontWeight: "700",
+    letterSpacing: 0.6,
+    color: COLORS.muted2,
+  },
+  thumb: {
+    flex: 1,
+    alignSelf: "stretch",
+    borderRadius: 12,
+    borderWidth: 1,
     borderColor: COLORS.line,
     backgroundColor: COLORS.paper2,
-    paddingVertical: 26,
-    alignItems: "center",
   },
-  emptyLabel: {
-    fontSize: 11,
-    fontWeight: "800",
-    letterSpacing: 0.6,
-    color: COLORS.muted,
+  viewerOverlay: {
+    flex: 1,
+    justifyContent: "center",
+    backgroundColor: "rgba(11, 20, 64, 0.92)",
+    padding: 18,
+  },
+  viewerCard: {
+    borderRadius: 24,
+    backgroundColor: COLORS.card,
+    padding: 12,
+    gap: 10,
+  },
+  viewerImage: {
+    width: "100%",
+    height: 420,
+    borderRadius: 16,
+    backgroundColor: COLORS.paper2,
   },
 });
