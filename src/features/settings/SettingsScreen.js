@@ -25,6 +25,7 @@ import { deleteAccount } from "../../core/api/accountApi";
 import { signOut } from "../../core/api/authApi";
 import { getMacroTargets, getProfile, updateMacroTargets, updateProfile } from "../../core/api/profileApi";
 import { avatarUrl, uploadAvatar } from "../../core/api/photosApi";
+import { SplitEditorCard } from "./SplitEditorCard";
 import { ToggleRow } from "./ToggleRow";
 import { settingsStyles } from "./styles";
 
@@ -219,6 +220,8 @@ export function SettingsScreen({
           onPress={toggleUnits}
         />
       </Card>
+
+      <SplitEditorCard />
 
       <Card>
         <CardHeader id="015" title="ACCOUNT" />

@@ -10,7 +10,7 @@ import { Keyboard, Pressable, StyleSheet, Text, View } from "react-native";
 import { COLORS } from "../core/design/colors";
 import { blankDay, fromStoredRecord, isEmptyDay, toStoredRecord } from "../core/storage/dayRecord";
 import { getDatesWithData, getDay, saveDay } from "../core/api/dayApi";
-import { getProfile, getSplitDays } from "../core/api/profileApi";
+import { getProfile, getSplitDays, onSplitsChanged } from "../core/api/profileApi";
 import {
   addDays,
   formatHeaderDate,
@@ -181,6 +181,10 @@ export function AppShell() {
       await refreshDatesWithData();
       await loadDay(todayISO());
     })();
+    // Keep the split picker in step with edits made in Settings.
+    return onSplitsChanged(() => {
+      getSplitDays().then(setSplitDays).catch(() => {});
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

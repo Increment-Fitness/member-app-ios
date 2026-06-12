@@ -84,6 +84,106 @@ export async function getSplitDays() {
   }));
 }
 
+// Split edits notify subscribers (AppShell refreshes its picker).
+const splitListeners = new Set();
+
+/** @param {() => void} listener @returns {() => void} Unsubscribe. */
+export function onSplitsChanged(listener) {
+  splitListeners.add(listener);
+  return () => splitListeners.delete(listener);
+}
+
+function emitSplitsChanged() {
+  splitListeners.forEach((listener) => listener());
+}
+
+async function findOrCreateExercise(userId, name) {
+  const { data: existing } = await supabase
+    .from("exercises")
+    .select("id")
+    .ilike("name", name.trim())
+    .maybeSingle();
+  if (existing) {
+    return existing.id;
+  }
+  const { data: created, error } = await supabase
+    .from("exercises")
+    .insert({ user_id: userId, name: name.trim() })
+    .select("id")
+    .single();
+  if (error) {
+    throw new Error(error.message);
+  }
+  return created.id;
+}
+
+/** Creates an empty split day at the end of the list. @returns its id. */
+export async function createSplitDay(name) {
+  const userId = await uid();
+  const { count } = await supabase.from("split_days").select("id", { count: "exact", head: true });
+  const { data, error } = await supabase
+    .from("split_days")
+    .insert({ user_id: userId, name: name.trim(), position: count ?? 0 })
+    .select("id")
+    .single();
+  if (error) {
+    throw new Error(error.message);
+  }
+  emitSplitsChanged();
+  return data.id;
+}
+
+export async function renameSplitDay(id, name) {
+  const { error } = await supabase.from("split_days").update({ name: name.trim() }).eq("id", id);
+  if (error) {
+    throw new Error(error.message);
+  }
+  emitSplitsChanged();
+}
+
+export async function deleteSplitDay(id) {
+  const { error } = await supabase.from("split_days").delete().eq("id", id);
+  if (error) {
+    throw new Error(error.message);
+  }
+  emitSplitsChanged();
+}
+
+/**
+ * Replaces a split day's exercise list with `names`, in order. Names not in
+ * the member's catalog are created.
+ */
+export async function setSplitDayExercises(splitDayId, names) {
+  const userId = await uid();
+  const exerciseIds = [];
+  for (const name of names) {
+    if (name.trim()) {
+      exerciseIds.push(await findOrCreateExercise(userId, name));
+    }
+  }
+  const { error: clearError } = await supabase
+    .from("split_day_exercises")
+    .delete()
+    .eq("split_day_id", splitDayId);
+  if (clearError) {
+    throw new Error(clearError.message);
+  }
+  if (exerciseIds.length) {
+    const { error } = await supabase.from("split_day_exercises").insert(
+      exerciseIds.map((exerciseId, index) => ({
+        user_id: userId,
+        split_day_id: splitDayId,
+        exercise_id: exerciseId,
+        position: index,
+      })),
+    );
+    if (error) {
+      throw new Error(error.message);
+    }
+  }
+  emitSplitsChanged();
+}
+
 /**
  * First-login bootstrap: members with no split templates get the app's
  * PUSH/PULL/LEGS presets as real split_days rows (legacy members keep the
