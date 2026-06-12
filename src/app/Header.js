@@ -30,16 +30,31 @@ export function Header({
       <View style={styles.headerBrand}>
         <Text style={styles.headerWordmark}>INCREMENT</Text>
         <View style={styles.dateNavRow}>
-          <Pressable onPress={onPrevDay} hitSlop={10} style={({ pressed }) => pressed && styles.navPressed}>
+          <Pressable
+            onPress={onPrevDay}
+            hitSlop={16}
+            accessibilityRole="button"
+            accessibilityLabel="Previous day"
+            style={({ pressed }) => pressed && styles.navPressed}
+          >
             <Text style={styles.navChevron}>{"‹"}</Text>
           </Pressable>
-          <Pressable onPress={onOpenCalendar} hitSlop={6} style={({ pressed }) => pressed && styles.navPressed}>
+          <Pressable
+            onPress={onOpenCalendar}
+            hitSlop={12}
+            accessibilityRole="button"
+            accessibilityLabel="Open calendar"
+            style={({ pressed }) => pressed && styles.navPressed}
+          >
             <Text style={styles.headerSub}>{dateLabel} // {currentSplit}</Text>
           </Pressable>
           <Pressable
             onPress={onNextDay}
             disabled={isToday}
-            hitSlop={10}
+            hitSlop={16}
+            accessibilityRole="button"
+            accessibilityLabel="Next day"
+            accessibilityState={{ disabled: isToday }}
             style={({ pressed }) => pressed && styles.navPressed}
           >
             <Text style={[styles.navChevron, isToday && styles.navChevronDisabled]}>{"›"}</Text>
