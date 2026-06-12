@@ -120,7 +120,12 @@ export function ProgressScreen({ macros, todayWeight }) {
         </View>
       </Card>
       <Card style={styles.progressCard}>
-        <CardHeader id="011" title="BODYWEIGHT TREND" rightLabel={`${todayWeight.toFixed(1)} LB`} rightHot />
+        <CardHeader
+          id="011"
+          title="BODYWEIGHT TREND"
+          rightLabel={todayWeight != null ? `${todayWeight.toFixed(1)} LB` : "--"}
+          rightHot
+        />
         <View style={styles.progressToolbar}>
           <ProgressDropdown
             label="INTERVAL"
