@@ -1,4 +1,4 @@
-// Styles shared between SettingsScreen and ToggleRow only.
+// Styles for the settings profile rows.
 import { StyleSheet } from "react-native";
 
 import { COLORS } from "../../core/design/colors";

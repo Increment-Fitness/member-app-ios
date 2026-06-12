@@ -26,20 +26,15 @@ import { deleteAccount } from "../../core/api/accountApi";
 import { signOut } from "../../core/api/authApi";
 import { getMacroTargets, getProfile, updateMacroTargets, updateProfile } from "../../core/api/profileApi";
 import { avatarUrl, uploadAvatar } from "../../core/api/photosApi";
+import { calculateCalories } from "../food/utils/macros";
 import { SplitEditorCard } from "./SplitEditorCard";
-import { ToggleRow } from "./ToggleRow";
 import { settingsStyles } from "./styles";
 
 /**
  * Settings screen. Profile, units, and targets read/write the backend; the
  * two toggles remain local state owned by AppShell.
  */
-export function SettingsScreen({
-  notificationsEnabled,
-  setNotificationsEnabled,
-  coachEnabled,
-  setCoachEnabled,
-}) {
+export function SettingsScreen() {
   const [profile, setProfile] = useState(null);
   const [targets, setTargets] = useState(null);
   const [avatar, setAvatar] = useState(null);
@@ -64,8 +59,6 @@ export function SettingsScreen({
   const openProfileEditor = () => {
     setDraft({
       display_name: profile?.display_name ?? "",
-      bio: profile?.bio ?? "",
-      calorie_target: profile?.calorie_target ? String(profile.calorie_target) : "",
       default_gym: profile?.default_gym ?? "",
     });
     setError(null);
@@ -88,8 +81,6 @@ export function SettingsScreen({
       if (editing === "profile") {
         await updateProfile({
           display_name: draft.display_name.trim(),
-          bio: draft.bio.trim(),
-          calorie_target: Number(draft.calorie_target) > 0 ? Math.round(Number(draft.calorie_target)) : null,
           default_gym: draft.default_gym.trim() || null,
         });
       } else {
@@ -103,6 +94,7 @@ export function SettingsScreen({
           return;
         }
         await updateMacroTargets(next);
+        await updateProfile({ calorie_target: calculateCalories(next) });
       }
       setEditing(null);
       refresh();
@@ -167,7 +159,6 @@ export function SettingsScreen({
 
   const profileRows = [
     ["MEMBER", profile?.display_name || "--"],
-    ["BIO", profile?.bio || "--"],
     ["CALORIE TARGET", profile?.calorie_target ? `${profile.calorie_target} KCAL` : "--"],
     ["MACRO TARGETS", targets ? `${targets.PROTEIN}P / ${targets.CARBS}C / ${targets.FAT}F` : "--"],
     ["DEFAULT GYM", profile?.default_gym || "--"],
@@ -203,25 +194,6 @@ export function SettingsScreen({
         </View>
       </Card>
 
-      <Card>
-        <CardHeader id="014" title="TOGGLES" />
-        <ToggleRow
-          label="NOTIFICATIONS"
-          value={notificationsEnabled}
-          onPress={() => setNotificationsEnabled((value) => !value)}
-        />
-        <ToggleRow
-          label="AI COACH MODULE"
-          value={coachEnabled}
-          onPress={() => setCoachEnabled((value) => !value)}
-        />
-        <ToggleRow
-          label="METRIC UNITS"
-          value={profile?.units === "metric"}
-          onPress={toggleUnits}
-        />
-      </Card>
-
       <SplitEditorCard />
 
       <Card>
@@ -251,23 +223,6 @@ export function SettingsScreen({
                     placeholderTextColor={COLORS.muted2}
                     value={draft.display_name}
                     onChangeText={(display_name) => setDraft((d) => ({ ...d, display_name }))}
-                  />
-                  <FieldLabel label="BIO" />
-                  <TextInput
-                    style={styles.input}
-                    placeholder="BIO"
-                    placeholderTextColor={COLORS.muted2}
-                    value={draft.bio}
-                    onChangeText={(bio) => setDraft((d) => ({ ...d, bio }))}
-                  />
-                  <FieldLabel label="CALORIE TARGET (KCAL)" />
-                  <TextInput
-                    style={styles.input}
-                    placeholder="CALORIE TARGET (KCAL)"
-                    placeholderTextColor={COLORS.muted2}
-                    keyboardType="number-pad"
-                    value={draft.calorie_target}
-                    onChangeText={(calorie_target) => setDraft((d) => ({ ...d, calorie_target }))}
                   />
                   <FieldLabel label="DEFAULT GYM" />
                   <TextInput
@@ -307,6 +262,15 @@ export function SettingsScreen({
                     value={draft.fat}
                     onChangeText={(fat) => setDraft((d) => ({ ...d, fat }))}
                   />
+                  <Text style={styles.derivedCalories}>
+                    CALORIE TARGET AUTO-UPDATES:{" "}
+                    {calculateCalories({
+                      PROTEIN: Number(draft.protein) || 0,
+                      CARBS: Number(draft.carbs) || 0,
+                      FAT: Number(draft.fat) || 0,
+                    })}{" "}
+                    KCAL
+                  </Text>
                 </>
               )}
               {error && <Text style={styles.error}>{error}</Text>}
@@ -382,6 +346,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 10,
     marginTop: 8,
+  },
+  derivedCalories: {
+    marginTop: 8,
+    fontSize: 10,
+    fontWeight: "800",
+    letterSpacing: 0.4,
+    color: COLORS.forest,
   },
   error: {
     marginTop: 6,

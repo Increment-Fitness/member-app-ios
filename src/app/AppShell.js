@@ -114,8 +114,6 @@ export function AppShell() {
   const [todayWeight, setTodayWeight] = useState(null);
   const [weightDraft, setWeightDraft] = useState("");
   const [isEditingWeight, setIsEditingWeight] = useState(false);
-  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
-  const [coachEnabled, setCoachEnabled] = useState(true);
 
   const caloriesConsumed = meals.reduce((sum, meal) => sum + meal.calories, 0);
   const [caloriesGoal, setCaloriesGoal] = useState(2400);
@@ -880,14 +878,7 @@ export function AppShell() {
       case "progress":
         return <ProgressScreen macros={macros} todayWeight={todayWeight} />;
       case "settings":
-        return (
-          <SettingsScreen
-            notificationsEnabled={notificationsEnabled}
-            setNotificationsEnabled={setNotificationsEnabled}
-            coachEnabled={coachEnabled}
-            setCoachEnabled={setCoachEnabled}
-          />
-        );
+        return <SettingsScreen />;
       default:
         return <DashboardScreen {...dashboardProps} />;
     }
@@ -908,7 +899,6 @@ export function AppShell() {
     macros,
     mealInputMode,
     meals,
-    notificationsEnabled,
     pastMealSearchDraft,
     progressBar,
     progressPercent,
