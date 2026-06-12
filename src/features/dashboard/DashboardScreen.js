@@ -74,13 +74,15 @@ export function DashboardScreen({
             {caloriesConsumed} EATEN · GOAL {caloriesGoal}
           </Text>
           <Text style={styles.statBar} numberOfLines={1}>
-            {asciiProgress(progressPercent, 10)} {progressPercent.toFixed(0)}%
+            {asciiProgress(progressPercent, 10)}
           </Text>
         </View>
         <View style={styles.statTile}>
           <Text style={styles.statLabel}>{isToday ? "TODAY'S WEIGHT" : "WEIGHT"}</Text>
-          <Text style={styles.statValue}>{todayWeight != null ? todayWeight.toFixed(1) : "--"}</Text>
-          <Text style={styles.statSub}>LB</Text>
+          <View style={styles.statValueRow}>
+            <Text style={styles.statValue}>{todayWeight != null ? todayWeight.toFixed(1) : "--"}</Text>
+            <Text style={styles.statValueUnit}>LB</Text>
+          </View>
           {isEditable ? (
             <View style={styles.statAction}>
               <Tag label="LOG" hot onPress={startWeightEdit} />
@@ -179,6 +181,17 @@ const styles = StyleSheet.create({
     fontWeight: "900",
     letterSpacing: -0.8,
     color: COLORS.ink,
+  },
+  statValueRow: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    gap: 3,
+  },
+  statValueUnit: {
+    fontSize: 10,
+    fontWeight: "800",
+    color: COLORS.muted,
+    marginBottom: 2,
   },
   statSub: {
     fontSize: 8,
