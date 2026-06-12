@@ -9,6 +9,7 @@ import { Tag } from "../../core/components/Tag";
 import { COLORS } from "../../core/design/colors";
 import { sharedStyles } from "../../core/design/sharedStyles";
 import { WORKOUT_SPLITS } from "../workout/data/workoutSplits";
+import { asciiProgress } from "./utils/asciiProgress";
 import { MacroRow } from "./MacroRow";
 import { WeightModal } from "./WeightModal";
 import { ProgressPhotoTile } from "./ProgressPhotoCard";
@@ -72,24 +73,23 @@ export function DashboardScreen({
           <Text style={styles.statSub}>
             {caloriesConsumed} EATEN · GOAL {caloriesGoal}
           </Text>
+          <Text style={styles.statBar} numberOfLines={1}>
+            {asciiProgress(progressPercent, 10)} {progressPercent.toFixed(0)}%
+          </Text>
         </View>
-        <Pressable
-          onPress={isEditable ? startWeightEdit : undefined}
-          style={({ pressed }) => [styles.statTile, pressed && isEditable && sharedStyles.pressed]}
-        >
+        <View style={styles.statTile}>
           <Text style={styles.statLabel}>{isToday ? "TODAY'S WEIGHT" : "WEIGHT"}</Text>
           <Text style={styles.statValue}>{todayWeight != null ? todayWeight.toFixed(1) : "--"}</Text>
-          <Text style={styles.statSub}>{isEditable ? "LB · TAP TO LOG" : "LB"}</Text>
-        </Pressable>
+          <Text style={styles.statSub}>LB</Text>
+          {isEditable ? (
+            <View style={styles.statAction}>
+              <Tag label="LOG" hot onPress={startWeightEdit} />
+            </View>
+          ) : null}
+        </View>
         <ProgressPhotoTile selectedDate={selectedDate} isEditable={isEditable} />
       </View>
 
-      <Card grid>
-        <CardHeader id="001" title="CALORIE BUDGET" />
-        <Text style={styles.asciiBar}>
-          {progressBar} {progressPercent.toFixed(1)}%
-        </Text>
-      </Card>
 
       <Card>
         <CardHeader id="002" title={isToday ? "TODAY'S MACROS" : "MACROS"} />
@@ -186,9 +186,14 @@ const styles = StyleSheet.create({
     letterSpacing: 0.6,
     color: COLORS.muted2,
   },
-  asciiBar: {
-    fontSize: 10,
+  statBar: {
+    fontSize: 9,
     color: COLORS.ink,
+  },
+  statAction: {
+    marginTop: "auto",
+    alignSelf: "stretch",
+    alignItems: "flex-start",
   },
   liftHero: {
     gap: 6,

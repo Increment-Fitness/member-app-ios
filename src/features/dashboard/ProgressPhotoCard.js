@@ -7,6 +7,7 @@ import { Alert, Image, Modal, Pressable, StyleSheet, Text, View } from "react-na
 import * as ImagePicker from "expo-image-picker";
 
 import { ActionButton } from "../../core/components/ActionButton";
+import { Tag } from "../../core/components/Tag";
 import { COLORS } from "../../core/design/colors";
 import { sharedStyles } from "../../core/design/sharedStyles";
 import { getProgressPhotoForDate, uploadProgressPhoto } from "../../core/api/photosApi";
@@ -81,8 +82,13 @@ export function ProgressPhotoTile({ selectedDate, isEditable }) {
         <Image source={{ uri: photoUrl }} style={styles.thumb} resizeMode="cover" />
       ) : (
         <>
-          <Text style={styles.tileValue}>{busy ? "..." : isEditable ? "+" : "--"}</Text>
-          <Text style={styles.tileSub}>{busy ? "UPLOADING" : isEditable ? "TAP TO ADD" : "NONE"}</Text>
+          <Text style={styles.tileValue}>--</Text>
+          <Text style={styles.tileSub}>{busy ? "UPLOADING..." : "NONE YET"}</Text>
+          {isEditable ? (
+            <View style={styles.tileAction}>
+              <Tag label={busy ? "..." : "ADD"} hot onPress={busy ? undefined : pickAndUpload} />
+            </View>
+          ) : null}
         </>
       )}
 
@@ -140,6 +146,11 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     letterSpacing: 0.6,
     color: COLORS.muted2,
+  },
+  tileAction: {
+    marginTop: "auto",
+    alignSelf: "stretch",
+    alignItems: "flex-start",
   },
   thumb: {
     flex: 1,
