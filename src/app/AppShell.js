@@ -223,7 +223,7 @@ export function AppShell() {
   const goToPreviousDay = () => goToDate(addDays(selectedDate, -1));
 
   const goToNextDay = () => {
-    if (!isToday) {
+    if (!isTodayDate(selectedDate)) {
       goToDate(addDays(selectedDate, 1));
     }
   };
@@ -696,6 +696,9 @@ export function AppShell() {
 
   /** Commits the weight draft; an unparseable draft reverts silently. */
   const saveWeight = () => {
+    if (!isEditable) {
+      return;
+    }
     const parsed = Number.parseFloat(weightDraft);
     if (Number.isNaN(parsed)) {
       setWeightDraft(todayWeight != null ? todayWeight.toFixed(1) : "");
