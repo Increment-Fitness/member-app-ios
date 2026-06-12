@@ -90,6 +90,17 @@ describe("fromStoredRecord", () => {
     const state = fromStoredRecord(toStoredRecord("2026-06-11", SAMPLE_STATE));
     expect(state.workoutQueue[1]).not.toHaveProperty("loggedSets");
   });
+
+  it("preserves the seeded flag", () => {
+    const seededRecord = toStoredRecord("2026-06-11", { ...SAMPLE_STATE, seeded: true });
+    expect(fromStoredRecord(seededRecord).seeded).toBe(true);
+  });
+
+  it("defaults seeded to false for legacy records without the flag", () => {
+    const record = toStoredRecord("2026-06-11", SAMPLE_STATE);
+    delete record.seeded;
+    expect(fromStoredRecord(record).seeded).toBe(false);
+  });
 });
 
 describe("blankDay", () => {

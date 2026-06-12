@@ -3,6 +3,10 @@
 // `workouts` schema (name + exercises[].sets with numeric weight/reps) so a
 // future backend migration is a direct field mapping. `scheme`/`load` are
 // local display metadata with no legacy equivalent.
+// Note: these imports reach into feature folders, which core code otherwise
+// avoids. Both are pure data modules (no UI, no react-native imports) and
+// nothing in those folders imports core/storage back, so there is no cycle.
+// If a third storage module needs them, promote the data into src/core/.
 import { INITIAL_MACROS } from "../../features/food/data/initialMeals";
 import { makeWorkoutQueue } from "../../features/workout/data/workoutSplits";
 
@@ -18,6 +22,9 @@ function zeroedMacros() {
  * @param {{split: string, meals: Array, macros: Array, workoutQueue: Array,
  *   weight: number | null, seeded?: boolean}} state
  * @returns {object} Stored day record.
+ * @note set `weight` and `reps` values are coerced with `Number()` when
+ *   writing exercises — callers are expected to pass pre-validated values
+ *   (the log-set modal validates input upstream before calling this).
  */
 export function toStoredRecord(isoDate, { split, meals, macros, workoutQueue, weight, seeded = false }) {
   return {
@@ -49,7 +56,7 @@ export function toStoredRecord(isoDate, { split, meals, macros, workoutQueue, we
  *
  * @param {object} record Stored day record.
  * @returns {{split: string, meals: Array, macros: Array, workoutQueue: Array,
- *   weight: number | null}}
+ *   weight: number | null, seeded: boolean}}
  */
 export function fromStoredRecord(record) {
   return {
@@ -64,6 +71,7 @@ export function fromStoredRecord(record) {
       ...(exercise.sets.length ? { loggedSets: exercise.sets } : {}),
     })),
     weight: record.weight,
+    seeded: record.seeded ?? false,
   };
 }
 
