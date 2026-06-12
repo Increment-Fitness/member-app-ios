@@ -1,17 +1,27 @@
 // Root state container: owns all app state (meals, macros, workout queue,
-// weight, settings) and hands it to the feature screens. There is no
-// persistence yet, so this component is the single source of truth.
+// weight, settings) and hands it to the feature screens. The state hooks hold
+// the selected day's data; loads and debounced autosaves go through dayStore.
 import { StatusBar } from "expo-status-bar";
 import CameraManager from "expo-camera/build/ExpoCameraManager";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Keyboard, Pressable, StyleSheet, Text, View } from "react-native";
 
 import { COLORS } from "../core/design/colors";
+import { blankDay, fromStoredRecord, isEmptyDay, toStoredRecord } from "../core/storage/dayRecord";
+import { getDatesWithData, getDay, saveDay } from "../core/storage/dayStore";
+import {
+  addDays,
+  formatHeaderDate,
+  isToday as isTodayDate,
+  isWithinEditWindow,
+  todayISO,
+} from "../core/storage/dates";
+import { seedIfEmpty } from "../core/storage/seed";
+import { CalendarModal } from "./CalendarModal";
 import { DashboardScreen } from "../features/dashboard/DashboardScreen";
 import { asciiProgress } from "../features/dashboard/utils/asciiProgress";
 import { FoodScreen } from "../features/food/FoodScreen";
-import { INITIAL_MACROS, INITIAL_MEALS } from "../features/food/data/initialMeals";
 import {
   calculateCalories,
   formatMacroDetail,
@@ -21,7 +31,7 @@ import {
 import { ProgressScreen } from "../features/progress/ProgressScreen";
 import { SettingsScreen } from "../features/settings/SettingsScreen";
 import { WorkoutScreen } from "../features/workout/WorkoutScreen";
-import { INITIAL_WORKOUT_QUEUE, makeWorkoutQueue } from "../features/workout/data/workoutSplits";
+import { makeWorkoutQueue } from "../features/workout/data/workoutSplits";
 import { validateLiftDraft, validateLogSetDraft } from "../features/workout/validation";
 import { Header } from "./Header";
 import { TABS } from "./tabs";
@@ -40,11 +50,26 @@ import { TABS } from "./tabs";
  */
 export function AppShell() {
   const weightInputRef = useRef(null);
+  // Boot with a blank editable today; the mount effect hydrates real data.
+  const bootStateRef = useRef(null);
+  if (bootStateRef.current === null) {
+    bootStateRef.current = fromStoredRecord(blankDay(todayISO(), { editable: true }));
+  }
+  const bootState = bootStateRef.current;
   const [cameraPermission, setCameraPermission] = useState(null);
   const [activeTab, setActiveTab] = useState("dashboard");
-  const [macros, setMacros] = useState(INITIAL_MACROS);
-  const [meals, setMeals] = useState(INITIAL_MEALS);
-  const [selectedMealId, setSelectedMealId] = useState(INITIAL_MEALS[1].id);
+  const [selectedDate, setSelectedDate] = useState(() => todayISO());
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+  const [datesWithData, setDatesWithData] = useState([]);
+  // True while the next state change came from loading a day (not the user),
+  // so the autosave effect skips exactly one run.
+  const skipNextSaveRef = useRef(true);
+  const saveTimerRef = useRef(null);
+  const pendingSaveRef = useRef(null);
+  const daySeededRef = useRef(false);
+  const [macros, setMacros] = useState(bootState.macros);
+  const [meals, setMeals] = useState(bootState.meals);
+  const [selectedMealId, setSelectedMealId] = useState(null);
   const [mealInputMode, setMealInputMode] = useState("MANUAL INPUT");
   const [activeMealCategory, setActiveMealCategory] = useState(null);
   const [editingMealId, setEditingMealId] = useState(null);
@@ -71,9 +96,9 @@ export function AppShell() {
   });
   const [barcodeScannerTarget, setBarcodeScannerTarget] = useState(null);
   const [scannedBarcode, setScannedBarcode] = useState(null);
-  const [currentSplit, setCurrentSplit] = useState("PUSH");
-  const [workoutQueue, setWorkoutQueue] = useState(INITIAL_WORKOUT_QUEUE);
-  const [selectedLiftId, setSelectedLiftId] = useState(INITIAL_WORKOUT_QUEUE[0]?.id ?? null);
+  const [currentSplit, setCurrentSplit] = useState(bootState.split);
+  const [workoutQueue, setWorkoutQueue] = useState(bootState.workoutQueue);
+  const [selectedLiftId, setSelectedLiftId] = useState(bootState.workoutQueue[0]?.id ?? null);
   const [isAddingLift, setIsAddingLift] = useState(false);
   const [liftDraft, setLiftDraft] = useState({ lift: "" });
   const [isLoggingSet, setIsLoggingSet] = useState(false);
@@ -81,8 +106,8 @@ export function AppShell() {
     reps: "",
     weight: "",
   });
-  const [todayWeight, setTodayWeight] = useState(184.2);
-  const [weightDraft, setWeightDraft] = useState("184.2");
+  const [todayWeight, setTodayWeight] = useState(null);
+  const [weightDraft, setWeightDraft] = useState("");
   const [isEditingWeight, setIsEditingWeight] = useState(false);
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [coachEnabled, setCoachEnabled] = useState(true);
@@ -98,12 +123,120 @@ export function AppShell() {
   const logSetDraftErrors = validateLogSetDraft(logSetDraft);
   const hasLogSetDraftErrors = Object.values(logSetDraftErrors).some(Boolean);
 
+  const isToday = isTodayDate(selectedDate);
+  const isEditable = isWithinEditWindow(selectedDate);
+  const headerDateLabel = formatHeaderDate(selectedDate);
+  const dayIsEmpty = isEmptyDay(
+    toStoredRecord(selectedDate, { split: currentSplit, meals, macros, workoutQueue, weight: todayWeight }),
+  );
+  const showEmptyState = !isEditable && dayIsEmpty;
+
+  const refreshDatesWithData = async () => {
+    setDatesWithData(await getDatesWithData());
+  };
+
+  /** Loads a day's record (or a blank day) into the state hooks. */
+  const loadDay = async (isoDate) => {
+    const stored = await getDay(isoDate);
+    const record = stored ?? blankDay(isoDate, { editable: isWithinEditWindow(isoDate) });
+    const state = fromStoredRecord(record);
+    daySeededRef.current = state.seeded;
+    skipNextSaveRef.current = true;
+    setSelectedDate(isoDate);
+    setCurrentSplit(state.split ?? "PUSH");
+    setMeals(state.meals);
+    setMacros(state.macros);
+    setWorkoutQueue(state.workoutQueue);
+    setSelectedLiftId(state.workoutQueue[0]?.id ?? null);
+    setSelectedMealId(state.meals[0]?.id ?? null);
+    setTodayWeight(state.weight);
+    setWeightDraft(state.weight != null ? state.weight.toFixed(1) : "");
+    // Close any open modals and drop in-progress drafts from the old day.
+    setIsEditingWeight(false);
+    setIsAddingLift(false);
+    setIsLoggingSet(false);
+    setActiveMealCategory(null);
+    setEditingMealId(null);
+    setIsCreatingCustomMeal(false);
+    setIsAddingManualIngredient(false);
+    setBarcodeScannerTarget(null);
+  };
+
+  // First launch: seed demo history, then hydrate today.
+  useEffect(() => {
+    (async () => {
+      await seedIfEmpty(todayISO());
+      await refreshDatesWithData();
+      await loadDay(todayISO());
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Autosave the selected day (debounced) whenever its data changes. The
+  // skip flag keeps freshly loaded days from being written back untouched,
+  // which also keeps never-edited blank days out of storage.
+  useEffect(() => {
+    if (skipNextSaveRef.current) {
+      skipNextSaveRef.current = false;
+      return undefined;
+    }
+    const record = toStoredRecord(selectedDate, {
+      split: currentSplit,
+      meals,
+      macros,
+      workoutQueue,
+      weight: todayWeight,
+      seeded: daySeededRef.current,
+    });
+    pendingSaveRef.current = { date: selectedDate, record };
+    clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(() => {
+      pendingSaveRef.current = null;
+      saveDay(selectedDate, record).then(refreshDatesWithData);
+    }, 500);
+    return undefined;
+    // selectedDate changes always arrive with the skip flag set by loadDay,
+    // so it is deliberately not a dependency here.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [meals, macros, workoutQueue, currentSplit, todayWeight]);
+
+  /** Writes any pending debounced save immediately (called before navigating). */
+  const flushPendingSave = async () => {
+    clearTimeout(saveTimerRef.current);
+    if (pendingSaveRef.current) {
+      const { date, record } = pendingSaveRef.current;
+      pendingSaveRef.current = null;
+      await saveDay(date, record);
+      await refreshDatesWithData();
+    }
+  };
+
+  const goToDate = async (isoDate) => {
+    setIsCalendarOpen(false);
+    if (isoDate === selectedDate) {
+      return;
+    }
+    await flushPendingSave();
+    await loadDay(isoDate);
+  };
+
+  const goToPreviousDay = () => goToDate(addDays(selectedDate, -1));
+
+  const goToNextDay = () => {
+    if (!isToday) {
+      goToDate(addDays(selectedDate, 1));
+    }
+  };
+
   /**
    * Central meal-append path: derives missing macros/calories from the
    * template, stamps id/time, updates macro totals, and switches to the
    * food tab.
    */
   const addMealEntry = (template, source = mealInputMode) => {
+    if (!isEditable) {
+      return;
+    }
     const macroDelta = template.macroDelta ?? parseMacroDetail(template.detail);
     const calories = template.calories ?? calculateCalories(macroDelta);
     const nextMeal = {
@@ -326,6 +459,9 @@ export function AppShell() {
   };
 
   const deleteMeal = (mealId) => {
+    if (!isEditable) {
+      return;
+    }
     setMeals((current) => {
       const target = current.find((meal) => meal.id === mealId);
       if (!target) {
@@ -350,6 +486,9 @@ export function AppShell() {
   };
 
   const startEditMeal = (mealId) => {
+    if (!isEditable) {
+      return;
+    }
     const meal = meals.find((item) => item.id === mealId);
     if (!meal) {
       return;
@@ -367,6 +506,9 @@ export function AppShell() {
   };
 
   const saveEditedMeal = () => {
+    if (!isEditable) {
+      return;
+    }
     if (!editingMealId) {
       return;
     }
@@ -411,6 +553,9 @@ export function AppShell() {
 
   /** Opens the log-set modal for the currently selected lift. */
   const advanceWorkout = () => {
+    if (!isEditable) {
+      return;
+    }
     const targetLift = workoutQueue.find((item) => item.id === selectedLiftId) ?? workoutQueue[0];
     if (!targetLift) {
       return;
@@ -427,6 +572,9 @@ export function AppShell() {
    * draft is invalid so the modal keeps its error state visible.
    */
   const saveLoggedSet = () => {
+    if (!isEditable) {
+      return false;
+    }
     if (hasLogSetDraftErrors) {
       return false;
     }
@@ -441,8 +589,8 @@ export function AppShell() {
         if (index === targetIndex) {
           const loggedSet = {
             id: `set-${Date.now()}`,
-            reps: logSetDraft.reps.trim(),
-            weight: logSetDraft.weight.trim(),
+            reps: Number.parseInt(logSetDraft.reps.trim(), 10),
+            weight: Number.parseFloat(logSetDraft.weight.trim()),
           };
           const loggedSets = [...(item.loggedSets ?? []), loggedSet];
           return {
@@ -466,6 +614,9 @@ export function AppShell() {
   };
 
   const openAddLift = () => {
+    if (!isEditable) {
+      return;
+    }
     setLiftDraft({ lift: "" });
     setIsAddingLift(true);
   };
@@ -480,6 +631,9 @@ export function AppShell() {
    * draft is invalid (modal shows the error), true on success.
    */
   const addDayLift = () => {
+    if (!isEditable) {
+      return false;
+    }
     if (hasLiftDraftErrors) {
       return false;
     }
@@ -499,6 +653,9 @@ export function AppShell() {
   };
 
   const deleteDayLift = (liftId) => {
+    if (!isEditable) {
+      return;
+    }
     setWorkoutQueue((current) => {
       const deletedLift = current.find((item) => item.id === liftId);
       const remaining = current.filter((item) => item.id !== liftId);
@@ -526,6 +683,9 @@ export function AppShell() {
 
   /** Switches splits and rebuilds the queue, resetting any open modals. */
   const changeSplit = (split) => {
+    if (!isEditable) {
+      return;
+    }
     setCurrentSplit(split);
     const nextQueue = makeWorkoutQueue(split);
     setWorkoutQueue(nextQueue);
@@ -538,7 +698,7 @@ export function AppShell() {
   const saveWeight = () => {
     const parsed = Number.parseFloat(weightDraft);
     if (Number.isNaN(parsed)) {
-      setWeightDraft(todayWeight.toFixed(1));
+      setWeightDraft(todayWeight != null ? todayWeight.toFixed(1) : "");
       setIsEditingWeight(false);
       Keyboard.dismiss();
       return;
@@ -552,7 +712,10 @@ export function AppShell() {
   };
 
   const startWeightEdit = () => {
-    setWeightDraft(todayWeight.toFixed(1));
+    if (!isEditable) {
+      return;
+    }
+    setWeightDraft(todayWeight != null ? todayWeight.toFixed(1) : "");
     setIsEditingWeight(true);
     // Focus after the modal has mounted the input.
     requestAnimationFrame(() => {
@@ -561,7 +724,7 @@ export function AppShell() {
   };
 
   const cancelWeightEdit = () => {
-    setWeightDraft(todayWeight.toFixed(1));
+    setWeightDraft(todayWeight != null ? todayWeight.toFixed(1) : "");
     setIsEditingWeight(false);
     Keyboard.dismiss();
   };
@@ -588,6 +751,9 @@ export function AppShell() {
       startWeightEdit,
       cancelWeightEdit,
       weightInputRef,
+      isToday,
+      isEditable,
+      showEmptyState,
     };
 
     switch (activeTab) {
@@ -633,6 +799,8 @@ export function AppShell() {
             setMealDraft={setMealDraft}
             onSaveMeal={saveEditedMeal}
             onCancelMealEdit={cancelEditMeal}
+            isToday={isToday}
+            isEditable={isEditable}
           />
         );
       case "workout":
@@ -658,6 +826,8 @@ export function AppShell() {
             onAdvance={advanceWorkout}
             onSaveLoggedSet={saveLoggedSet}
             onCancelLogSet={cancelLogSet}
+            isToday={isToday}
+            isEditable={isEditable}
           />
         );
       case "progress":
@@ -711,13 +881,31 @@ export function AppShell() {
     scannedBarcode,
     todayWeight,
     workoutQueue,
+    isToday,
+    isEditable,
+    showEmptyState,
   ]);
 
   return (
     <SafeAreaView style={styles.safeArea} edges={["top", "left", "right"]}>
       <StatusBar style="dark" />
       <View style={styles.appShell}>
-        <Header caloriesRemaining={caloriesRemaining} currentSplit={currentSplit} />
+        <Header
+          caloriesRemaining={caloriesRemaining}
+          currentSplit={currentSplit}
+          dateLabel={headerDateLabel}
+          isToday={isToday}
+          onPrevDay={goToPreviousDay}
+          onNextDay={goToNextDay}
+          onOpenCalendar={() => setIsCalendarOpen(true)}
+        />
+        <CalendarModal
+          visible={isCalendarOpen}
+          selectedDate={selectedDate}
+          datesWithData={datesWithData}
+          onSelectDate={goToDate}
+          onClose={() => setIsCalendarOpen(false)}
+        />
         <View style={styles.content}>{screen}</View>
         <View style={styles.tabBar}>
           {TABS.map((tab) => {
