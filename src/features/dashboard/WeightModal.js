@@ -52,14 +52,16 @@ export function WeightModal({
         >
           <Pressable style={sharedStyles.weightModalCard} onPress={() => {}}>
             <CardHeader id="004" title="UPDATE WEIGHT" />
-            <Text style={styles.weightCurrentLabel}>CURRENT {todayWeight.toFixed(1)} LB</Text>
+            <Text style={styles.weightCurrentLabel}>
+              CURRENT {todayWeight != null ? `${todayWeight.toFixed(1)} LB` : "--"}
+            </Text>
             <View style={styles.weightInputRow}>
               <TextInput
                 ref={weightInputRef}
                 value={weightDraft}
                 onChangeText={setWeightDraft}
                 keyboardType="decimal-pad"
-                placeholder={todayWeight.toFixed(1)}
+                placeholder={todayWeight != null ? todayWeight.toFixed(1) : "185.0"}
                 placeholderTextColor={COLORS.muted}
                 style={styles.weightInput}
                 selectTextOnFocus

@@ -16,6 +16,10 @@ import { WeightModal } from "./WeightModal";
  * ASCII progress bar, macro bars, the current split's exercise list with
  * split switcher chips, and the weight card that opens WeightModal. All
  * state and handlers come from AppShell.
+ *
+ * @param {boolean} props.isToday True when the selected day is today.
+ * @param {boolean} props.isEditable True when the selected day accepts edits.
+ * @param {boolean} props.showEmptyState True for read-only days with no data.
  */
 export function DashboardScreen({
   caloriesRemaining,
@@ -38,7 +42,23 @@ export function DashboardScreen({
   startWeightEdit,
   cancelWeightEdit,
   weightInputRef,
+  isToday,
+  isEditable,
+  showEmptyState,
 }) {
+  if (showEmptyState) {
+    return (
+      <ScrollView contentContainerStyle={sharedStyles.scrollContent} showsVerticalScrollIndicator={false}>
+        <Card grid>
+          <CardHeader id="001" title="NO DATA LOGGED" />
+          <Text style={sharedStyles.sectionText}>
+            Nothing was logged on this day. Days older than yesterday are read-only.
+          </Text>
+        </Card>
+      </ScrollView>
+    );
+  }
+
   return (
     <ScrollView contentContainerStyle={sharedStyles.scrollContent} showsVerticalScrollIndicator={false}>
       <Card grid>
@@ -54,31 +74,35 @@ export function DashboardScreen({
       </Card>
 
       <Card>
-        <CardHeader id="002" title="TODAY'S MACROS" />
+        <CardHeader id="002" title={isToday ? "TODAY'S MACROS" : "MACROS"} />
         {macros.map((macro) => (
           <MacroRow key={macro.label} {...macro} />
         ))}
-        <View style={sharedStyles.actionRow}>
-          <ActionButton label="+ LOG FOOD" outline onPress={jumpToFood} />
-        </View>
+        {isEditable ? (
+          <View style={sharedStyles.actionRow}>
+            <ActionButton label="+ LOG FOOD" outline onPress={jumpToFood} />
+          </View>
+        ) : null}
       </Card>
 
       <Card>
-        <CardHeader id="003" title="TODAY'S LIFT" />
+        <CardHeader id="003" title={isToday ? "TODAY'S LIFT" : "LIFT"} />
         <View style={styles.liftHero}>
           <Text style={styles.liftHeroName}>{currentSplit} DAY</Text>
         </View>
-        <View style={sharedStyles.chipWrap}>
-          {Object.keys(WORKOUT_SPLITS).map((split) => (
-            <Tag
-              key={split}
-              label={split}
-              hot={currentSplit === split}
-              outline={currentSplit !== split}
-              onPress={() => changeSplit(split)}
-            />
-          ))}
-        </View>
+        {isEditable ? (
+          <View style={sharedStyles.chipWrap}>
+            {Object.keys(WORKOUT_SPLITS).map((split) => (
+              <Tag
+                key={split}
+                label={split}
+                hot={currentSplit === split}
+                outline={currentSplit !== split}
+                onPress={() => changeSplit(split)}
+              />
+            ))}
+          </View>
+        ) : null}
         <View style={styles.exerciseList}>
           {workoutQueue.map((item) => (
             <View key={item.id} style={styles.exerciseRow}>
@@ -97,15 +121,17 @@ export function DashboardScreen({
       </Card>
 
       <Card>
-        <CardHeader id="004" title="TODAY'S WEIGHT" />
+        <CardHeader id="004" title={isToday ? "TODAY'S WEIGHT" : "WEIGHT"} />
         <View style={styles.weightRow}>
-          <Text style={styles.weightValue}>{todayWeight.toFixed(1)}</Text>
+          <Text style={styles.weightValue}>{todayWeight != null ? todayWeight.toFixed(1) : "--"}</Text>
           <Text style={styles.weightUnit}>LB</Text>
         </View>
         <Text style={sharedStyles.sectionText}>Apple Health sync can plug into this later, but for now you can log today's weight manually.</Text>
-        <View style={sharedStyles.actionRow}>
-          <ActionButton label="UPDATE WEIGHT" hot onPress={startWeightEdit} />
-        </View>
+        {isEditable ? (
+          <View style={sharedStyles.actionRow}>
+            <ActionButton label="UPDATE WEIGHT" hot onPress={startWeightEdit} />
+          </View>
+        ) : null}
       </Card>
       <WeightModal
         visible={isEditingWeight}
