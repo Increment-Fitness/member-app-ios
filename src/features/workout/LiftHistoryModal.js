@@ -1,5 +1,7 @@
-// Per-lift history: trend chart plus the most recent logged maxes
-// (legacy ExerciseHistoryView parity), fetched from the backend.
+// Per-lift history, opened by tapping an exercise name in the queue:
+// average-weight trend chart plus the full scrollable session log showing
+// each day's sets and reps (legacy ExerciseHistoryView parity). Zero-weight
+// sets are excluded server-side.
 import { useEffect, useState } from "react";
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
@@ -8,6 +10,10 @@ import { COLORS } from "../../core/design/colors";
 import { sharedStyles } from "../../core/design/sharedStyles";
 import { getLiftHistory } from "../../core/api/progressApi";
 import { TrendLineChart } from "../progress/TrendLineChart";
+
+function setsLabel(sets) {
+  return sets.map((set) => `${set.weight} × ${set.reps}`).join("  ·  ");
+}
 
 /**
  * @param {object} props
@@ -35,7 +41,8 @@ export function LiftHistoryModal({ visible, liftName, onClose }) {
       .finally(() => setLoading(false));
   }, [visible, liftName]);
 
-  const recent = [...history].reverse().slice(0, 8);
+  // Newest first for the session log.
+  const sessions = [...history].reverse();
 
   return (
     <Modal visible={visible} animationType="fade" transparent onRequestClose={onClose}>
@@ -43,19 +50,22 @@ export function LiftHistoryModal({ visible, liftName, onClose }) {
         <Pressable style={sharedStyles.weightModalCard} onPress={() => {}}>
           <Text style={styles.liftTitle}>{liftName}</Text>
           <TrendLineChart
-            title={loading ? "Loading history..." : "Max weight over time"}
+            title={loading ? "Loading history..." : "Average weight per session"}
             data={history}
             selectedIndex={Math.min(selectedPoint, Math.max(history.length - 1, 0))}
             onSelect={setSelectedPoint}
             valueSuffix=" LB"
-            valueDecimals={0}
+            valueDecimals={1}
           />
-          {recent.length > 0 && (
-            <ScrollView style={styles.recentList} showsVerticalScrollIndicator={false}>
-              {recent.map((point) => (
-                <View key={point.date} style={styles.recentRow}>
-                  <Text style={styles.recentDate}>{point.label}</Text>
-                  <Text style={styles.recentValue}>{point.value} LB</Text>
+          {sessions.length > 0 && (
+            <ScrollView style={styles.sessionList} showsVerticalScrollIndicator={false}>
+              {sessions.map((point) => (
+                <View key={point.date} style={styles.sessionRow}>
+                  <View style={styles.sessionHead}>
+                    <Text style={styles.sessionDate}>{point.label}</Text>
+                    <Text style={styles.sessionAvg}>AVG {point.value} LB</Text>
+                  </View>
+                  <Text style={styles.sessionSets}>{setsLabel(point.sets)}</Text>
                 </View>
               ))}
             </ScrollView>
@@ -77,29 +87,37 @@ const styles = StyleSheet.create({
     color: COLORS.ink,
     textAlign: "center",
   },
-  recentList: {
-    maxHeight: 168,
+  sessionList: {
+    maxHeight: 240,
   },
-  recentRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    borderRadius: 12,
+  sessionRow: {
+    borderRadius: 14,
     backgroundColor: COLORS.card2,
     borderWidth: 1,
     borderColor: COLORS.line,
     paddingHorizontal: 12,
     paddingVertical: 8,
     marginBottom: 6,
+    gap: 3,
   },
-  recentDate: {
+  sessionHead: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  sessionDate: {
     fontSize: 10,
     fontWeight: "700",
     color: COLORS.muted,
   },
-  recentValue: {
+  sessionAvg: {
     fontSize: 11,
     fontWeight: "800",
+    color: COLORS.ink,
+  },
+  sessionSets: {
+    fontSize: 11,
+    fontWeight: "700",
     color: COLORS.ink,
   },
 });

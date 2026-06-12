@@ -33,15 +33,18 @@ export async function getLiftNames() {
 
 /**
  * @param {string} name Exercise name (case/whitespace-insensitive).
- * @returns {Promise<Array<{label: string, value: number, date: string}>>}
- *   Per-day max weight, oldest first.
+ * @returns {Promise<Array<{label: string, value: number, date: string,
+ *   sets: Array<{weight: number, reps: number}>}>>}
+ *   Per-day average weight plus the day's sets, oldest first. Zero-weight
+ *   sets (untouched defaults) are excluded server-side.
  */
 export async function getLiftHistory(name) {
   const rows = (await rpc("get_lift_history", { p_name: name })) ?? [];
   return rows.map((row) => ({
     date: row.performed_on,
     label: chartLabel(row.performed_on),
-    value: Number(row.max_weight),
+    value: Number(row.avg_weight),
+    sets: row.sets ?? [],
   }));
 }
 

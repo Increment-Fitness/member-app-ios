@@ -15,7 +15,7 @@ import { sharedStyles } from "../../core/design/sharedStyles";
  * @param {boolean} [props.selected=false] Highlights the active lift.
  * @param {() => void} [props.onPress] Selects this lift.
  * @param {() => void} [props.onDelete] Removes the lift from today's queue.
- * @param {() => void} [props.onHistory] Opens this lift's history.
+ * @param {() => void} [props.onHistory] Opens this lift's history (tap the name).
  * @param {boolean} [props.editable=true] Hides DELETE when false.
  */
 export function WorkoutRow({ item, selected = false, onPress, onDelete, onHistory, editable = true }) {
@@ -29,16 +29,19 @@ export function WorkoutRow({ item, selected = false, onPress, onDelete, onHistor
   return (
     <View style={[styles.workoutRow, selected && sharedStyles.selectedRow]}>
       <Pressable onPress={onPress} style={({ pressed }) => [styles.workoutRowMain, pressed && sharedStyles.pressed]}>
-        <View style={styles.workoutTitleBlock}>
+        <Pressable
+          onPress={onHistory ?? onPress}
+          hitSlop={8}
+          style={({ pressed }) => [styles.workoutTitleBlock, pressed && sharedStyles.pressed]}
+        >
           <Text style={[styles.workoutName, selected && sharedStyles.activeRowText]}>{item.lift}</Text>
-        </View>
+        </Pressable>
         <View style={styles.workoutMetaRow}>
           <Text style={[styles.workoutMetricInline, selected && sharedStyles.activeRowText]}>{weights}</Text>
           <Text style={[styles.workoutMetricDivider, selected && sharedStyles.activeDetailText]}>/</Text>
           <Text style={[styles.workoutMetricInline, selected && sharedStyles.activeRowText]}>{reps}</Text>
         </View>
       </Pressable>
-      {onHistory ? <Tag label="HIST" outline onPress={onHistory} /> : null}
       {editable ? <Tag label="DELETE" outline onPress={onDelete} /> : null}
     </View>
   );
