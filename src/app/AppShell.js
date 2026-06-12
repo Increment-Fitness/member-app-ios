@@ -10,7 +10,7 @@ import { Keyboard, Pressable, StyleSheet, Text, View } from "react-native";
 import { COLORS } from "../core/design/colors";
 import { blankDay, fromStoredRecord, isEmptyDay, toStoredRecord } from "../core/storage/dayRecord";
 import { getDatesWithData, getDay, saveDay } from "../core/api/dayApi";
-import { getProfile } from "../core/api/profileApi";
+import { getProfile, getSplitDays } from "../core/api/profileApi";
 import {
   addDays,
   formatHeaderDate,
@@ -31,7 +31,7 @@ import {
 import { ProgressScreen } from "../features/progress/ProgressScreen";
 import { SettingsScreen } from "../features/settings/SettingsScreen";
 import { WorkoutScreen } from "../features/workout/WorkoutScreen";
-import { makeWorkoutQueue } from "../features/workout/data/workoutSplits";
+import { WORKOUT_SPLITS, makeWorkoutQueue } from "../features/workout/data/workoutSplits";
 import { validateLiftDraft, validateLogSetDraft } from "../features/workout/validation";
 import { Header } from "./Header";
 import { TABS } from "./tabs";
@@ -61,6 +61,8 @@ export function AppShell() {
   const [selectedDate, setSelectedDate] = useState(() => todayISO());
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [datesWithData, setDatesWithData] = useState([]);
+  // Server split templates (legacy custom splits or the seeded presets).
+  const [splitDays, setSplitDays] = useState([]);
   // True while the next state change came from loading a day (not the user),
   // so the autosave effect skips exactly one run.
   const skipNextSaveRef = useRef(true);
@@ -175,6 +177,7 @@ export function AppShell() {
       getProfile()
         .then((profile) => setCaloriesGoal(profile?.calorie_target ?? 2400))
         .catch(() => {});
+      getSplitDays().then(setSplitDays).catch(() => {});
       await refreshDatesWithData();
       await loadDay(todayISO());
     })();
@@ -696,12 +699,31 @@ export function AppShell() {
   };
 
   /** Switches splits and rebuilds the queue, resetting any open modals. */
+  /**
+   * Builds the queue for a split: a server template's exercises when the
+   * member has one by that name, else the built-in preset.
+   */
+  const queueForSplit = (split) => {
+    const template = splitDays.find((day) => day.name.toUpperCase() === split.toUpperCase());
+    if (template && template.exercises.length) {
+      return template.exercises.map((exercise) => ({
+        id: exercise.id,
+        lift: exercise.name.toUpperCase(),
+        scheme: "--",
+        load: "--",
+      }));
+    }
+    return Object.prototype.hasOwnProperty.call(WORKOUT_SPLITS, split)
+      ? makeWorkoutQueue(split)
+      : [];
+  };
+
   const changeSplit = (split) => {
     if (!canEditSelectedDay()) {
       return;
     }
     setCurrentSplit(split);
-    const nextQueue = makeWorkoutQueue(split);
+    const nextQueue = queueForSplit(split);
     setWorkoutQueue(nextQueue);
     setSelectedLiftId(nextQueue[0]?.id ?? null);
     setIsAddingLift(false);
@@ -749,6 +771,9 @@ export function AppShell() {
   const screen = useMemo(() => {
     const dashboardProps = {
       selectedDate,
+      splitOptions: splitDays.length
+        ? splitDays.map((day) => day.name.toUpperCase())
+        : Object.keys(WORKOUT_SPLITS),
       caloriesRemaining,
       caloriesConsumed,
       caloriesGoal,
@@ -868,6 +893,7 @@ export function AppShell() {
     caloriesGoal,
     caloriesRemaining,
     currentSplit,
+    splitDays,
     activeMealCategory,
     barcodeScannerTarget,
     cameraPermission,

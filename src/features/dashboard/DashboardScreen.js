@@ -24,6 +24,7 @@ import { ProgressPhotoCard } from "./ProgressPhotoCard";
  */
 export function DashboardScreen({
   selectedDate,
+  splitOptions,
   caloriesRemaining,
   caloriesConsumed,
   caloriesGoal,
@@ -94,7 +95,7 @@ export function DashboardScreen({
         </View>
         {isEditable ? (
           <View style={sharedStyles.chipWrap}>
-            {Object.keys(WORKOUT_SPLITS).map((split) => (
+            {(splitOptions ?? Object.keys(WORKOUT_SPLITS)).map((split) => (
               <Tag
                 key={split}
                 label={split}
