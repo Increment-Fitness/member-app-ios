@@ -67,6 +67,9 @@ export function AppShell() {
   const saveTimerRef = useRef(null);
   const pendingSaveRef = useRef(null);
   const daySeededRef = useRef(false);
+  // True while a navigation's flush+load is in flight; taps during that
+  // window are ignored so overlapping loads can't latch the skip flag.
+  const isNavigatingRef = useRef(false);
   const [macros, setMacros] = useState(bootState.macros);
   const [meals, setMeals] = useState(bootState.meals);
   const [selectedMealId, setSelectedMealId] = useState(null);
@@ -125,6 +128,10 @@ export function AppShell() {
 
   const isToday = isTodayDate(selectedDate);
   const isEditable = isWithinEditWindow(selectedDate);
+  // UI rendering uses the render-time `isEditable`; mutation handlers call
+  // this instead so the edit-window check uses the clock at interaction time
+  // (a render from before midnight could otherwise let one stale edit in).
+  const canEditSelectedDay = () => isWithinEditWindow(selectedDate);
   const headerDateLabel = formatHeaderDate(selectedDate);
   const dayIsEmpty = isEmptyDay(
     toStoredRecord(selectedDate, { split: currentSplit, meals, macros, workoutQueue, weight: todayWeight }),
@@ -213,11 +220,16 @@ export function AppShell() {
 
   const goToDate = async (isoDate) => {
     setIsCalendarOpen(false);
-    if (isoDate === selectedDate) {
+    if (isoDate === selectedDate || isNavigatingRef.current) {
       return;
     }
-    await flushPendingSave();
-    await loadDay(isoDate);
+    isNavigatingRef.current = true;
+    try {
+      await flushPendingSave();
+      await loadDay(isoDate);
+    } finally {
+      isNavigatingRef.current = false;
+    }
   };
 
   const goToPreviousDay = () => goToDate(addDays(selectedDate, -1));
@@ -234,7 +246,7 @@ export function AppShell() {
    * food tab.
    */
   const addMealEntry = (template, source = mealInputMode) => {
-    if (!isEditable) {
+    if (!canEditSelectedDay()) {
       return;
     }
     const macroDelta = template.macroDelta ?? parseMacroDetail(template.detail);
@@ -459,7 +471,7 @@ export function AppShell() {
   };
 
   const deleteMeal = (mealId) => {
-    if (!isEditable) {
+    if (!canEditSelectedDay()) {
       return;
     }
     setMeals((current) => {
@@ -486,7 +498,7 @@ export function AppShell() {
   };
 
   const startEditMeal = (mealId) => {
-    if (!isEditable) {
+    if (!canEditSelectedDay()) {
       return;
     }
     const meal = meals.find((item) => item.id === mealId);
@@ -506,7 +518,7 @@ export function AppShell() {
   };
 
   const saveEditedMeal = () => {
-    if (!isEditable) {
+    if (!canEditSelectedDay()) {
       return;
     }
     if (!editingMealId) {
@@ -553,7 +565,7 @@ export function AppShell() {
 
   /** Opens the log-set modal for the currently selected lift. */
   const advanceWorkout = () => {
-    if (!isEditable) {
+    if (!canEditSelectedDay()) {
       return;
     }
     const targetLift = workoutQueue.find((item) => item.id === selectedLiftId) ?? workoutQueue[0];
@@ -572,7 +584,7 @@ export function AppShell() {
    * draft is invalid so the modal keeps its error state visible.
    */
   const saveLoggedSet = () => {
-    if (!isEditable) {
+    if (!canEditSelectedDay()) {
       return false;
     }
     if (hasLogSetDraftErrors) {
@@ -614,7 +626,7 @@ export function AppShell() {
   };
 
   const openAddLift = () => {
-    if (!isEditable) {
+    if (!canEditSelectedDay()) {
       return;
     }
     setLiftDraft({ lift: "" });
@@ -631,7 +643,7 @@ export function AppShell() {
    * draft is invalid (modal shows the error), true on success.
    */
   const addDayLift = () => {
-    if (!isEditable) {
+    if (!canEditSelectedDay()) {
       return false;
     }
     if (hasLiftDraftErrors) {
@@ -653,7 +665,7 @@ export function AppShell() {
   };
 
   const deleteDayLift = (liftId) => {
-    if (!isEditable) {
+    if (!canEditSelectedDay()) {
       return;
     }
     setWorkoutQueue((current) => {
@@ -683,7 +695,7 @@ export function AppShell() {
 
   /** Switches splits and rebuilds the queue, resetting any open modals. */
   const changeSplit = (split) => {
-    if (!isEditable) {
+    if (!canEditSelectedDay()) {
       return;
     }
     setCurrentSplit(split);
@@ -696,7 +708,7 @@ export function AppShell() {
 
   /** Commits the weight draft; an unparseable draft reverts silently. */
   const saveWeight = () => {
-    if (!isEditable) {
+    if (!canEditSelectedDay()) {
       return;
     }
     const parsed = Number.parseFloat(weightDraft);
@@ -715,7 +727,7 @@ export function AppShell() {
   };
 
   const startWeightEdit = () => {
-    if (!isEditable) {
+    if (!canEditSelectedDay()) {
       return;
     }
     setWeightDraft(todayWeight != null ? todayWeight.toFixed(1) : "");
