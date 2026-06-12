@@ -3,7 +3,6 @@ import { useEffect, useMemo, useState } from "react";
 import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
 
 import { ActionButton } from "../core/components/ActionButton";
-import { CardHeader } from "../core/components/CardHeader";
 import { COLORS } from "../core/design/colors";
 import { sharedStyles } from "../core/design/sharedStyles";
 import { buildCalendarWeeks, fromISODate, todayISO } from "../core/storage/dates";
@@ -74,7 +73,6 @@ export function CalendarModal({ visible, selectedDate, datesWithData, onSelectDa
     <Modal visible={visible} animationType="fade" transparent onRequestClose={onClose}>
       <Pressable style={sharedStyles.weightModalOverlay} onPress={onClose}>
         <Pressable style={sharedStyles.weightModalCard} onPress={() => {}}>
-          <CardHeader id="016" title="CALENDAR" />
           <View style={styles.monthRow}>
             <Pressable
               onPress={goToPreviousMonth}
@@ -173,6 +171,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   monthArrow: {
+    borderRadius: 12,
     borderWidth: 2,
     borderColor: COLORS.line,
     backgroundColor: COLORS.paper2,
@@ -210,6 +209,7 @@ const styles = StyleSheet.create({
     color: COLORS.muted,
   },
   dayCell: {
+    borderRadius: 12,
     width: 36,
     height: 38,
     alignItems: "center",

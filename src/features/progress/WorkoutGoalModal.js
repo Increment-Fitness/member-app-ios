@@ -11,7 +11,6 @@ import {
 } from "react-native";
 
 import { ActionButton } from "../../core/components/ActionButton";
-import { CardHeader } from "../../core/components/CardHeader";
 import { COLORS } from "../../core/design/colors";
 import { sharedStyles } from "../../core/design/sharedStyles";
 import { GoalSlider } from "./GoalSlider";
@@ -54,8 +53,7 @@ export function WorkoutGoalModal({
           style={sharedStyles.weightModalAvoider}
         >
           <Pressable style={sharedStyles.weightModalCard} onPress={() => {}}>
-            <CardHeader id="010" title={`${windowLabel} GOAL`} />
-            <Text style={sharedStyles.sectionText}>Choose how many workouts you want for {windowLabel.toLowerCase()}.</Text>
+                        <Text style={sharedStyles.sectionText}>Choose how many workouts you want for {windowLabel.toLowerCase()}.</Text>
             <View style={styles.goalSliderValueWrap}>
               <Text style={styles.goalSliderValue}>{draftValue}X</Text>
               <Text style={styles.goalSliderCaption}>workouts</Text>

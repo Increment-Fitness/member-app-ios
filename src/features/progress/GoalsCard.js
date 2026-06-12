@@ -177,10 +177,6 @@ export function GoalsCard({ todayWeight }) {
             style={sharedStyles.weightModalAvoider}
           >
             <Pressable style={sharedStyles.weightModalCard} onPress={() => {}}>
-              <CardHeader
-                id="019"
-                title={editing?.kind === "bodyweight" ? "BODYWEIGHT GOAL" : "EXERCISE GOAL"}
-              />
               {editing?.kind === "exercise" && (
                 <TextInput
                   style={styles.input}
@@ -239,6 +235,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   row: {
+    borderRadius: 14,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
@@ -268,6 +265,7 @@ const styles = StyleSheet.create({
     color: COLORS.muted2,
   },
   input: {
+    borderRadius: 14,
     borderWidth: 2,
     borderColor: COLORS.line,
     backgroundColor: COLORS.card,

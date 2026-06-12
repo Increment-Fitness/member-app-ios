@@ -81,6 +81,7 @@ export function ProgressPhotoCard({ selectedDate, isEditable }) {
 
 const styles = StyleSheet.create({
   photo: {
+    borderRadius: 16,
     width: "100%",
     height: 220,
     borderWidth: 2,
@@ -95,6 +96,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   empty: {
+    borderRadius: 16,
     borderWidth: 2,
     borderStyle: "dashed",
     borderColor: COLORS.line,

@@ -14,7 +14,6 @@ import {
 
 import { ActionButton } from "../../core/components/ActionButton";
 import { Card } from "../../core/components/Card";
-import { CardHeader } from "../../core/components/CardHeader";
 import { COLORS } from "../../core/design/colors";
 import { sharedStyles } from "../../core/design/sharedStyles";
 import { resetPassword, signIn, signUp } from "../../core/api/authApi";
@@ -86,7 +85,6 @@ export function AuthScreen() {
         <Text style={styles.wordmark}>INCREMENT</Text>
         <Text style={styles.tagline}>MEMBER ACCESS</Text>
         <Card style={styles.card}>
-          <CardHeader id="017" title={mode} />
           <View style={styles.modeRow}>
             {MODES.map((m) => (
               <Pressable
@@ -192,6 +190,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   modeButton: {
+    borderRadius: 12,
     flex: 1,
     borderWidth: 2,
     borderColor: COLORS.line,
@@ -213,6 +212,7 @@ const styles = StyleSheet.create({
     color: COLORS.paper,
   },
   input: {
+    borderRadius: 14,
     borderWidth: 2,
     borderColor: COLORS.line,
     backgroundColor: COLORS.card,

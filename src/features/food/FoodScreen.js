@@ -159,7 +159,6 @@ export function FoodScreen({
                 keyboardShouldPersistTaps="handled"
               >
                 <Card>
-                  <CardHeader id="006" title="INPUT MODES" />
                   <View style={sharedStyles.chipWrap}>
                     {["MANUAL INPUT", "SCAN LABEL", "CUSTOM MEAL"].map((mode) => (
                       <Tag

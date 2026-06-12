@@ -238,7 +238,6 @@ export function SettingsScreen({
             style={sharedStyles.weightModalAvoider}
           >
             <Pressable style={sharedStyles.weightModalCard} onPress={() => {}}>
-              <CardHeader id="020" title={editing === "profile" ? "EDIT PROFILE" : "MACRO TARGETS"} />
               {editing === "profile" ? (
                 <>
                   <TextInput
@@ -327,6 +326,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   avatarFrame: {
+    borderRadius: 16,
     width: 64,
     height: 64,
     borderWidth: 2,
@@ -361,6 +361,7 @@ const styles = StyleSheet.create({
     color: COLORS.muted,
   },
   input: {
+    borderRadius: 14,
     borderWidth: 2,
     borderColor: COLORS.line,
     backgroundColor: COLORS.card,
