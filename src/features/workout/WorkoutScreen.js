@@ -12,6 +12,9 @@ import { WorkoutRow } from "./WorkoutRow";
  * Workout screen. Lists the queue for the current split and exposes the two
  * primary actions (+ ADD LIFT, + LOG SET); all queue state and handlers come
  * from AppShell.
+ *
+ * @param {boolean} props.isToday True when the selected day is today.
+ * @param {boolean} props.isEditable True when the selected day accepts edits.
  */
 export function WorkoutScreen({
   workoutQueue,
@@ -34,11 +37,13 @@ export function WorkoutScreen({
   onAdvance,
   onSaveLoggedSet,
   onCancelLogSet,
+  isToday,
+  isEditable,
 }) {
   return (
     <View style={styles.workoutScreen}>
       <View style={[sharedStyles.card, styles.workoutPanel]}>
-        <CardHeader id="008" title="TODAY'S WORKOUT" />
+        <CardHeader id="008" title={isToday ? "TODAY'S WORKOUT" : "WORKOUT"} />
         <ScrollView
           style={styles.workoutList}
           contentContainerStyle={styles.workoutListContent}
@@ -51,13 +56,16 @@ export function WorkoutScreen({
               selected={item.id === selectedLiftId}
               onPress={() => onSelectLift(item.id)}
               onDelete={() => onDeleteLift(item.id)}
+              editable={isEditable}
             />
           ))}
         </ScrollView>
-        <View style={styles.actionColumn}>
-          <ActionButton label="+ ADD LIFT" outline onPress={onOpenAddLift} />
-          <ActionButton label="+ LOG SET" hot onPress={onAdvance} />
-        </View>
+        {isEditable ? (
+          <View style={styles.actionColumn}>
+            <ActionButton label="+ ADD LIFT" outline onPress={onOpenAddLift} />
+            <ActionButton label="+ LOG SET" hot onPress={onAdvance} />
+          </View>
+        ) : null}
       </View>
       <LogSetModal
         visible={isLoggingSet}

@@ -15,8 +15,9 @@ import { sharedStyles } from "../../core/design/sharedStyles";
  * @param {boolean} [props.selected=false] Highlights the active lift.
  * @param {() => void} [props.onPress] Selects this lift.
  * @param {() => void} [props.onDelete] Removes the lift from today's queue.
+ * @param {boolean} [props.editable=true] Hides DELETE when false.
  */
-export function WorkoutRow({ item, selected = false, onPress, onDelete }) {
+export function WorkoutRow({ item, selected = false, onPress, onDelete, editable = true }) {
   const weights = item.loggedSets?.length
     ? item.loggedSets.map((set) => set.weight).join(", ")
     : item.load ?? "--";
@@ -36,7 +37,7 @@ export function WorkoutRow({ item, selected = false, onPress, onDelete }) {
           <Text style={[styles.workoutMetricInline, selected && sharedStyles.activeRowText]}>{reps}</Text>
         </View>
       </Pressable>
-      <Tag label="DELETE" outline onPress={onDelete} />
+      {editable ? <Tag label="DELETE" outline onPress={onDelete} /> : null}
     </View>
   );
 }

@@ -30,6 +30,9 @@ import { calculateCalories, formatMacroDetail } from "./utils/macros";
  *
  * All state lives in AppShell; this component is purely presentational and
  * receives drafts plus their mutation callbacks as props.
+ *
+ * @param {boolean} props.isToday True when the selected day is today.
+ * @param {boolean} props.isEditable True when the selected day accepts edits.
  */
 export function FoodScreen({
   meals,
@@ -71,6 +74,8 @@ export function FoodScreen({
   setMealDraft,
   onSaveMeal,
   onCancelMealEdit,
+  isToday,
+  isEditable,
 }) {
   const closeMealModal = onCloseMealCategory;
   const mealSections = ["BREAKFAST", "LUNCH", "DINNER", "SNACKS"].map((category) => ({
@@ -101,12 +106,12 @@ export function FoodScreen({
     <>
       <ScrollView contentContainerStyle={sharedStyles.scrollContent} showsVerticalScrollIndicator={false}>
         <Card>
-          <CardHeader id="005" title="TODAY'S MEAL LOG" />
+          <CardHeader id="005" title={isToday ? "TODAY'S MEAL LOG" : "MEAL LOG"} />
           {mealSections.map((section) => (
             <View key={section.category} style={styles.mealSection}>
               <View style={styles.mealSectionHeader}>
                 <Text style={styles.sectionTag}>{section.category}</Text>
-                <Tag label="+ ADD" hot={activeMealCategory === section.category} outline={activeMealCategory !== section.category} onPress={() => onOpenMealCategory(section.category)} />
+                {isEditable ? <Tag label="+ ADD" hot={activeMealCategory === section.category} outline={activeMealCategory !== section.category} onPress={() => onOpenMealCategory(section.category)} /> : null}
               </View>
               {section.items.length ? (
                 section.items.map((meal) => (
@@ -122,10 +127,11 @@ export function FoodScreen({
                     setMealDraft={setMealDraft}
                     onSave={onSaveMeal}
                     onCancel={onCancelMealEdit}
+                    editable={isEditable}
                   />
                 ))
               ) : (
-                <Text style={styles.emptySectionText}>No meals logged yet.</Text>
+                <Text style={styles.emptySectionText}>{isEditable ? "No meals logged yet." : "No meals were logged."}</Text>
               )}
             </View>
           ))}

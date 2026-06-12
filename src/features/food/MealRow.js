@@ -23,6 +23,7 @@ import { calculateCalories, parseMacroDetail } from "./utils/macros";
  * @param {Function} props.setMealDraft Draft updater.
  * @param {() => void} props.onSave Commits the draft.
  * @param {() => void} props.onCancel Discards the draft.
+ * @param {boolean} [props.editable=true] Hides EDIT/DELETE when false.
  */
 export function MealRow({
   meal,
@@ -35,6 +36,7 @@ export function MealRow({
   setMealDraft,
   onSave,
   onCancel,
+  editable = true,
 }) {
   if (isEditing) {
     const draftCalories = calculateCalories(parseMacroDetail(mealDraft.detail));
@@ -75,10 +77,12 @@ export function MealRow({
         </View>
         <Text style={[sharedStyles.dataRight, selected && sharedStyles.activeRowText]}>{meal.calories} KCAL</Text>
       </Pressable>
-      <View style={styles.mealActions}>
-        <Tag label="EDIT" outline onPress={onEdit} />
-        <Tag label="DELETE" outline onPress={onDelete} />
-      </View>
+      {editable ? (
+        <View style={styles.mealActions}>
+          <Tag label="EDIT" outline onPress={onEdit} />
+          <Tag label="DELETE" outline onPress={onDelete} />
+        </View>
+      ) : null}
     </View>
   );
 }
