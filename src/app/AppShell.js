@@ -748,6 +748,7 @@ export function AppShell() {
 
   const screen = useMemo(() => {
     const dashboardProps = {
+      selectedDate,
       caloriesRemaining,
       caloriesConsumed,
       caloriesGoal,

@@ -109,3 +109,24 @@ export async function uploadProgressPhoto(isoDate, localUri) {
 export function progressPhotoUrl(path) {
   return signedUrl(PROGRESS_BUCKET, path);
 }
+
+/**
+ * The day's progress photo, if any.
+ *
+ * @param {string} isoDate
+ * @returns {Promise<string | null>} Signed display URL.
+ */
+export async function getProgressPhotoForDate(isoDate) {
+  const { data, error } = await supabase
+    .from("workout_sessions")
+    .select("progress_photo_path")
+    .gte("performed_at", `${isoDate}T00:00:00Z`)
+    .lt("performed_at", `${isoDate}T23:59:59Z`)
+    .not("progress_photo_path", "is", null)
+    .limit(1)
+    .maybeSingle();
+  if (error || !data) {
+    return null;
+  }
+  return signedUrl(PROGRESS_BUCKET, data.progress_photo_path);
+}
