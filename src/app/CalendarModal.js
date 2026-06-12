@@ -1,6 +1,5 @@
-// Month-grid date picker for day navigation. Days with stored data get a
-// dot; future days are disabled; TODAY jumps back to the current day.
-import { useEffect, useState } from "react";
+// Calendar modal for day navigation: pick any past day (or today) to load it.
+import { useEffect, useMemo, useState } from "react";
 import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
 
 import { ActionButton } from "../core/components/ActionButton";
@@ -10,106 +9,154 @@ import { sharedStyles } from "../core/design/sharedStyles";
 import { buildCalendarWeeks, fromISODate, todayISO } from "../core/storage/dates";
 
 const WEEKDAY_LABELS = ["S", "M", "T", "W", "T", "F", "S"];
-
-/** @param {string} isoDate @returns {{year: number, month: number}} */
-function monthOf(isoDate) {
-  const date = fromISODate(isoDate);
-  return { year: date.getFullYear(), month: date.getMonth() };
-}
+const MONTH_LABELS = [
+  "JAN", "FEB", "MAR", "APR", "MAY", "JUN",
+  "JUL", "AUG", "SEP", "OCT", "NOV", "DEC",
+];
 
 /**
- * Calendar modal for jumping to any past day.
+ * Month-grid date picker. Future days are disabled (the app only navigates
+ * to today or the past, matching `goToNextDay`); days with stored data get a
+ * dot. The displayed month re-seeds from `selectedDate` each time the modal
+ * opens.
  *
  * @param {object} props
  * @param {boolean} props.visible
- * @param {string} props.selectedDate Currently selected ISO day.
- * @param {string[]} props.datesWithData ISO days that have stored records.
- * @param {(isoDate: string) => void} props.onSelectDate Navigates to a day.
- * @param {() => void} props.onClose
+ * @param {string} props.selectedDate ISO day string ("2026-06-11").
+ * @param {string[]} props.datesWithData ISO day strings that have saved data.
+ * @param {(isoDate: string) => void} props.onSelectDate Loads the tapped day
+ *   (the handler closes the modal itself).
+ * @param {() => void} props.onClose Closes without changing the day.
  */
 export function CalendarModal({ visible, selectedDate, datesWithData, onSelectDate, onClose }) {
-  const [view, setView] = useState(() => monthOf(selectedDate));
+  const seed = fromISODate(selectedDate);
+  const [viewYear, setViewYear] = useState(seed.getFullYear());
+  const [viewMonth, setViewMonth] = useState(seed.getMonth());
 
-  // Re-center on the selected day each time the modal opens.
   useEffect(() => {
     if (visible) {
-      setView(monthOf(selectedDate));
+      const date = fromISODate(selectedDate);
+      setViewYear(date.getFullYear());
+      setViewMonth(date.getMonth());
     }
   }, [visible, selectedDate]);
 
-  const today = todayISO();
-  const hasData = new Set(datesWithData);
-  const weeks = buildCalendarWeeks(view.year, view.month);
-  const monthLabel = new Intl.DateTimeFormat("en-US", { month: "long", year: "numeric" })
-    .format(new Date(view.year, view.month, 1))
-    .toUpperCase();
+  const dataDays = useMemo(() => new Set(datesWithData), [datesWithData]);
+  const weeks = useMemo(() => buildCalendarWeeks(viewYear, viewMonth), [viewYear, viewMonth]);
 
-  const goMonth = (delta) => {
-    setView((current) => {
-      const date = new Date(current.year, current.month + delta, 1);
-      return { year: date.getFullYear(), month: date.getMonth() };
-    });
+  const today = todayISO();
+  const todayDate = fromISODate(today);
+  const viewingCurrentMonth =
+    viewYear === todayDate.getFullYear() && viewMonth === todayDate.getMonth();
+
+  const goToPreviousMonth = () => {
+    if (viewMonth === 0) {
+      setViewYear(viewYear - 1);
+      setViewMonth(11);
+    } else {
+      setViewMonth(viewMonth - 1);
+    }
+  };
+
+  const goToNextMonth = () => {
+    if (viewingCurrentMonth) {
+      return;
+    }
+    if (viewMonth === 11) {
+      setViewYear(viewYear + 1);
+      setViewMonth(0);
+    } else {
+      setViewMonth(viewMonth + 1);
+    }
   };
 
   return (
     <Modal visible={visible} animationType="fade" transparent onRequestClose={onClose}>
       <Pressable style={sharedStyles.weightModalOverlay} onPress={onClose}>
         <Pressable style={sharedStyles.weightModalCard} onPress={() => {}}>
-          <CardHeader id="009" title="SELECT DAY" />
+          <CardHeader id="016" title="CALENDAR" />
           <View style={styles.monthRow}>
-            <Pressable onPress={() => goMonth(-1)} hitSlop={10} style={({ pressed }) => pressed && sharedStyles.pressed}>
-              <Text style={styles.monthChevron}>{"‹"}</Text>
+            <Pressable
+              onPress={goToPreviousMonth}
+              style={styles.monthArrow}
+              testID="calendar-prev-month"
+            >
+              <Text style={styles.monthArrowLabel}>{"<"}</Text>
             </Pressable>
-            <Text style={styles.monthLabel}>{monthLabel}</Text>
-            <Pressable onPress={() => goMonth(1)} hitSlop={10} style={({ pressed }) => pressed && sharedStyles.pressed}>
-              <Text style={styles.monthChevron}>{"›"}</Text>
+            <Text style={styles.monthLabel}>
+              {MONTH_LABELS[viewMonth]} {viewYear}
+            </Text>
+            <Pressable
+              onPress={goToNextMonth}
+              style={[styles.monthArrow, viewingCurrentMonth && styles.monthArrowDisabled]}
+              testID="calendar-next-month"
+            >
+              <Text
+                style={[
+                  styles.monthArrowLabel,
+                  viewingCurrentMonth && styles.monthArrowLabelDisabled,
+                ]}
+              >
+                {">"}
+              </Text>
             </Pressable>
           </View>
           <View style={styles.weekRow}>
             {WEEKDAY_LABELS.map((label, index) => (
-              <Text key={`${label}-${index}`} style={styles.weekdayLabel}>{label}</Text>
+              <Text key={`${label}-${index}`} style={styles.weekdayLabel}>
+                {label}
+              </Text>
             ))}
           </View>
-          {weeks.map((week) => (
-            <View key={week.find(Boolean) ?? "pad"} style={styles.weekRow}>
-              {week.map((isoDate, index) => {
+          {weeks.map((week, weekIndex) => (
+            <View key={weekIndex} style={styles.weekRow}>
+              {week.map((isoDate, dayIndex) => {
                 if (!isoDate) {
-                  return <View key={`pad-${index}`} style={styles.dayCell} />;
+                  return <View key={`pad-${dayIndex}`} style={styles.dayCell} />;
                 }
                 const isFuture = isoDate > today;
                 const isSelected = isoDate === selectedDate;
+                const isCurrentDay = isoDate === today;
                 return (
                   <Pressable
                     key={isoDate}
                     testID={`calendar-day-${isoDate}`}
                     disabled={isFuture}
-                    onPress={() => { if (!isFuture) { onSelectDate(isoDate); } }}
-                    style={({ pressed }) => [
+                    onPress={() => {
+                      if (!isFuture) {
+                        onSelectDate(isoDate);
+                      }
+                    }}
+                    style={[
                       styles.dayCell,
+                      isCurrentDay && styles.dayCellToday,
                       isSelected && styles.dayCellSelected,
-                      pressed && sharedStyles.pressed,
                     ]}
                   >
                     <Text
                       style={[
-                        styles.dayText,
-                        isFuture && styles.dayTextDisabled,
-                        isSelected && styles.dayTextSelected,
+                        styles.dayLabel,
+                        isFuture && styles.dayLabelFuture,
+                        isSelected && styles.dayLabelSelected,
                       ]}
                     >
-                      {Number(isoDate.slice(-2))}
+                      {Number(isoDate.slice(8, 10))}
                     </Text>
-                    <View
-                      testID={hasData.has(isoDate) ? `calendar-day-dot-${isoDate}` : undefined}
-                      style={[styles.dayDot, hasData.has(isoDate) && styles.dayDotVisible]}
-                    />
+                    {dataDays.has(isoDate) ? (
+                      <View
+                        testID={`calendar-day-dot-${isoDate}`}
+                        style={[styles.dayDot, isSelected && styles.dayDotSelected]}
+                      />
+                    ) : (
+                      <View style={styles.dayDotSpacer} />
+                    )}
                   </Pressable>
                 );
               })}
             </View>
           ))}
           <View style={sharedStyles.actionRow}>
-            <ActionButton label="TODAY" hot onPress={() => onSelectDate(todayISO())} />
+            <ActionButton label="TODAY" hot onPress={() => onSelectDate(today)} />
             <ActionButton label="CLOSE" outline onPress={onClose} />
           </View>
         </Pressable>
@@ -123,61 +170,86 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 4,
+    paddingVertical: 8,
   },
-  monthChevron: {
-    fontSize: 18,
-    lineHeight: 18,
+  monthArrow: {
+    borderWidth: 2,
+    borderColor: COLORS.line,
+    backgroundColor: COLORS.paper2,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+  },
+  monthArrowDisabled: {
+    opacity: 0.35,
+  },
+  monthArrowLabel: {
+    fontSize: 14,
     fontWeight: "900",
     color: COLORS.ink,
-    paddingHorizontal: 8,
+  },
+  monthArrowLabelDisabled: {
+    color: COLORS.muted,
   },
   monthLabel: {
-    fontSize: 11,
+    fontSize: 14,
     fontWeight: "900",
-    letterSpacing: 1,
+    letterSpacing: 0.6,
     color: COLORS.ink,
   },
   weekRow: {
     flexDirection: "row",
-    gap: 4,
+    justifyContent: "space-between",
+    marginBottom: 4,
   },
   weekdayLabel: {
-    flex: 1,
+    width: 36,
     textAlign: "center",
-    fontSize: 9,
-    fontWeight: "800",
+    fontSize: 10,
+    fontWeight: "700",
+    letterSpacing: 0.4,
     color: COLORS.muted,
   },
   dayCell: {
-    flex: 1,
-    aspectRatio: 1,
+    width: 36,
+    height: 38,
     alignItems: "center",
     justifyContent: "center",
-    borderRadius: 12,
-    gap: 2,
+    borderWidth: 2,
+    borderColor: "transparent",
+  },
+  dayCellToday: {
+    borderColor: COLORS.line,
+    backgroundColor: COLORS.paper2,
   },
   dayCellSelected: {
+    borderColor: COLORS.ink,
     backgroundColor: COLORS.ink,
   },
-  dayText: {
-    fontSize: 11,
-    fontWeight: "800",
+  dayLabel: {
+    fontSize: 12,
+    fontWeight: "700",
     color: COLORS.ink,
   },
-  dayTextDisabled: {
-    color: COLORS.muted2,
+  dayLabelFuture: {
+    color: COLORS.muted,
+    opacity: 0.5,
   },
-  dayTextSelected: {
-    color: "#FFFFFF",
+  dayLabelSelected: {
+    color: COLORS.paper,
   },
   dayDot: {
     width: 4,
     height: 4,
     borderRadius: 2,
-    backgroundColor: "transparent",
+    marginTop: 2,
+    backgroundColor: COLORS.gold,
   },
-  dayDotVisible: {
-    backgroundColor: COLORS.signal,
+  dayDotSelected: {
+    backgroundColor: COLORS.paper,
+  },
+  dayDotSpacer: {
+    width: 4,
+    height: 4,
+    marginTop: 2,
   },
 });
