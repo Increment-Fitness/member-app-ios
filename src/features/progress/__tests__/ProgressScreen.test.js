@@ -20,6 +20,7 @@ jest.mock("../../../core/api/goalsApi", () => ({
 
 jest.mock("../../../core/api/photosApi", () => ({
   listProgressPhotos: jest.fn(async () => []),
+  deleteProgressPhoto: jest.fn(async () => {}),
 }));
 
 import { saveWorkoutFrequencyGoal } from "../../../core/api/goalsApi";

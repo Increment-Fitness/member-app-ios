@@ -1,23 +1,46 @@
 // Progress photo gallery: every uploaded photo, newest first, with a
 // full-screen viewer on tap.
 import { useEffect, useState } from "react";
-import { Image, Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Alert, Image, Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { ActionButton } from "../../core/components/ActionButton";
 import { Card } from "../../core/components/Card";
 import { CardHeader } from "../../core/components/CardHeader";
 import { COLORS } from "../../core/design/colors";
 import { sharedStyles } from "../../core/design/sharedStyles";
-import { listProgressPhotos } from "../../core/api/photosApi";
+import { deleteProgressPhoto, listProgressPhotos } from "../../core/api/photosApi";
 import { chartLabel } from "../../core/api/progressApi";
 
 export function ProgressPhotosCard() {
   const [photos, setPhotos] = useState([]);
   const [viewing, setViewing] = useState(null); // {date, url} | null
 
-  useEffect(() => {
+  const refresh = () => {
     listProgressPhotos().then(setPhotos).catch(() => {});
-  }, []);
+  };
+  useEffect(refresh, []);
+
+  const confirmDelete = () => {
+    if (!viewing) {
+      return;
+    }
+    Alert.alert("Delete photo?", "This removes the photo permanently.", [
+      { text: "CANCEL", style: "cancel" },
+      {
+        text: "DELETE",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            await deleteProgressPhoto(viewing.date);
+            setViewing(null);
+            refresh();
+          } catch (err) {
+            Alert.alert("Delete failed", err.message);
+          }
+        },
+      },
+    ]);
+  };
 
   return (
     <Card style={styles.card}>
@@ -49,6 +72,7 @@ export function ProgressPhotosCard() {
                 <Image source={{ uri: viewing.url }} style={styles.viewerImage} resizeMode="contain" />
                 <Text style={styles.viewerDate}>{chartLabel(viewing.date)}</Text>
                 <View style={sharedStyles.actionRow}>
+                  <ActionButton label="DELETE" outline onPress={confirmDelete} />
                   <ActionButton label="CLOSE" outline onPress={() => setViewing(null)} />
                 </View>
               </>

@@ -111,6 +111,47 @@ export function progressPhotoUrl(path) {
 }
 
 /**
+ * Deletes a day's progress photo: removes the storage object, then deletes
+ * photo-only sessions (no exercises) or clears the path on real workout
+ * sessions (legacy attachments) so the workout itself survives.
+ *
+ * @param {string} isoDate
+ */
+export async function deleteProgressPhoto(isoDate) {
+  const { data, error } = await supabase
+    .from("workout_sessions")
+    .select("id, progress_photo_path, workout_exercises(id)")
+    .gte("performed_at", `${isoDate}T00:00:00Z`)
+    .lt("performed_at", `${isoDate}T23:59:59Z`)
+    .not("progress_photo_path", "is", null);
+  if (error) {
+    throw new Error(error.message);
+  }
+  for (const session of data ?? []) {
+    if (session.progress_photo_path && session.progress_photo_path !== "pending") {
+      await supabase.storage.from(PROGRESS_BUCKET).remove([session.progress_photo_path]);
+    }
+    if ((session.workout_exercises ?? []).length === 0) {
+      const { error: deleteError } = await supabase
+        .from("workout_sessions")
+        .delete()
+        .eq("id", session.id);
+      if (deleteError) {
+        throw new Error(deleteError.message);
+      }
+    } else {
+      const { error: clearError } = await supabase
+        .from("workout_sessions")
+        .update({ progress_photo_path: null })
+        .eq("id", session.id);
+      if (clearError) {
+        throw new Error(clearError.message);
+      }
+    }
+  }
+}
+
+/**
  * Every progress photo, newest first, with signed display URLs.
  *
  * @returns {Promise<Array<{date: string, url: string}>>}

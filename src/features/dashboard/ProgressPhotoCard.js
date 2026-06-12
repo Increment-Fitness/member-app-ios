@@ -10,7 +10,7 @@ import { ActionButton } from "../../core/components/ActionButton";
 import { Tag } from "../../core/components/Tag";
 import { COLORS } from "../../core/design/colors";
 import { sharedStyles } from "../../core/design/sharedStyles";
-import { getProgressPhotoForDate, uploadProgressPhoto } from "../../core/api/photosApi";
+import { deleteProgressPhoto, getProgressPhotoForDate, uploadProgressPhoto } from "../../core/api/photosApi";
 
 /**
  * @param {object} props
@@ -61,6 +61,25 @@ export function ProgressPhotoTile({ selectedDate, isEditable }) {
     }
   };
 
+  const confirmDelete = () => {
+    Alert.alert("Delete photo?", "This removes the photo permanently.", [
+      { text: "CANCEL", style: "cancel" },
+      {
+        text: "DELETE",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            await deleteProgressPhoto(selectedDate);
+            setPhotoUrl(null);
+            setViewing(false);
+          } catch (err) {
+            Alert.alert("Delete failed", err.message);
+          }
+        },
+      },
+    ]);
+  };
+
   const onPress = () => {
     if (busy) {
       return;
@@ -107,6 +126,7 @@ export function ProgressPhotoTile({ selectedDate, isEditable }) {
                   }}
                 />
               )}
+              <ActionButton label="DELETE" outline onPress={confirmDelete} />
               <ActionButton label="CLOSE" outline onPress={() => setViewing(false)} />
             </View>
           </Pressable>
