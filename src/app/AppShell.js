@@ -9,7 +9,8 @@ import { Keyboard, Pressable, StyleSheet, Text, View } from "react-native";
 
 import { COLORS } from "../core/design/colors";
 import { blankDay, fromStoredRecord, isEmptyDay, toStoredRecord } from "../core/storage/dayRecord";
-import { getDatesWithData, getDay, saveDay } from "../core/storage/dayStore";
+import { getDatesWithData, getDay, saveDay } from "../core/api/dayApi";
+import { getProfile } from "../core/api/profileApi";
 import {
   addDays,
   formatHeaderDate,
@@ -17,7 +18,6 @@ import {
   isWithinEditWindow,
   todayISO,
 } from "../core/storage/dates";
-import { seedIfEmpty } from "../core/storage/seed";
 import { CalendarModal } from "./CalendarModal";
 import { DashboardScreen } from "../features/dashboard/DashboardScreen";
 import { asciiProgress } from "../features/dashboard/utils/asciiProgress";
@@ -116,7 +116,7 @@ export function AppShell() {
   const [coachEnabled, setCoachEnabled] = useState(true);
 
   const caloriesConsumed = meals.reduce((sum, meal) => sum + meal.calories, 0);
-  const caloriesGoal = 2400;
+  const [caloriesGoal, setCaloriesGoal] = useState(2400);
   const caloriesRemaining = Math.max(caloriesGoal - caloriesConsumed, 0);
   const progressPercent = Math.min((caloriesConsumed / caloriesGoal) * 100, 100);
   const progressBar = asciiProgress(progressPercent);
@@ -169,10 +169,12 @@ export function AppShell() {
     setBarcodeScannerTarget(null);
   };
 
-  // First launch: seed demo history, then hydrate today.
+  // Boot: hydrate the calorie target, the calendar index, and today.
   useEffect(() => {
     (async () => {
-      await seedIfEmpty(todayISO());
+      getProfile()
+        .then((profile) => setCaloriesGoal(profile?.calorie_target ?? 2400))
+        .catch(() => {});
       await refreshDatesWithData();
       await loadDay(todayISO());
     })();
