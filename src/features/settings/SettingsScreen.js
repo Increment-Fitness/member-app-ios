@@ -17,6 +17,7 @@ import {
 import * as ImagePicker from "expo-image-picker";
 
 import { ActionButton } from "../../core/components/ActionButton";
+import { FieldLabel } from "../../core/components/FieldLabel";
 import { Card } from "../../core/components/Card";
 import { CardHeader } from "../../core/components/CardHeader";
 import { COLORS } from "../../core/design/colors";
@@ -243,6 +244,7 @@ export function SettingsScreen({
             <Pressable style={sharedStyles.weightModalCard} onPress={() => {}}>
               {editing === "profile" ? (
                 <>
+                  <FieldLabel label="NAME" />
                   <TextInput
                     style={styles.input}
                     placeholder="NAME"
@@ -250,6 +252,7 @@ export function SettingsScreen({
                     value={draft.display_name}
                     onChangeText={(display_name) => setDraft((d) => ({ ...d, display_name }))}
                   />
+                  <FieldLabel label="BIO" />
                   <TextInput
                     style={styles.input}
                     placeholder="BIO"
@@ -257,6 +260,7 @@ export function SettingsScreen({
                     value={draft.bio}
                     onChangeText={(bio) => setDraft((d) => ({ ...d, bio }))}
                   />
+                  <FieldLabel label="CALORIE TARGET (KCAL)" />
                   <TextInput
                     style={styles.input}
                     placeholder="CALORIE TARGET (KCAL)"
@@ -265,6 +269,7 @@ export function SettingsScreen({
                     value={draft.calorie_target}
                     onChangeText={(calorie_target) => setDraft((d) => ({ ...d, calorie_target }))}
                   />
+                  <FieldLabel label="DEFAULT GYM" />
                   <TextInput
                     style={styles.input}
                     placeholder="DEFAULT GYM"
@@ -275,6 +280,7 @@ export function SettingsScreen({
                 </>
               ) : (
                 <>
+                  <FieldLabel label="PROTEIN (G)" />
                   <TextInput
                     style={styles.input}
                     placeholder="PROTEIN (G)"
@@ -283,6 +289,7 @@ export function SettingsScreen({
                     value={draft.protein}
                     onChangeText={(protein) => setDraft((d) => ({ ...d, protein }))}
                   />
+                  <FieldLabel label="CARBS (G)" />
                   <TextInput
                     style={styles.input}
                     placeholder="CARBS (G)"
@@ -291,6 +298,7 @@ export function SettingsScreen({
                     value={draft.carbs}
                     onChangeText={(carbs) => setDraft((d) => ({ ...d, carbs }))}
                   />
+                  <FieldLabel label="FAT (G)" />
                   <TextInput
                     style={styles.input}
                     placeholder="FAT (G)"

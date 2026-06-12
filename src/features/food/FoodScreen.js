@@ -13,6 +13,7 @@ import {
 } from "react-native";
 
 import { ActionButton } from "../../core/components/ActionButton";
+import { FieldLabel } from "../../core/components/FieldLabel";
 import { Card } from "../../core/components/Card";
 import { CardHeader } from "../../core/components/CardHeader";
 import { Tag } from "../../core/components/Tag";
@@ -173,6 +174,7 @@ export function FoodScreen({
                   {mealInputMode === "MANUAL INPUT" ? (
                     <View style={styles.modePanel}>
                       <Text style={sharedStyles.sectionText}>Enter a food name and macros for {mealCategoryLabel}. Calories are calculated automatically.</Text>
+                      <FieldLabel label="MEAL NAME" />
                       <TextInput
                         value={manualMealDraft.title}
                         onChangeText={(value) => setManualMealDraft((current) => ({ ...current, title: value }))}
@@ -181,30 +183,39 @@ export function FoodScreen({
                         style={sharedStyles.mealEditorInput}
                       />
                       <View style={styles.ingredientMacroGrid}>
+                        <View style={styles.macroField}>
+                          <FieldLabel label="PROTEIN (G)" />
                         <TextInput
-                          value={manualMealDraft.protein}
-                          onChangeText={(value) => setManualMealDraft((current) => ({ ...current, protein: value }))}
-                          placeholder="Protein"
-                          placeholderTextColor={COLORS.muted}
-                          keyboardType="number-pad"
-                          style={styles.ingredientMacroInput}
-                        />
+                            value={manualMealDraft.protein}
+                            onChangeText={(value) => setManualMealDraft((current) => ({ ...current, protein: value }))}
+                            placeholder="Protein"
+                            placeholderTextColor={COLORS.muted}
+                            keyboardType="number-pad"
+                            style={styles.ingredientMacroInput}
+                          />
+                        </View>
+                        <View style={styles.macroField}>
+                          <FieldLabel label="CARBS (G)" />
                         <TextInput
-                          value={manualMealDraft.carbs}
-                          onChangeText={(value) => setManualMealDraft((current) => ({ ...current, carbs: value }))}
-                          placeholder="Carbs"
-                          placeholderTextColor={COLORS.muted}
-                          keyboardType="number-pad"
-                          style={styles.ingredientMacroInput}
-                        />
+                            value={manualMealDraft.carbs}
+                            onChangeText={(value) => setManualMealDraft((current) => ({ ...current, carbs: value }))}
+                            placeholder="Carbs"
+                            placeholderTextColor={COLORS.muted}
+                            keyboardType="number-pad"
+                            style={styles.ingredientMacroInput}
+                          />
+                        </View>
+                        <View style={styles.macroField}>
+                          <FieldLabel label="FAT (G)" />
                         <TextInput
-                          value={manualMealDraft.fat}
-                          onChangeText={(value) => setManualMealDraft((current) => ({ ...current, fat: value }))}
-                          placeholder="Fat"
-                          placeholderTextColor={COLORS.muted}
-                          keyboardType="number-pad"
-                          style={styles.ingredientMacroInput}
-                        />
+                            value={manualMealDraft.fat}
+                            onChangeText={(value) => setManualMealDraft((current) => ({ ...current, fat: value }))}
+                            placeholder="Fat"
+                            placeholderTextColor={COLORS.muted}
+                            keyboardType="number-pad"
+                            style={styles.ingredientMacroInput}
+                          />
+                        </View>
                       </View>
                       <Text style={foodStyles.editorCalories}>Calories auto-update: {manualMealCalories} KCAL</Text>
                       <View style={sharedStyles.actionRow}>
@@ -223,6 +234,7 @@ export function FoodScreen({
                   {mealInputMode === "CUSTOM MEAL" ? (
                     <View style={styles.modePanel}>
                       <Text style={sharedStyles.sectionText}>Search past meals first, or create a new recipe for {mealCategoryLabel}.</Text>
+                      <FieldLabel label="SEARCH PAST MEALS" />
                       <TextInput
                         value={pastMealSearchDraft}
                         onChangeText={setPastMealSearchDraft}
@@ -252,6 +264,7 @@ export function FoodScreen({
                         <>
                           <View style={styles.modeDivider} />
                           <Text style={sharedStyles.sectionText}>Build a meal by adding ingredients. Each ingredient can come from a barcode scan or manual entry, and the meal totals update automatically.</Text>
+                          <FieldLabel label="MEAL NAME" />
                           <TextInput
                             value={customMealDraft.title}
                             onChangeText={(value) => setCustomMealDraft((current) => ({ ...current, title: value }))}
@@ -269,6 +282,7 @@ export function FoodScreen({
                           </View>
                           {isAddingManualIngredient ? (
                             <View style={styles.ingredientEditor}>
+                              <FieldLabel label="INGREDIENT NAME" />
                               <TextInput
                                 value={ingredientDraft.name}
                                 onChangeText={(value) => setIngredientDraft((current) => ({ ...current, name: value }))}
@@ -277,30 +291,39 @@ export function FoodScreen({
                                 style={sharedStyles.mealEditorInput}
                               />
                               <View style={styles.ingredientMacroGrid}>
+                                <View style={styles.macroField}>
+                                  <FieldLabel label="PROTEIN (G)" />
                                 <TextInput
-                                  value={ingredientDraft.protein}
-                                  onChangeText={(value) => setIngredientDraft((current) => ({ ...current, protein: value }))}
-                                  placeholder="Protein"
-                                  placeholderTextColor={COLORS.muted}
-                                  keyboardType="number-pad"
-                                  style={styles.ingredientMacroInput}
-                                />
+                                    value={ingredientDraft.protein}
+                                    onChangeText={(value) => setIngredientDraft((current) => ({ ...current, protein: value }))}
+                                    placeholder="Protein"
+                                    placeholderTextColor={COLORS.muted}
+                                    keyboardType="number-pad"
+                                    style={styles.ingredientMacroInput}
+                                  />
+                                </View>
+                                <View style={styles.macroField}>
+                                  <FieldLabel label="CARBS (G)" />
                                 <TextInput
-                                  value={ingredientDraft.carbs}
-                                  onChangeText={(value) => setIngredientDraft((current) => ({ ...current, carbs: value }))}
-                                  placeholder="Carbs"
-                                  placeholderTextColor={COLORS.muted}
-                                  keyboardType="number-pad"
-                                  style={styles.ingredientMacroInput}
-                                />
+                                    value={ingredientDraft.carbs}
+                                    onChangeText={(value) => setIngredientDraft((current) => ({ ...current, carbs: value }))}
+                                    placeholder="Carbs"
+                                    placeholderTextColor={COLORS.muted}
+                                    keyboardType="number-pad"
+                                    style={styles.ingredientMacroInput}
+                                  />
+                                </View>
+                                <View style={styles.macroField}>
+                                  <FieldLabel label="FAT (G)" />
                                 <TextInput
-                                  value={ingredientDraft.fat}
-                                  onChangeText={(value) => setIngredientDraft((current) => ({ ...current, fat: value }))}
-                                  placeholder="Fat"
-                                  placeholderTextColor={COLORS.muted}
-                                  keyboardType="number-pad"
-                                  style={styles.ingredientMacroInput}
-                                />
+                                    value={ingredientDraft.fat}
+                                    onChangeText={(value) => setIngredientDraft((current) => ({ ...current, fat: value }))}
+                                    placeholder="Fat"
+                                    placeholderTextColor={COLORS.muted}
+                                    keyboardType="number-pad"
+                                    style={styles.ingredientMacroInput}
+                                  />
+                                </View>
                               </View>
                               <View style={sharedStyles.actionRow}>
                                 <ActionButton label="ADD THIS INGREDIENT" hot onPress={onAddManualIngredient} />
@@ -469,8 +492,11 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: 8,
   },
-  ingredientMacroInput: {
+  macroField: {
     flex: 1,
+    gap: 6,
+  },
+  ingredientMacroInput: {
     minHeight: 40,
     borderWidth: 2,
     borderColor: COLORS.line,

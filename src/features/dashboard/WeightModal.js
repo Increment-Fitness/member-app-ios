@@ -11,6 +11,7 @@ import {
 } from "react-native";
 
 import { ActionButton } from "../../core/components/ActionButton";
+import { FieldLabel } from "../../core/components/FieldLabel";
 import { COLORS } from "../../core/design/colors";
 import { sharedStyles } from "../../core/design/sharedStyles";
 
@@ -53,6 +54,7 @@ export function WeightModal({
             <Text style={styles.weightCurrentLabel}>
               CURRENT {todayWeight != null ? `${todayWeight.toFixed(1)} LB` : "--"}
             </Text>
+            <FieldLabel label="NEW WEIGHT (LB)" />
             <View style={styles.weightInputRow}>
               <TextInput
                 ref={weightInputRef}

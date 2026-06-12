@@ -13,6 +13,7 @@ import {
 } from "react-native";
 
 import { ActionButton } from "../../core/components/ActionButton";
+import { FieldLabel } from "../../core/components/FieldLabel";
 import { Card } from "../../core/components/Card";
 import { CardHeader } from "../../core/components/CardHeader";
 import { COLORS } from "../../core/design/colors";
@@ -178,24 +179,31 @@ export function GoalsCard({ todayWeight }) {
           >
             <Pressable style={sharedStyles.weightModalCard} onPress={() => {}}>
               {editing?.kind === "exercise" && (
-                <TextInput
+                <>
+                  <FieldLabel label="EXERCISE NAME" />
+                  <TextInput
                   style={styles.input}
                   placeholder="EXERCISE NAME"
                   placeholderTextColor={COLORS.muted2}
                   value={draft.name}
                   onChangeText={(name) => setDraft((d) => ({ ...d, name }))}
-                />
+                  />
+                </>
               )}
               {editing?.kind === "bodyweight" && (
-                <TextInput
+                <>
+                  <FieldLabel label="STARTING WEIGHT (LB)" />
+                  <TextInput
                   style={styles.input}
                   placeholder="STARTING WEIGHT (LB)"
                   placeholderTextColor={COLORS.muted2}
                   keyboardType="decimal-pad"
                   value={draft.starting}
                   onChangeText={(starting) => setDraft((d) => ({ ...d, starting }))}
-                />
+                  />
+                </>
               )}
+              <FieldLabel label={editing?.kind === "bodyweight" ? "CURRENT WEIGHT (LB)" : "CURRENT (LB)"} />
               <TextInput
                 style={styles.input}
                 placeholder={editing?.kind === "bodyweight" ? "CURRENT WEIGHT (LB)" : "CURRENT (LB)"}
@@ -204,6 +212,7 @@ export function GoalsCard({ todayWeight }) {
                 value={draft.current}
                 onChangeText={(current) => setDraft((d) => ({ ...d, current }))}
               />
+              <FieldLabel label={editing?.kind === "bodyweight" ? "TARGET WEIGHT (LB)" : "TARGET (LB)"} />
               <TextInput
                 style={styles.input}
                 placeholder={editing?.kind === "bodyweight" ? "TARGET WEIGHT (LB)" : "TARGET (LB)"}

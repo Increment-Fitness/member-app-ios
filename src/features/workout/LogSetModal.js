@@ -11,6 +11,7 @@ import {
 } from "react-native";
 
 import { ActionButton } from "../../core/components/ActionButton";
+import { FieldLabel } from "../../core/components/FieldLabel";
 import { COLORS } from "../../core/design/colors";
 import { sharedStyles } from "../../core/design/sharedStyles";
 
@@ -58,7 +59,8 @@ export function LogSetModal({
           style={sharedStyles.weightModalAvoider}
         >
           <Pressable style={sharedStyles.weightModalCard} onPress={() => {}}>
-                        <TextInput
+            <FieldLabel label="WEIGHT (LB)" />
+            <TextInput
               value={logSetDraft.weight}
               onChangeText={(value) => {
                 if (!showValidation) {
@@ -77,6 +79,7 @@ export function LogSetModal({
             {showValidation && errors.weight ? (
               <Text style={sharedStyles.validationText}>{errors.weight}</Text>
             ) : null}
+            <FieldLabel label="REPS" />
             <TextInput
               value={logSetDraft.reps}
               onChangeText={(value) => {

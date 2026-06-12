@@ -13,6 +13,7 @@ import {
 } from "react-native";
 
 import { ActionButton } from "../../core/components/ActionButton";
+import { FieldLabel } from "../../core/components/FieldLabel";
 import { Card } from "../../core/components/Card";
 import { COLORS } from "../../core/design/colors";
 import { sharedStyles } from "../../core/design/sharedStyles";
@@ -99,7 +100,9 @@ export function AuthScreen() {
           </View>
 
           {mode === "CREATE ACCOUNT" && (
-            <TextInput
+            <>
+              <FieldLabel label="NAME" />
+              <TextInput
               testID="auth-name"
               style={styles.input}
               placeholder="NAME"
@@ -107,8 +110,10 @@ export function AuthScreen() {
               autoCapitalize="words"
               value={name}
               onChangeText={setName}
-            />
+              />
+            </>
           )}
+          <FieldLabel label="EMAIL" />
           <TextInput
             testID="auth-email"
             style={styles.input}
@@ -121,7 +126,9 @@ export function AuthScreen() {
             onChangeText={setEmail}
           />
           {mode !== "RESET" && (
-            <TextInput
+            <>
+              <FieldLabel label="PASSWORD" />
+              <TextInput
               testID="auth-password"
               style={styles.input}
               placeholder="PASSWORD"
@@ -130,7 +137,8 @@ export function AuthScreen() {
               secureTextEntry
               value={password}
               onChangeText={setPassword}
-            />
+              />
+            </>
           )}
 
           {error && (

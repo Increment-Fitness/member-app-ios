@@ -11,6 +11,7 @@ import {
 } from "react-native";
 
 import { ActionButton } from "../../core/components/ActionButton";
+import { FieldLabel } from "../../core/components/FieldLabel";
 import { COLORS } from "../../core/design/colors";
 import { sharedStyles } from "../../core/design/sharedStyles";
 import { MAX_LIFT_NAME_LENGTH } from "../../core/validation/liftName";
@@ -61,6 +62,7 @@ export function AddLiftModal({
         >
           <Pressable style={sharedStyles.weightModalCard} onPress={() => {}}>
                         <Text style={sharedStyles.sectionText}>Add a custom movement to today&apos;s queue.</Text>
+            <FieldLabel label="LIFT NAME" />
             <TextInput
               value={liftDraft.lift}
               onChangeText={(value) => {

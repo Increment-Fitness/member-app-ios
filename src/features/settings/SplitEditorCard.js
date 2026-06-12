@@ -15,6 +15,7 @@ import {
 } from "react-native";
 
 import { ActionButton } from "../../core/components/ActionButton";
+import { FieldLabel } from "../../core/components/FieldLabel";
 import { Card } from "../../core/components/Card";
 import { CardHeader } from "../../core/components/CardHeader";
 import { Tag } from "../../core/components/Tag";
@@ -137,6 +138,7 @@ export function SplitEditorCard() {
             style={sharedStyles.weightModalAvoider}
           >
             <Pressable style={sharedStyles.weightModalCard} onPress={() => {}}>
+              <FieldLabel label="SPLIT DAY NAME" />
               <TextInput
                 style={styles.input}
                 placeholder="SPLIT DAY NAME (E.G. PUSH A)"
@@ -153,6 +155,7 @@ export function SplitEditorCard() {
                   </View>
                 ))}
               </ScrollView>
+              <FieldLabel label="ADD EXERCISE" />
               <View style={styles.addRow}>
                 <TextInput
                   style={[styles.input, styles.addInput]}

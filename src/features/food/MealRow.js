@@ -1,6 +1,7 @@
 // One meal entry in the daily log, with inline edit mode.
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 
+import { FieldLabel } from "../../core/components/FieldLabel";
 import { Tag } from "../../core/components/Tag";
 import { COLORS } from "../../core/design/colors";
 import { sharedStyles } from "../../core/design/sharedStyles";
@@ -42,6 +43,7 @@ export function MealRow({
     const draftCalories = calculateCalories(parseMacroDetail(mealDraft.detail));
     return (
       <View style={[styles.mealRow, styles.mealEditor]}>
+        <FieldLabel label="MEAL TITLE" />
         <TextInput
           value={mealDraft.title}
           onChangeText={(value) => setMealDraft((current) => ({ ...current, title: value }))}
@@ -49,6 +51,7 @@ export function MealRow({
           placeholderTextColor={COLORS.muted}
           style={sharedStyles.mealEditorInput}
         />
+        <FieldLabel label="MACROS (E.G. 42P / 18C / 24F)" />
         <TextInput
           value={mealDraft.detail}
           onChangeText={(value) => setMealDraft((current) => ({ ...current, detail: value }))}
