@@ -102,12 +102,19 @@ with checks(check_name, legacy_value, new_value) as (
                                 and m.template_id = coalesce(e.elem ->> 'template_id', e.elem ->> 'id')::uuid)),
          0
   union all
-  select 'negative legacy reps or weights (expect 0)',
+  select 'negative legacy reps (expect 0; negative WEIGHT is valid assisted load)',
          (select count(*) from public.workouts w
             cross join lateral jsonb_array_elements(w.exercises) e(elem)
             cross join lateral jsonb_array_elements(e.elem -> 'sets') s(elem)
-           where (s.elem ->> 'reps')::numeric < 0 or (s.elem ->> 'weight')::numeric < 0),
+           where (s.elem ->> 'reps')::numeric < 0),
          0
+  union all
+  select 'negative-weight (assisted) sets carried over',
+         (select count(*) from public.workouts w
+            cross join lateral jsonb_array_elements(w.exercises) e(elem)
+            cross join lateral jsonb_array_elements(e.elem -> 'sets') s(elem)
+           where w.user_id is not null and (s.elem ->> 'weight')::numeric < 0),
+         (select count(*) from public.exercise_sets where weight < 0)
   union all
   select 'legacy body_weight = 0 rows transformed to NULL (informational)',
          (select count(*) from public.workouts where body_weight = 0),

@@ -70,11 +70,17 @@ begin
     and coalesce(e.elem ->> 'template_id', e.elem ->> 'id') is not null;
 
   -- One canonical exercise per (user, normalized name); the smallest
-  -- template_id wins so reruns are deterministic.
+  -- template_id wins on first run. On reruns, names already in the catalog
+  -- are skipped so the original canonical row stays stable even when newer
+  -- legacy rows introduce additional template_ids for the same name (those
+  -- ids just gain a mapping below).
   insert into public.exercises (id, user_id, name)
   select distinct on (user_id, lower(name))
          template_id, user_id, name
-  from legacy_exercise_raw
+  from legacy_exercise_raw r
+  where not exists (select 1 from public.exercises e
+                     where e.user_id = r.user_id
+                       and lower(trim(e.name)) = lower(r.name))
   order by user_id, lower(name), template_id
   on conflict (id) do nothing;
 

@@ -78,13 +78,16 @@ create table public.exercise_sets (
   user_id             uuid not null references auth.users (id) on delete cascade,
   position            integer not null default 0 check (position >= 0),
   reps                integer not null default 0 check (reps >= 0),
-  weight              numeric(7,2) not null default 0 check (weight >= 0),
+  -- Negative weight is legitimate: assisted exercises (e.g. assisted dips at
+  -- -15 lb) exist in the legacy data and must migrate unmodified.
+  weight              numeric(7,2) not null default 0,
   created_at          timestamptz not null default now(),
   updated_at          timestamptz not null default now()
 );
 
 comment on table public.exercise_sets is
-  'Individual sets. Zero rep/weight rows are valid (untouched defaults migrated as-is per gate-1 decision).';
+  'Individual sets. Zero rep/weight rows are valid (untouched defaults migrated '
+  'as-is per gate-1 decision); negative weight means machine-assisted load.';
 
 create table public.split_days (
   id         uuid primary key default gen_random_uuid(),
@@ -104,7 +107,7 @@ create table public.split_day_exercises (
   user_id       uuid not null references auth.users (id) on delete cascade,
   exercise_id   uuid not null references public.exercises (id) on delete cascade,
   position      integer not null default 0 check (position >= 0),
-  target_weight numeric(7,2) check (target_weight >= 0),
+  target_weight numeric(7,2), -- may be negative (assisted load)
   target_reps   integer check (target_reps >= 0),
   created_at    timestamptz not null default now(),
   updated_at    timestamptz not null default now()

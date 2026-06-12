@@ -8,8 +8,9 @@ create table public.exercise_goals (
   -- so an unmatched or later-deleted exercise never loses the goal's meaning.
   exercise_id    uuid references public.exercises (id) on delete set null,
   exercise_name  text not null check (length(trim(exercise_name)) > 0),
-  target_weight  numeric(7,2) not null check (target_weight >= 0),
-  current_weight numeric(7,2) not null default 0 check (current_weight >= 0),
+  -- Weights may be negative: assisted-exercise progressions count down toward 0.
+  target_weight  numeric(7,2) not null,
+  current_weight numeric(7,2) not null default 0,
   target_date    timestamptz,
   created_at     timestamptz not null default now(),
   updated_at     timestamptz not null default now()
