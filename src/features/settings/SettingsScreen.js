@@ -26,9 +26,30 @@ import { deleteAccount } from "../../core/api/accountApi";
 import { signOut } from "../../core/api/authApi";
 import { getMacroTargets, getProfile, updateMacroTargets, updateProfile } from "../../core/api/profileApi";
 import { avatarUrl, uploadAvatar } from "../../core/api/photosApi";
-import { calculateCalories } from "../food/utils/macros";
 import { SplitEditorCard } from "./SplitEditorCard";
 import { settingsStyles } from "./styles";
+
+const MACRO_KCAL = { PROTEIN: 4, CARBS: 4, FAT: 9 };
+
+/** Grams for one macro given total calories and its percent share. */
+function gramsFor(macro, calories, pct) {
+  return Math.round((calories * (pct / 100)) / MACRO_KCAL[macro]);
+}
+
+/**
+ * Initial percent split from stored gram targets (defaults to MyFitnessPal's
+ * 50/30/20 carbs/protein/fat when nothing is stored). Rounded percents are
+ * nudged so they always total 100.
+ */
+function percentsFrom(calories, targets) {
+  if (!calories || !targets) {
+    return { PROTEIN: "30", CARBS: "50", FAT: "20" };
+  }
+  const protein = Math.round((targets.PROTEIN * 4 * 100) / calories);
+  const fat = Math.round((targets.FAT * 9 * 100) / calories);
+  const carbs = Math.max(0, 100 - protein - fat);
+  return { PROTEIN: String(protein), CARBS: String(carbs), FAT: String(fat) };
+}
 
 /**
  * Settings screen. Profile, units, and targets read/write the backend; the
@@ -66,10 +87,13 @@ export function SettingsScreen() {
   };
 
   const openTargetsEditor = () => {
+    const calories = profile?.calorie_target ?? 2400;
+    const pct = percentsFrom(profile?.calorie_target, targets);
     setDraft({
-      protein: String(targets?.PROTEIN ?? 150),
-      carbs: String(targets?.CARBS ?? 250),
-      fat: String(targets?.FAT ?? 70),
+      calories: String(calories),
+      proteinPct: pct.PROTEIN,
+      carbsPct: pct.CARBS,
+      fatPct: pct.FAT,
     });
     setError(null);
     setEditing("targets");
@@ -84,17 +108,30 @@ export function SettingsScreen() {
           default_gym: draft.default_gym.trim() || null,
         });
       } else {
-        const next = {
-          PROTEIN: Number(draft.protein),
-          CARBS: Number(draft.carbs),
-          FAT: Number(draft.fat),
+        const calories = Math.round(Number(draft.calories));
+        const pct = {
+          PROTEIN: Number(draft.proteinPct),
+          CARBS: Number(draft.carbsPct),
+          FAT: Number(draft.fatPct),
         };
-        if (!Object.values(next).every((value) => Number.isFinite(value) && value >= 0)) {
-          setError("Targets must be numbers.");
+        if (!Number.isFinite(calories) || calories <= 0) {
+          setError("Enter a calorie target.");
           return;
         }
-        await updateMacroTargets(next);
-        await updateProfile({ calorie_target: calculateCalories(next) });
+        if (!Object.values(pct).every((value) => Number.isFinite(value) && value >= 0)) {
+          setError("Percents must be numbers.");
+          return;
+        }
+        if (pct.PROTEIN + pct.CARBS + pct.FAT !== 100) {
+          setError("Macro percentages must total 100%.");
+          return;
+        }
+        await updateMacroTargets({
+          PROTEIN: gramsFor("PROTEIN", calories, pct.PROTEIN),
+          CARBS: gramsFor("CARBS", calories, pct.CARBS),
+          FAT: gramsFor("FAT", calories, pct.FAT),
+        });
+        await updateProfile({ calorie_target: calories });
       }
       setEditing(null);
       refresh();
@@ -235,41 +272,51 @@ export function SettingsScreen() {
                 </>
               ) : (
                 <>
-                  <FieldLabel label="PROTEIN (G)" />
+                  <FieldLabel label="CALORIE TARGET (KCAL)" />
                   <TextInput
                     style={styles.input}
-                    placeholder="PROTEIN (G)"
+                    placeholder="2400"
                     placeholderTextColor={COLORS.muted2}
                     keyboardType="number-pad"
-                    value={draft.protein}
-                    onChangeText={(protein) => setDraft((d) => ({ ...d, protein }))}
+                    value={draft.calories}
+                    onChangeText={(calories) => setDraft((d) => ({ ...d, calories }))}
                   />
-                  <FieldLabel label="CARBS (G)" />
-                  <TextInput
-                    style={styles.input}
-                    placeholder="CARBS (G)"
-                    placeholderTextColor={COLORS.muted2}
-                    keyboardType="number-pad"
-                    value={draft.carbs}
-                    onChangeText={(carbs) => setDraft((d) => ({ ...d, carbs }))}
-                  />
-                  <FieldLabel label="FAT (G)" />
-                  <TextInput
-                    style={styles.input}
-                    placeholder="FAT (G)"
-                    placeholderTextColor={COLORS.muted2}
-                    keyboardType="number-pad"
-                    value={draft.fat}
-                    onChangeText={(fat) => setDraft((d) => ({ ...d, fat }))}
-                  />
-                  <Text style={styles.derivedCalories}>
-                    CALORIE TARGET AUTO-UPDATES:{" "}
-                    {calculateCalories({
-                      PROTEIN: Number(draft.protein) || 0,
-                      CARBS: Number(draft.carbs) || 0,
-                      FAT: Number(draft.fat) || 0,
-                    })}{" "}
-                    KCAL
+                  {[
+                    ["CARBOHYDRATES", "carbsPct", "CARBS"],
+                    ["PROTEIN", "proteinPct", "PROTEIN"],
+                    ["FAT", "fatPct", "FAT"],
+                  ].map(([label, key, macro]) => (
+                    <View key={key} style={styles.pctRow}>
+                      <View style={styles.pctField}>
+                        <FieldLabel label={`${label} %`} />
+                        <TextInput
+                          style={styles.input}
+                          placeholder="0"
+                          placeholderTextColor={COLORS.muted2}
+                          keyboardType="number-pad"
+                          value={draft[key]}
+                          onChangeText={(value) => setDraft((d) => ({ ...d, [key]: value }))}
+                        />
+                      </View>
+                      <Text style={styles.pctGrams}>
+                        {gramsFor(macro, Number(draft.calories) || 0, Number(draft[key]) || 0)} g
+                      </Text>
+                    </View>
+                  ))}
+                  <Text
+                    style={[
+                      styles.pctTotal,
+                      (Number(draft.proteinPct) || 0) +
+                        (Number(draft.carbsPct) || 0) +
+                        (Number(draft.fatPct) || 0) !==
+                        100 && styles.pctTotalOff,
+                    ]}
+                  >
+                    TOTAL{" "}
+                    {(Number(draft.proteinPct) || 0) +
+                      (Number(draft.carbsPct) || 0) +
+                      (Number(draft.fatPct) || 0)}
+                    % {"// MUST EQUAL 100%"}
                   </Text>
                 </>
               )}
@@ -347,12 +394,31 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     marginTop: 8,
   },
-  derivedCalories: {
+  pctRow: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    gap: 10,
+  },
+  pctField: {
+    flex: 1,
+  },
+  pctGrams: {
+    minWidth: 52,
+    textAlign: "right",
+    fontSize: 12,
+    fontWeight: "800",
+    color: COLORS.muted,
+    marginBottom: 12,
+  },
+  pctTotal: {
     marginTop: 8,
     fontSize: 10,
     fontWeight: "800",
     letterSpacing: 0.4,
     color: COLORS.forest,
+  },
+  pctTotalOff: {
+    color: "#A03030",
   },
   error: {
     marginTop: 6,
