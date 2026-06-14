@@ -1,5 +1,5 @@
-// SETTINGS tab: member profile (server-backed), macro/calorie targets,
-// feature toggles, and account actions (sign out, delete account).
+// SETTINGS tab: member profile (server-backed), macro/calorie targets, the
+// workout-split editor, and account actions (sign out, delete account).
 import { useEffect, useState } from "react";
 import {
   Alert,
@@ -51,8 +51,7 @@ function percentsFrom(calories, targets) {
 }
 
 /**
- * Settings screen. Profile, units, and targets read/write the backend; the
- * two toggles remain local state owned by AppShell.
+ * Settings screen. Profile and macro/calorie targets read/write the backend.
  */
 export function SettingsScreen() {
   const [profile, setProfile] = useState(null);
@@ -79,7 +78,6 @@ export function SettingsScreen() {
   const openProfileEditor = () => {
     setDraft({
       display_name: profile?.display_name ?? "",
-      default_gym: profile?.default_gym ?? "",
     });
     setError(null);
     setEditing("profile");
@@ -104,7 +102,6 @@ export function SettingsScreen() {
       if (editing === "profile") {
         await updateProfile({
           display_name: draft.display_name.trim(),
-          default_gym: draft.default_gym.trim() || null,
         });
       } else {
         const calories = Math.round(Number(draft.calories));
@@ -137,12 +134,6 @@ export function SettingsScreen() {
     } catch (err) {
       setError(err.message);
     }
-  };
-
-  const toggleUnits = async () => {
-    const units = profile?.units === "metric" ? "imperial" : "metric";
-    setProfile((current) => ({ ...current, units }));
-    updateProfile({ units }).catch(() => {});
   };
 
   const pickAvatar = async () => {
@@ -197,8 +188,6 @@ export function SettingsScreen() {
     ["MEMBER", profile?.display_name || "--"],
     ["CALORIE TARGET", profile?.calorie_target ? `${profile.calorie_target} KCAL` : "--"],
     ["MACRO TARGETS", targets ? `${targets.PROTEIN}P / ${targets.CARBS}C / ${targets.FAT}F` : "--"],
-    ["DEFAULT GYM", profile?.default_gym || "--"],
-    ["UNITS", (profile?.units ?? "imperial").toUpperCase()],
   ];
 
   return (
@@ -257,14 +246,6 @@ export function SettingsScreen() {
                     placeholderTextColor={COLORS.muted2}
                     value={draft.display_name}
                     onChangeText={(display_name) => setDraft((d) => ({ ...d, display_name }))}
-                  />
-                  <FieldLabel label="DEFAULT GYM" />
-                  <TextInput
-                    style={styles.input}
-                    placeholder="DEFAULT GYM"
-                    placeholderTextColor={COLORS.muted2}
-                    value={draft.default_gym}
-                    onChangeText={(default_gym) => setDraft((d) => ({ ...d, default_gym }))}
                   />
                 </>
               ) : (
