@@ -5,7 +5,8 @@ import { StatusBar } from "expo-status-bar";
 import CameraManager from "expo-camera/build/ExpoCameraManager";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Keyboard, Pressable, StyleSheet, Text, View } from "react-native";
+import { Keyboard, Pressable, StyleSheet, View } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 
 import { COLORS } from "../core/design/colors";
 import { blankDay, fromStoredRecord, isEmptyDay, toStoredRecord } from "../core/storage/dayRecord";
@@ -952,11 +953,10 @@ export function AppShell() {
               <Pressable
                 key={tab.key}
                 onPress={() => setActiveTab(tab.key)}
+                accessibilityLabel={tab.label}
                 style={[styles.tabButton, active && styles.tabButtonActive]}
               >
-                <Text style={[styles.tabLabel, active && styles.tabLabelActive]}>
-                  {tab.label}
-                </Text>
+                <Ionicons name={tab.icon} size={20} color={active ? COLORS.paper : COLORS.ink} />
               </Pressable>
             );
           })}
@@ -1008,16 +1008,5 @@ const styles = StyleSheet.create({
   },
   tabButtonActive: {
     backgroundColor: COLORS.ink,
-  },
-  tabLabel: {
-    fontSize: 8,
-    fontWeight: "800",
-    letterSpacing: 0.3,
-    color: COLORS.ink,
-    textAlign: "center",
-    flexShrink: 1,
-  },
-  tabLabelActive: {
-    color: COLORS.paper,
   },
 });
