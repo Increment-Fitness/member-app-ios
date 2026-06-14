@@ -5,7 +5,7 @@ import { StatusBar } from "expo-status-bar";
 import CameraManager from "expo-camera/build/ExpoCameraManager";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Keyboard, Pressable, StyleSheet, View } from "react-native";
+import { Keyboard, Pressable, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
 import { COLORS } from "../core/design/colors";
@@ -956,7 +956,13 @@ export function AppShell() {
                 accessibilityLabel={tab.label}
                 style={[styles.tabButton, active && styles.tabButtonActive]}
               >
-                <Ionicons name={tab.icon} size={20} color={active ? COLORS.paper : COLORS.ink} />
+                <Ionicons name={tab.icon} size={18} color={active ? COLORS.paper : COLORS.ink} />
+                <Text
+                  numberOfLines={1}
+                  style={[styles.tabLabel, active && styles.tabLabelActive]}
+                >
+                  {tab.label}
+                </Text>
               </Pressable>
             );
           })}
@@ -998,15 +1004,27 @@ const styles = StyleSheet.create({
   },
   tabButton: {
     flex: 1,
-    height: 38,
+    height: 50,
     borderWidth: 2,
     borderColor: COLORS.line,
+    flexDirection: "column",
     alignItems: "center",
     justifyContent: "center",
+    gap: 3,
+    paddingHorizontal: 2,
     backgroundColor: COLORS.card,
     borderRadius: 20,
   },
   tabButtonActive: {
     backgroundColor: COLORS.ink,
+  },
+  tabLabel: {
+    fontSize: 7,
+    fontWeight: "800",
+    letterSpacing: 0.2,
+    color: COLORS.ink,
+  },
+  tabLabelActive: {
+    color: COLORS.paper,
   },
 });
