@@ -2,7 +2,7 @@
 // weight, settings) and hands it to the feature screens. The state hooks hold
 // the selected day's data; loads and debounced autosaves go through dayStore.
 import { StatusBar } from "expo-status-bar";
-import CameraManager from "expo-camera/build/ExpoCameraManager";
+import { useCameraPermissions } from "expo-camera";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Keyboard, Pressable, StyleSheet, Text, View } from "react-native";
@@ -58,7 +58,7 @@ export function AppShell() {
     bootStateRef.current = fromStoredRecord(blankDay(todayISO(), { editable: true }));
   }
   const bootState = bootStateRef.current;
-  const [cameraPermission, setCameraPermission] = useState(null);
+  const [cameraPermission, requestCameraPermission] = useCameraPermissions();
   const [activeTab, setActiveTab] = useState("dashboard");
   const [selectedDate, setSelectedDate] = useState(() => todayISO());
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
@@ -330,18 +330,11 @@ export function AppShell() {
     openBarcodeScanner("meal");
   };
 
-  const requestCameraPermission = async () => {
-    const permission = await CameraManager.requestCameraPermissionsAsync();
-    setCameraPermission(permission);
-    return permission;
-  };
-
   const openBarcodeScanner = async (target) => {
     setScannedBarcode(null);
     setBarcodeScannerTarget(target);
-    const currentPermission = await CameraManager.getCameraPermissionsAsync();
-    setCameraPermission(currentPermission);
-    if (!currentPermission?.granted) {
+    // useCameraPermissions keeps `cameraPermission` current; prompt if needed.
+    if (!cameraPermission?.granted) {
       await requestCameraPermission();
     }
   };

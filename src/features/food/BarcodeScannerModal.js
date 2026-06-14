@@ -1,5 +1,5 @@
 // Full-screen camera modal for scanning meal or ingredient barcodes.
-import CameraView from "expo-camera/build/CameraView";
+import { CameraView } from "expo-camera";
 import { Modal, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -44,6 +44,7 @@ export function BarcodeScannerModal({
             <CameraView
               style={styles.cameraView}
               facing="back"
+              barcodeScannerSettings={{ barcodeTypes: ["ean13", "ean8", "upc_a", "upc_e"] }}
               onBarcodeScanned={loading ? undefined : onBarcodeScanned}
             />
             <View style={styles.scanGuide}>
