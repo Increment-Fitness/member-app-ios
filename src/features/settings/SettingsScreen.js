@@ -221,9 +221,6 @@ export function SettingsScreen() {
       <SplitEditorCard />
 
       <Card>
-        <Text style={sharedStyles.sectionText}>
-          Signed in and syncing with Increment HQ. Your data lives on the server; this device keeps an offline copy.
-        </Text>
         <View style={sharedStyles.actionRow}>
           <ActionButton label="SIGN OUT" outline onPress={() => signOut().catch(() => {})} />
           <ActionButton label="DELETE ACCOUNT" hot onPress={confirmDeleteAccount} />
