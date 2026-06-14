@@ -15,7 +15,6 @@ import {
 import { ActionButton } from "../../core/components/ActionButton";
 import { FieldLabel } from "../../core/components/FieldLabel";
 import { Card } from "../../core/components/Card";
-import { CardHeader } from "../../core/components/CardHeader";
 import { COLORS } from "../../core/design/colors";
 import { sharedStyles } from "../../core/design/sharedStyles";
 import {
@@ -137,7 +136,6 @@ export function GoalsCard({ todayWeight }) {
 
   return (
     <Card style={styles.card}>
-      <CardHeader id="018" title="GOALS" />
 
       <Pressable onPress={openBodyWeightGoal} style={({ pressed }) => [styles.row, pressed && sharedStyles.pressed]}>
         <View style={styles.rowText}>

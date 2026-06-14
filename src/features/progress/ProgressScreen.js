@@ -5,7 +5,6 @@ import { useEffect, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { Card } from "../../core/components/Card";
-import { CardHeader } from "../../core/components/CardHeader";
 import { Tag } from "../../core/components/Tag";
 import { COLORS } from "../../core/design/colors";
 import { sharedStyles } from "../../core/design/sharedStyles";
@@ -88,7 +87,6 @@ export function ProgressScreen({ macros, todayWeight }) {
   return (
     <ScrollView contentContainerStyle={sharedStyles.scrollContent} showsVerticalScrollIndicator={false}>
       <Card style={styles.progressCard}>
-        <CardHeader id="010" title="WORKOUT GOALS" />
         <View style={styles.progressGoalSummary}>
           <Pressable
             onPress={() => setEditingGoalWindow(editingGoalWindow === "week" ? null : "week")}
@@ -133,12 +131,6 @@ export function ProgressScreen({ macros, todayWeight }) {
       </Card>
 
       <Card style={styles.progressCard}>
-        <CardHeader
-          id="011"
-          title="BODYWEIGHT TREND"
-          rightLabel={todayWeight != null ? `${todayWeight.toFixed(1)} LB` : "--"}
-          rightHot
-        />
         <View style={styles.progressToolbar}>
           <ProgressDropdown
             label="INTERVAL"

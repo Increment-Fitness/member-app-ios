@@ -15,7 +15,6 @@ import {
 import { ActionButton } from "../../core/components/ActionButton";
 import { FieldLabel } from "../../core/components/FieldLabel";
 import { Card } from "../../core/components/Card";
-import { CardHeader } from "../../core/components/CardHeader";
 import { Tag } from "../../core/components/Tag";
 import { COLORS } from "../../core/design/colors";
 import { sharedStyles } from "../../core/design/sharedStyles";
@@ -107,7 +106,6 @@ export function FoodScreen({
     <>
       <ScrollView contentContainerStyle={sharedStyles.scrollContent} showsVerticalScrollIndicator={false}>
         <Card>
-          <CardHeader id="005" title={isToday ? "TODAY'S MEAL LOG" : "MEAL LOG"} />
           {mealSections.map((section) => (
             <View key={section.category} style={styles.mealSection}>
               <View style={styles.mealSectionHeader}>

@@ -3,7 +3,6 @@ import { useState } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
 
 import { ActionButton } from "../../core/components/ActionButton";
-import { CardHeader } from "../../core/components/CardHeader";
 import { sharedStyles } from "../../core/design/sharedStyles";
 import { AddLiftModal } from "./AddLiftModal";
 import { LiftHistoryModal } from "./LiftHistoryModal";
@@ -46,7 +45,6 @@ export function WorkoutScreen({
   return (
     <View style={styles.workoutScreen}>
       <View style={[sharedStyles.card, styles.workoutPanel]}>
-        <CardHeader id="008" title={isToday ? "TODAY'S WORKOUT" : "WORKOUT"} />
         <ScrollView
           style={styles.workoutList}
           contentContainerStyle={styles.workoutListContent}

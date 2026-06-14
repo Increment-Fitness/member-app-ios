@@ -49,11 +49,6 @@ function textNodes(tree, needle) {
 }
 
 describe("ProgressScreen", () => {
-  it("renders a logged weight in the trend header", async () => {
-    const tree = await render({ todayWeight: 184.25 });
-    expect(textNodes(tree, "184.3 LB").length).toBeGreaterThan(0);
-  });
-
   it("renders without crashing when no weight is logged yet", async () => {
     const tree = await render({ todayWeight: null });
     expect(tree.root).toBeTruthy();

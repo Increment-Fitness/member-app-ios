@@ -5,7 +5,6 @@ import { Alert, Image, Modal, Pressable, ScrollView, StyleSheet, Text, View } fr
 
 import { ActionButton } from "../../core/components/ActionButton";
 import { Card } from "../../core/components/Card";
-import { CardHeader } from "../../core/components/CardHeader";
 import { COLORS } from "../../core/design/colors";
 import { sharedStyles } from "../../core/design/sharedStyles";
 import { deleteProgressPhoto, listProgressPhotos } from "../../core/api/photosApi";
@@ -44,7 +43,6 @@ export function ProgressPhotosCard() {
 
   return (
     <Card style={styles.card}>
-      <CardHeader id="012" title="PROGRESS PHOTOS" rightLabel={photos.length ? `${photos.length}` : undefined} />
       {photos.length === 0 ? (
         <Text style={sharedStyles.sectionText}>
           No photos yet. Add one from the dashboard's progress photo card.

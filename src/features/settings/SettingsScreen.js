@@ -19,7 +19,6 @@ import * as ImagePicker from "expo-image-picker";
 import { ActionButton } from "../../core/components/ActionButton";
 import { FieldLabel } from "../../core/components/FieldLabel";
 import { Card } from "../../core/components/Card";
-import { CardHeader } from "../../core/components/CardHeader";
 import { COLORS } from "../../core/design/colors";
 import { sharedStyles } from "../../core/design/sharedStyles";
 import { deleteAccount } from "../../core/api/accountApi";
@@ -205,7 +204,6 @@ export function SettingsScreen() {
   return (
     <ScrollView contentContainerStyle={sharedStyles.scrollContent} showsVerticalScrollIndicator={false}>
       <Card>
-        <CardHeader id="013" title="PROFILE SYSTEM" />
         <View style={styles.avatarRow}>
           <Pressable onPress={pickAvatar} style={styles.avatarFrame}>
             {avatar ? (
@@ -234,7 +232,6 @@ export function SettingsScreen() {
       <SplitEditorCard />
 
       <Card>
-        <CardHeader id="015" title="ACCOUNT" />
         <Text style={sharedStyles.sectionText}>
           Signed in and syncing with Increment HQ. Your data lives on the server; this device keeps an offline copy.
         </Text>

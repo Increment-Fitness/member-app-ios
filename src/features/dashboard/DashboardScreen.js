@@ -4,7 +4,6 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { ActionButton } from "../../core/components/ActionButton";
 import { Card } from "../../core/components/Card";
-import { CardHeader } from "../../core/components/CardHeader";
 import { Tag } from "../../core/components/Tag";
 import { COLORS } from "../../core/design/colors";
 import { sharedStyles } from "../../core/design/sharedStyles";
@@ -55,7 +54,6 @@ export function DashboardScreen({
     return (
       <ScrollView contentContainerStyle={sharedStyles.scrollContent} showsVerticalScrollIndicator={false}>
         <Card grid>
-          <CardHeader id="001" title="NO DATA LOGGED" />
           <Text style={sharedStyles.sectionText}>
             Nothing was logged on this day. Days older than yesterday are read-only.
           </Text>
@@ -94,7 +92,6 @@ export function DashboardScreen({
 
 
       <Card>
-        <CardHeader id="002" title={isToday ? "TODAY'S MACROS" : "MACROS"} />
         {macros.map((macro) => (
           <MacroRow key={macro.label} {...macro} />
         ))}
@@ -106,7 +103,6 @@ export function DashboardScreen({
       </Card>
 
       <Card>
-        <CardHeader id="003" title={isToday ? "TODAY'S LIFT" : "LIFT"} />
         <View style={styles.liftHero}>
           <Text style={styles.liftHeroName}>{currentSplit} DAY</Text>
         </View>

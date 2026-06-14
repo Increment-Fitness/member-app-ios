@@ -17,7 +17,6 @@ import {
 import { ActionButton } from "../../core/components/ActionButton";
 import { FieldLabel } from "../../core/components/FieldLabel";
 import { Card } from "../../core/components/Card";
-import { CardHeader } from "../../core/components/CardHeader";
 import { Tag } from "../../core/components/Tag";
 import { COLORS } from "../../core/design/colors";
 import { sharedStyles } from "../../core/design/sharedStyles";
@@ -109,7 +108,6 @@ export function SplitEditorCard() {
 
   return (
     <Card>
-      <CardHeader id="016" title="WORKOUT SPLIT" />
       {splitDays.map((day) => (
         <Pressable
           key={day.id}
