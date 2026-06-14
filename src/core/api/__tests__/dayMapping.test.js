@@ -84,6 +84,17 @@ describe("recordToPayload", () => {
     expect(payload.meals[0].calories).toBe(record.meals[0].calories);
   });
 
+  it("carries servings through load and save (defaulting to 1)", () => {
+    const record = serverDayToRecord("2026-06-11", SERVER_DAY, { editable: true });
+    expect(record.meals[0].servings).toBe(1);
+    expect(recordToPayload(record).meals[0].servings).toBe(1);
+
+    const day = { ...SERVER_DAY, meals: [{ ...SERVER_DAY.meals[0], servings: 2 }] };
+    const record2 = serverDayToRecord("2026-06-11", day, { editable: true });
+    expect(record2.meals[0].servings).toBe(2);
+    expect(recordToPayload(record2).meals[0].servings).toBe(2);
+  });
+
   it("round-trips a server day and drops setless scaffolding", () => {
     const record = serverDayToRecord("2026-06-11", SERVER_DAY, { editable: true });
     const payload = recordToPayload(record);

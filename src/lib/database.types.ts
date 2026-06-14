@@ -353,6 +353,7 @@ export type Database = {
           fat_g: number
           id: string
           protein_g: number
+          servings: number
           source: string
           title: string
           updated_at: string
@@ -369,6 +370,7 @@ export type Database = {
           fat_g?: number
           id?: string
           protein_g?: number
+          servings?: number
           source?: string
           title: string
           updated_at?: string
@@ -385,6 +387,7 @@ export type Database = {
           fat_g?: number
           id?: string
           protein_g?: number
+          servings?: number
           source?: string
           title?: string
           updated_at?: string

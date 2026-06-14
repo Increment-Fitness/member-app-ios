@@ -73,6 +73,7 @@ export function serverDayToRecord(isoDate, day, { editable = false, targets = nu
       // Use the stored (label) calories; fall back to the macro derivation
       // for legacy rows that predate the stored-calories column.
       calories: meal.calories != null ? Number(meal.calories) : calculateCalories(macroDelta),
+      servings: meal.servings != null ? Number(meal.servings) : 1,
       source: dbSourceToApp(meal.source),
       edited: !!meal.edited,
       macroDelta,
@@ -160,6 +161,7 @@ export function recordToPayload(record) {
         // Persist the actual calories (label energy for scans); save_day
         // derives 4/4/9 when this is null.
         calories: meal.calories ?? null,
+        servings: meal.servings ?? 1,
         source: appSourceToDb(meal.source),
         edited: !!meal.edited,
       };

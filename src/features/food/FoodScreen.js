@@ -19,6 +19,7 @@ import { Tag } from "../../core/components/Tag";
 import { COLORS } from "../../core/design/colors";
 import { sharedStyles } from "../../core/design/sharedStyles";
 import { BarcodeScannerModal } from "./BarcodeScannerModal";
+import { ScanConfirmModal } from "./ScanConfirmModal";
 import { MealRow } from "./MealRow";
 import { foodStyles } from "./styles";
 import { calculateCalories, formatMacroDetail } from "./utils/macros";
@@ -64,6 +65,9 @@ export function FoodScreen({
   onRemoveIngredient,
   barcodeScannerTarget,
   barcodeLookupBusy,
+  scanResult,
+  onConfirmScannedMeal,
+  onCancelScannedMeal,
   cameraPermission,
   requestCameraPermission,
   onBarcodeScanned,
@@ -75,10 +79,30 @@ export function FoodScreen({
   setMealDraft,
   onSaveMeal,
   onCancelMealEdit,
+  onEditServings,
+  editingServingsMeal,
+  onSaveServings,
+  onCancelServings,
   isToday,
   isEditable,
 }) {
   const closeMealModal = onCloseMealCategory;
+  // Per-serving base of the meal being edited, for the servings sheet preview.
+  const servingsEditResult = editingServingsMeal
+    ? {
+        title: editingServingsMeal.title,
+        macros: {
+          PROTEIN: editingServingsMeal.macroDelta.PROTEIN / (editingServingsMeal.servings || 1),
+          CARBS: editingServingsMeal.macroDelta.CARBS / (editingServingsMeal.servings || 1),
+          FAT: editingServingsMeal.macroDelta.FAT / (editingServingsMeal.servings || 1),
+        },
+        calories:
+          editingServingsMeal.calories != null
+            ? editingServingsMeal.calories / (editingServingsMeal.servings || 1)
+            : null,
+        servingSize: null,
+      }
+    : null;
   const mealSections = ["BREAKFAST", "LUNCH", "DINNER", "SNACKS"].map((category) => ({
     category,
     items: meals.filter((meal) => meal.category === category),
@@ -127,6 +151,7 @@ export function FoodScreen({
                     setMealDraft={setMealDraft}
                     onSave={onSaveMeal}
                     onCancel={onCancelMealEdit}
+                    onEditServings={() => onEditServings(meal.id)}
                     editable={isEditable}
                   />
                 ))
@@ -138,7 +163,7 @@ export function FoodScreen({
         </Card>
       </ScrollView>
       <Modal
-        visible={!!activeMealCategory && !barcodeScannerTarget}
+        visible={!!activeMealCategory && !barcodeScannerTarget && !scanResult}
         animationType="fade"
         transparent
         onRequestClose={closeMealModal}
@@ -373,6 +398,20 @@ export function FoodScreen({
         onBarcodeScanned={onBarcodeScanned}
         onClose={onCloseBarcodeScanner}
         loading={barcodeLookupBusy}
+      />
+      <ScanConfirmModal
+        visible={!!scanResult}
+        result={scanResult}
+        onConfirm={onConfirmScannedMeal}
+        onCancel={onCancelScannedMeal}
+      />
+      <ScanConfirmModal
+        visible={!!editingServingsMeal}
+        result={servingsEditResult}
+        initialServings={editingServingsMeal?.servings ?? 1}
+        confirmLabel="SAVE"
+        onConfirm={onSaveServings}
+        onCancel={onCancelServings}
       />
     </>
   );

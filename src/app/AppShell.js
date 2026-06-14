@@ -104,6 +104,8 @@ export function AppShell() {
   const [barcodeScannerTarget, setBarcodeScannerTarget] = useState(null);
   const [scannedBarcode, setScannedBarcode] = useState(null);
   const [barcodeLookupBusy, setBarcodeLookupBusy] = useState(false);
+  // Per-serving lookup result awaiting servings confirmation (meal scans).
+  const [scanResult, setScanResult] = useState(null);
   const [currentSplit, setCurrentSplit] = useState(bootState.split);
   const [workoutQueue, setWorkoutQueue] = useState(bootState.workoutQueue);
   const [selectedLiftId, setSelectedLiftId] = useState(bootState.workoutQueue[0]?.id ?? null);
@@ -268,6 +270,7 @@ export function AppShell() {
       title: template.title,
       detail: template.detail ?? formatMacroDetail(macroDelta),
       calories,
+      servings: template.servings ?? 1,
       source,
       edited: false,
       macroDelta,
@@ -381,18 +384,103 @@ export function AppShell() {
     const name =
       product.found && product.title ? product.title.toUpperCase() : `BARCODE ${data.slice(-6)}`;
     const macroDelta = product.found ? product.macros : { PROTEIN: 0, CARBS: 0, FAT: 0 };
-    // Prefer the label's actual energy; addMealEntry derives 4/4/9 if null.
-    const calories = product.found ? product.calories ?? undefined : undefined;
+    setBarcodeScannerTarget(null);
 
     if (target === "ingredient") {
       addScannedIngredient(name, macroDelta, data);
-    } else if (target === "meal") {
-      addMealEntry(
-        { category: activeMealCategory ?? "DINNER", title: name, macroDelta, calories },
-        `SCAN ${data}`,
-      );
+      return;
     }
-    setBarcodeScannerTarget(null);
+    // Meal scans: a known product goes to the servings confirm sheet; an
+    // unknown one drops in a blank "BARCODE …" entry to fill in manually.
+    if (product.found) {
+      setScanResult({
+        barcode: data,
+        title: name,
+        macros: macroDelta,
+        calories: product.calories,
+        servingSize: product.servingSize,
+      });
+    } else {
+      addMealEntry({ category: activeMealCategory ?? "DINNER", title: name, macroDelta }, `SCAN ${data}`);
+    }
+  };
+
+  /** Logs the scanned product scaled by the chosen servings. */
+  const confirmScannedMeal = (servings) => {
+    if (!scanResult) {
+      return;
+    }
+    const macroDelta = {
+      PROTEIN: Math.round(scanResult.macros.PROTEIN * servings * 10) / 10,
+      CARBS: Math.round(scanResult.macros.CARBS * servings * 10) / 10,
+      FAT: Math.round(scanResult.macros.FAT * servings * 10) / 10,
+    };
+    const calories =
+      scanResult.calories != null ? Math.round(scanResult.calories * servings) : undefined;
+    addMealEntry(
+      { category: activeMealCategory ?? "DINNER", title: scanResult.title, macroDelta, calories, servings },
+      `SCAN ${scanResult.barcode}`,
+    );
+    setScanResult(null);
+  };
+
+  const cancelScannedMeal = () => setScanResult(null);
+
+  // ---- Edit servings on an already-logged meal ----
+  const [editingServingsMeal, setEditingServingsMeal] = useState(null);
+
+  const startEditServings = (mealId) => {
+    if (!canEditSelectedDay()) {
+      return;
+    }
+    const meal = meals.find((item) => item.id === mealId);
+    if (meal) {
+      setEditingServingsMeal(meal);
+    }
+  };
+
+  const cancelEditServings = () => setEditingServingsMeal(null);
+
+  /** Rescales a logged meal's macros/calories from its per-serving base. */
+  const saveEditServings = (newServings) => {
+    const meal = editingServingsMeal;
+    if (!meal || !(newServings > 0)) {
+      setEditingServingsMeal(null);
+      return;
+    }
+    const factor = newServings / (meal.servings || 1);
+    const nextMacroDelta = {
+      PROTEIN: Math.round(meal.macroDelta.PROTEIN * factor * 10) / 10,
+      CARBS: Math.round(meal.macroDelta.CARBS * factor * 10) / 10,
+      FAT: Math.round(meal.macroDelta.FAT * factor * 10) / 10,
+    };
+    const nextCalories = Math.round((meal.calories || 0) * factor);
+    const nextDetail = formatMacroDetail(nextMacroDelta);
+
+    setMacros((current) =>
+      current.map((macro) => ({
+        ...macro,
+        consumed: Math.max(
+          macro.consumed - (meal.macroDelta[macro.label] ?? 0) + (nextMacroDelta[macro.label] ?? 0),
+          0,
+        ),
+      })),
+    );
+    setMeals((current) =>
+      current.map((item) =>
+        item.id === meal.id
+          ? {
+              ...item,
+              servings: newServings,
+              macroDelta: nextMacroDelta,
+              calories: nextCalories,
+              detail: nextDetail,
+              edited: true,
+            }
+          : item,
+      ),
+    );
+    setEditingServingsMeal(null);
   };
 
   const addManualIngredient = () => {
@@ -845,6 +933,9 @@ export function AppShell() {
             onBarcodeScanned={handleBarcodeScanned}
             onCloseBarcodeScanner={closeBarcodeScanner}
             barcodeLookupBusy={barcodeLookupBusy}
+            scanResult={scanResult}
+            onConfirmScannedMeal={confirmScannedMeal}
+            onCancelScannedMeal={cancelScannedMeal}
             onDeleteMeal={deleteMeal}
             onEditMeal={startEditMeal}
             editingMealId={editingMealId}
@@ -852,6 +943,10 @@ export function AppShell() {
             setMealDraft={setMealDraft}
             onSaveMeal={saveEditedMeal}
             onCancelMealEdit={cancelEditMeal}
+            onEditServings={startEditServings}
+            editingServingsMeal={editingServingsMeal}
+            onSaveServings={saveEditServings}
+            onCancelServings={cancelEditServings}
             isToday={isToday}
             isEditable={isEditable}
           />
@@ -901,6 +996,7 @@ export function AppShell() {
     barcodeScannerTarget,
     cameraPermission,
     editingMealId,
+    editingServingsMeal,
     manualMealDraft,
     mealDraft,
     weightDraft,
@@ -926,6 +1022,7 @@ export function AppShell() {
     hasLogSetDraftErrors,
     scannedBarcode,
     barcodeLookupBusy,
+    scanResult,
     todayWeight,
     workoutQueue,
     isToday,

@@ -32,6 +32,7 @@ export function MealRow({
   onPress,
   onEdit,
   onDelete,
+  onEditServings,
   isEditing = false,
   mealDraft,
   setMealDraft,
@@ -39,6 +40,7 @@ export function MealRow({
   onCancel,
   editable = true,
 }) {
+  const servings = meal.servings ?? 1;
   if (isEditing) {
     const draftCalories = calculateCalories(parseMacroDetail(mealDraft.detail));
     return (
@@ -75,7 +77,7 @@ export function MealRow({
         <View style={sharedStyles.dataCenter}>
           <Text style={[sharedStyles.dataCenterTop, selected && sharedStyles.activeRowText]}>{meal.title}</Text>
           <Text style={[sharedStyles.dataCenterBottom, selected && sharedStyles.activeDetailText]}>
-            {meal.detail} // {meal.source}
+            {meal.detail}{servings !== 1 ? ` · ×${servings}` : ""} // {meal.source}
           </Text>
         </View>
         <Text style={[sharedStyles.dataRight, selected && sharedStyles.activeRowText]}>{meal.calories} KCAL</Text>
@@ -83,6 +85,7 @@ export function MealRow({
       {editable ? (
         <View style={styles.mealActions}>
           <Tag label="EDIT" outline onPress={onEdit} />
+          {onEditServings ? <Tag label="SERVINGS" outline onPress={onEditServings} /> : null}
           <Tag label="DELETE" outline onPress={onDelete} />
         </View>
       ) : null}
