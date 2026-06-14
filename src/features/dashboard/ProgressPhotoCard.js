@@ -183,7 +183,7 @@ const styles = StyleSheet.create({
   viewerOverlay: {
     flex: 1,
     justifyContent: "center",
-    backgroundColor: "rgba(11, 20, 64, 0.92)",
+    backgroundColor: "rgba(0, 0, 0, 0.92)",
     padding: 18,
   },
   viewerCard: {

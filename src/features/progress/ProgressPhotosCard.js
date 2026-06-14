@@ -1,12 +1,13 @@
 // Progress photo gallery: a grid of every uploaded photo (newest first) with
-// a count, an inline add button (attaches to today), and a full-screen
-// viewer with delete.
+// a count, an inline add button (attaches to today), and a swipeable
+// full-screen viewer with delete.
 import { useEffect, useState } from "react";
 import {
   Alert,
   Image,
   Modal,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -29,9 +30,9 @@ const GAP = 8;
 const HORIZONTAL_INSET = (14 + 14) * 2;
 
 export function ProgressPhotosCard() {
-  const { width } = useWindowDimensions();
+  const { width, height } = useWindowDimensions();
   const [photos, setPhotos] = useState([]);
-  const [viewing, setViewing] = useState(null); // {date, url} | null
+  const [viewerIndex, setViewerIndex] = useState(null); // number | null
   const [busy, setBusy] = useState(false);
 
   const refresh = () => {
@@ -41,6 +42,8 @@ export function ProgressPhotosCard() {
 
   const thumbWidth = Math.floor((width - HORIZONTAL_INSET - GAP * (COLUMNS - 1)) / COLUMNS);
   const thumbHeight = Math.round(thumbWidth * (4 / 3));
+  const viewerImageHeight = Math.round(height * 0.62);
+  const current = viewerIndex != null ? photos[viewerIndex] : null;
 
   const addPhoto = async () => {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -67,9 +70,10 @@ export function ProgressPhotosCard() {
   };
 
   const confirmDelete = () => {
-    if (!viewing) {
+    if (!current) {
       return;
     }
+    const target = current.date;
     Alert.alert("Delete photo?", "This removes the photo permanently.", [
       { text: "CANCEL", style: "cancel" },
       {
@@ -77,8 +81,8 @@ export function ProgressPhotosCard() {
         style: "destructive",
         onPress: async () => {
           try {
-            await deleteProgressPhoto(viewing.date);
-            setViewing(null);
+            await deleteProgressPhoto(target);
+            setViewerIndex(null);
             refresh();
           } catch (err) {
             Alert.alert("Delete failed", err.message);
@@ -103,10 +107,10 @@ export function ProgressPhotosCard() {
         </Text>
       ) : (
         <View style={styles.grid}>
-          {photos.map((photo) => (
+          {photos.map((photo, index) => (
             <Pressable
               key={`${photo.date}-${photo.url}`}
-              onPress={() => setViewing(photo)}
+              onPress={() => setViewerIndex(index)}
               style={({ pressed }) => [{ width: thumbWidth }, pressed && sharedStyles.pressed]}
             >
               <Image
@@ -120,21 +124,46 @@ export function ProgressPhotosCard() {
         </View>
       )}
 
-      <Modal visible={!!viewing} animationType="fade" transparent onRequestClose={() => setViewing(null)}>
-        <Pressable style={styles.viewerOverlay} onPress={() => setViewing(null)}>
-          <Pressable style={styles.viewerCard} onPress={() => {}}>
-            {viewing && (
-              <>
-                <Image source={{ uri: viewing.url }} style={styles.viewerImage} resizeMode="contain" />
-                <Text style={styles.viewerDate}>{chartLabel(viewing.date)}</Text>
-                <View style={sharedStyles.actionRow}>
-                  <ActionButton label="DELETE" outline onPress={confirmDelete} />
-                  <ActionButton label="CLOSE" outline onPress={() => setViewing(null)} />
-                </View>
-              </>
-            )}
-          </Pressable>
-        </Pressable>
+      <Modal
+        visible={viewerIndex != null}
+        animationType="fade"
+        transparent
+        onRequestClose={() => setViewerIndex(null)}
+      >
+        <View style={styles.viewerOverlay}>
+          {viewerIndex != null && (
+            <>
+              <Text style={styles.viewerCount}>
+                {viewerIndex + 1} / {photos.length}
+              </Text>
+              <ScrollView
+                horizontal
+                pagingEnabled
+                showsHorizontalScrollIndicator={false}
+                contentOffset={{ x: viewerIndex * width, y: 0 }}
+                onMomentumScrollEnd={(e) =>
+                  setViewerIndex(Math.round(e.nativeEvent.contentOffset.x / width))
+                }
+                style={{ height: viewerImageHeight }}
+              >
+                {photos.map((photo) => (
+                  <View key={`${photo.date}-${photo.url}`} style={{ width, alignItems: "center" }}>
+                    <Image
+                      source={{ uri: photo.url }}
+                      style={{ width: width - 36, height: viewerImageHeight, borderRadius: 16 }}
+                      resizeMode="contain"
+                    />
+                  </View>
+                ))}
+              </ScrollView>
+              <Text style={styles.viewerDate}>{current ? chartLabel(current.date) : ""}</Text>
+              <View style={styles.viewerActions}>
+                <ActionButton label="DELETE" outline onPress={confirmDelete} />
+                <ActionButton label="CLOSE" outline onPress={() => setViewerIndex(null)} />
+              </View>
+            </>
+          )}
+        </View>
       </Modal>
     </Card>
   );
@@ -179,26 +208,26 @@ const styles = StyleSheet.create({
   viewerOverlay: {
     flex: 1,
     justifyContent: "center",
-    backgroundColor: "rgba(11, 20, 64, 0.92)",
-    padding: 18,
+    backgroundColor: "rgba(0, 0, 0, 0.94)",
+    gap: 14,
   },
-  viewerCard: {
-    borderRadius: 24,
-    backgroundColor: COLORS.card,
-    padding: 12,
-    gap: 10,
-  },
-  viewerImage: {
-    width: "100%",
-    height: 420,
-    borderRadius: 16,
-    backgroundColor: COLORS.paper2,
-  },
-  viewerDate: {
+  viewerCount: {
     textAlign: "center",
     fontSize: 11,
     fontWeight: "800",
+    letterSpacing: 1,
+    color: "#FFFFFF",
+  },
+  viewerDate: {
+    textAlign: "center",
+    fontSize: 12,
+    fontWeight: "800",
     letterSpacing: 0.8,
-    color: COLORS.ink,
+    color: "#FFFFFF",
+  },
+  viewerActions: {
+    flexDirection: "row",
+    gap: 8,
+    paddingHorizontal: 18,
   },
 });
