@@ -266,7 +266,7 @@ export function AppShell() {
       category: activeMealCategory ?? template.category,
       time: timeStampForIndex(meals.length),
       title: template.title,
-      detail: template.detail,
+      detail: template.detail ?? formatMacroDetail(macroDelta),
       calories,
       source,
       edited: false,

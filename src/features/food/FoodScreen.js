@@ -138,7 +138,7 @@ export function FoodScreen({
         </Card>
       </ScrollView>
       <Modal
-        visible={!!activeMealCategory}
+        visible={!!activeMealCategory && !barcodeScannerTarget}
         animationType="fade"
         transparent
         onRequestClose={closeMealModal}
