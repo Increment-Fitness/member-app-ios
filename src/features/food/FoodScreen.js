@@ -249,7 +249,7 @@ export function FoodScreen({
                   ) : null}
                   {mealInputMode === "SCAN LABEL" ? (
                     <View style={styles.modePanel}>
-                      <Text style={sharedStyles.sectionText}>This will later connect to barcode scanning. For now it adds a sample scanned item into {mealCategoryLabel}.</Text>
+                      <Text style={sharedStyles.sectionText}>Scan a product barcode to pull its name and nutrition into {mealCategoryLabel}.</Text>
                       <View style={sharedStyles.actionRow}>
                         <ActionButton label="OPEN CAMERA" hot onPress={onAddScannedMeal} />
                       </View>
