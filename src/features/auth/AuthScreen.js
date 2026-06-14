@@ -84,13 +84,11 @@ export function AuthScreen() {
       style={styles.screen}
     >
       <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
-        <View style={styles.logoWrap}>
-          <Image
-            source={require("../../../assets/auth-logo.png")}
-            style={styles.logo}
-            resizeMode="contain"
-          />
-        </View>
+        <Image
+          source={require("../../../assets/auth-logo.png")}
+          style={styles.logo}
+          resizeMode="contain"
+        />
         <Card style={styles.card}>
           <View style={styles.modeRow}>
             {MODES.map((m) => (
@@ -181,17 +179,11 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     padding: 18,
   },
-  logoWrap: {
-    alignSelf: "center",
-    backgroundColor: COLORS.card,
-    borderRadius: 18,
-    paddingHorizontal: 18,
-    paddingVertical: 14,
-    marginBottom: 18,
-  },
   logo: {
-    width: 196,
-    height: 84,
+    alignSelf: "center",
+    width: 208,
+    height: 88,
+    marginBottom: 22,
   },
   card: {
     gap: 10,
