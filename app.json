@@ -11,7 +11,13 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "Allow Fuel + Increment to use the camera to scan food barcodes."
+          "cameraPermission": "Allow Fuel + Increment to use the camera to take progress photos and scan food barcodes."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow Fuel + Increment to access your photos to add progress photos."
         }
       ]
     ],

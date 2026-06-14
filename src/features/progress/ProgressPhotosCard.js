@@ -1,21 +1,11 @@
 // Progress photo gallery: a single swipeable row of every uploaded photo
-// (newest first), an inline add button (attaches to today), and a swipeable
-// full-screen viewer with delete.
+// (newest first), an add button (camera or library, attaches to today), and
+// a themed full-screen viewer that opens on the tapped photo and swipes
+// between them.
 import { useEffect, useState } from "react";
-import {
-  Alert,
-  Image,
-  Modal,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-  useWindowDimensions,
-} from "react-native";
+import { Alert, Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 
-import { ActionButton } from "../../core/components/ActionButton";
 import { Card } from "../../core/components/Card";
 import { Tag } from "../../core/components/Tag";
 import { COLORS } from "../../core/design/colors";
@@ -23,12 +13,12 @@ import { sharedStyles } from "../../core/design/sharedStyles";
 import { deleteProgressPhoto, listProgressPhotos, uploadProgressPhoto } from "../../core/api/photosApi";
 import { chartLabel } from "../../core/api/progressApi";
 import { todayISO } from "../../core/storage/dates";
+import { PhotoViewerModal } from "./PhotoViewerModal";
 
 const THUMB_WIDTH = 108;
 const THUMB_HEIGHT = 144;
 
 export function ProgressPhotosCard() {
-  const { width, height } = useWindowDimensions();
   const [photos, setPhotos] = useState([]);
   const [viewerIndex, setViewerIndex] = useState(null); // number | null
   const [busy, setBusy] = useState(false);
@@ -38,19 +28,18 @@ export function ProgressPhotosCard() {
   };
   useEffect(refresh, []);
 
-  const viewerImageHeight = Math.round(height * 0.62);
-  const current = viewerIndex != null ? photos[viewerIndex] : null;
-
-  const addPhoto = async () => {
-    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+  const pickFrom = async (source) => {
+    const permission =
+      source === "camera"
+        ? await ImagePicker.requestCameraPermissionsAsync()
+        : await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permission.granted) {
       return;
     }
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ["images"],
-      allowsEditing: false,
-      quality: 0.6,
-    });
+    const result =
+      source === "camera"
+        ? await ImagePicker.launchCameraAsync({ quality: 0.6 })
+        : await ImagePicker.launchImageLibraryAsync({ mediaTypes: ["images"], quality: 0.6 });
     if (result.canceled || !result.assets?.length) {
       return;
     }
@@ -65,11 +54,15 @@ export function ProgressPhotosCard() {
     }
   };
 
-  const confirmDelete = () => {
-    if (!current) {
-      return;
-    }
-    const target = current.date;
+  const addPhoto = () => {
+    Alert.alert("Add progress photo", undefined, [
+      { text: "Take Photo", onPress: () => pickFrom("camera") },
+      { text: "Choose from Library", onPress: () => pickFrom("library") },
+      { text: "Cancel", style: "cancel" },
+    ]);
+  };
+
+  const confirmDelete = (date) => {
     Alert.alert("Delete photo?", "This removes the photo permanently.", [
       { text: "CANCEL", style: "cancel" },
       {
@@ -77,7 +70,7 @@ export function ProgressPhotosCard() {
         style: "destructive",
         onPress: async () => {
           try {
-            await deleteProgressPhoto(target);
+            await deleteProgressPhoto(date);
             setViewerIndex(null);
             refresh();
           } catch (err) {
@@ -97,14 +90,10 @@ export function ProgressPhotosCard() {
 
       {photos.length === 0 ? (
         <Text style={sharedStyles.sectionText}>
-          No photos yet. Tap + ADD to upload your first progress photo.
+          No photos yet. Tap + ADD to take or upload your first progress photo.
         </Text>
       ) : (
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.strip}
-        >
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.strip}>
           {photos.map((photo, index) => (
             <Pressable
               key={`${photo.date}-${photo.url}`}
@@ -118,47 +107,13 @@ export function ProgressPhotosCard() {
         </ScrollView>
       )}
 
-      <Modal
+      <PhotoViewerModal
         visible={viewerIndex != null}
-        animationType="fade"
-        transparent
-        onRequestClose={() => setViewerIndex(null)}
-      >
-        <View style={styles.viewerOverlay}>
-          {viewerIndex != null && (
-            <>
-              <Text style={styles.viewerCount}>
-                {viewerIndex + 1} / {photos.length}
-              </Text>
-              <ScrollView
-                horizontal
-                pagingEnabled
-                showsHorizontalScrollIndicator={false}
-                contentOffset={{ x: viewerIndex * width, y: 0 }}
-                onMomentumScrollEnd={(e) =>
-                  setViewerIndex(Math.round(e.nativeEvent.contentOffset.x / width))
-                }
-                style={{ height: viewerImageHeight }}
-              >
-                {photos.map((photo) => (
-                  <View key={`${photo.date}-${photo.url}`} style={{ width, alignItems: "center" }}>
-                    <Image
-                      source={{ uri: photo.url }}
-                      style={{ width: width - 36, height: viewerImageHeight, borderRadius: 16 }}
-                      resizeMode="contain"
-                    />
-                  </View>
-                ))}
-              </ScrollView>
-              <Text style={styles.viewerDate}>{current ? chartLabel(current.date) : ""}</Text>
-              <View style={styles.viewerActions}>
-                <ActionButton label="DELETE" outline onPress={confirmDelete} />
-                <ActionButton label="CLOSE" outline onPress={() => setViewerIndex(null)} />
-              </View>
-            </>
-          )}
-        </View>
-      </Modal>
+        photos={photos}
+        initialIndex={viewerIndex ?? 0}
+        onClose={() => setViewerIndex(null)}
+        onDelete={confirmDelete}
+      />
     </Card>
   );
 }
@@ -203,30 +158,5 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     letterSpacing: 0.6,
     color: COLORS.muted,
-  },
-  viewerOverlay: {
-    flex: 1,
-    justifyContent: "center",
-    backgroundColor: "rgba(0, 0, 0, 0.94)",
-    gap: 14,
-  },
-  viewerCount: {
-    textAlign: "center",
-    fontSize: 11,
-    fontWeight: "800",
-    letterSpacing: 1,
-    color: "#FFFFFF",
-  },
-  viewerDate: {
-    textAlign: "center",
-    fontSize: 12,
-    fontWeight: "800",
-    letterSpacing: 0.8,
-    color: "#FFFFFF",
-  },
-  viewerActions: {
-    flexDirection: "row",
-    gap: 8,
-    paddingHorizontal: 18,
   },
 });

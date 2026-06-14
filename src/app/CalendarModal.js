@@ -79,7 +79,7 @@ export function CalendarModal({ visible, selectedDate, datesWithData, onSelectDa
               style={styles.monthArrow}
               testID="calendar-prev-month"
             >
-              <Text style={styles.monthArrowLabel}>{"<"}</Text>
+              <Text style={styles.monthArrowLabel}>{"‹"}</Text>
             </Pressable>
             <Text style={styles.monthLabel}>
               {MONTH_LABELS[viewMonth]} {viewYear}
@@ -95,7 +95,7 @@ export function CalendarModal({ visible, selectedDate, datesWithData, onSelectDa
                   viewingCurrentMonth && styles.monthArrowLabelDisabled,
                 ]}
               >
-                {">"}
+                {"›"}
               </Text>
             </Pressable>
           </View>
@@ -171,19 +171,20 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   monthArrow: {
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: COLORS.line,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
     backgroundColor: COLORS.paper2,
-    paddingHorizontal: 12,
-    paddingVertical: 4,
+    alignItems: "center",
+    justifyContent: "center",
   },
   monthArrowDisabled: {
     opacity: 0.35,
   },
   monthArrowLabel: {
-    fontSize: 14,
-    fontWeight: "900",
+    fontSize: 22,
+    lineHeight: 26,
+    fontWeight: "800",
     color: COLORS.ink,
   },
   monthArrowLabelDisabled: {

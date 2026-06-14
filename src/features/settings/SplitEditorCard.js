@@ -122,11 +122,10 @@ export function SplitEditorCard() {
                 : "NO EXERCISES YET"}
             </Text>
           </View>
-          <Text style={styles.dayChevron}>{">"}</Text>
         </Pressable>
       ))}
       <View style={sharedStyles.actionRow}>
-        <ActionButton label="+ SPLIT DAY" outline onPress={() => openDay(null)} />
+        <ActionButton label="+ WORKOUT" outline onPress={() => openDay(null)} />
       </View>
 
       <Modal visible={!!editing} animationType="fade" transparent onRequestClose={() => setEditing(null)}>
@@ -209,12 +208,6 @@ const styles = StyleSheet.create({
     fontSize: 9,
     fontWeight: "700",
     color: COLORS.muted,
-  },
-  dayChevron: {
-    fontSize: 14,
-    fontWeight: "900",
-    color: COLORS.muted2,
-    marginLeft: 8,
   },
   input: {
     borderRadius: 14,
