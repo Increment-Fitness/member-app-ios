@@ -63,6 +63,7 @@ export function FoodScreen({
   onStartIngredientScan,
   onRemoveIngredient,
   barcodeScannerTarget,
+  barcodeLookupBusy,
   cameraPermission,
   requestCameraPermission,
   onBarcodeScanned,
@@ -371,6 +372,7 @@ export function FoodScreen({
         requestPermission={requestCameraPermission}
         onBarcodeScanned={onBarcodeScanned}
         onClose={onCloseBarcodeScanner}
+        loading={barcodeLookupBusy}
       />
     </>
   );

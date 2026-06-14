@@ -12,6 +12,7 @@ import { COLORS } from "../core/design/colors";
 import { blankDay, fromStoredRecord, isEmptyDay, toStoredRecord } from "../core/storage/dayRecord";
 import { getDatesWithData, getDay, saveDay } from "../core/api/dayApi";
 import { getProfile, getSplitDays, onSplitsChanged } from "../core/api/profileApi";
+import { lookupBarcode } from "../core/api/nutritionApi";
 import {
   addDays,
   formatHeaderDate,
@@ -102,6 +103,7 @@ export function AppShell() {
   });
   const [barcodeScannerTarget, setBarcodeScannerTarget] = useState(null);
   const [scannedBarcode, setScannedBarcode] = useState(null);
+  const [barcodeLookupBusy, setBarcodeLookupBusy] = useState(false);
   const [currentSplit, setCurrentSplit] = useState(bootState.split);
   const [workoutQueue, setWorkoutQueue] = useState(bootState.workoutQueue);
   const [selectedLiftId, setSelectedLiftId] = useState(bootState.workoutQueue[0]?.id ?? null);
@@ -349,15 +351,15 @@ export function AppShell() {
     setScannedBarcode(null);
   };
 
-  const addScannedIngredient = (barcodeData) => {
+  const addScannedIngredient = (name, macroDelta, barcodeData) => {
     setCustomMealDraft((current) => ({
       ...current,
       ingredients: [
         ...current.ingredients,
         {
           id: `ingredient-${Date.now()}`,
-          name: `BARCODE ${barcodeData.slice(-6)}`,
-          macroDelta: { PROTEIN: 0, CARBS: 0, FAT: 0 },
+          name,
+          macroDelta,
           source: `SCAN ${barcodeData}`,
         },
       ],
@@ -366,23 +368,32 @@ export function AppShell() {
   };
 
   // Guard against the camera firing multiple times for one barcode:
-  // `scannedBarcode` latches the first read until the scanner closes.
-  const handleBarcodeScanned = ({ data }) => {
+  // `scannedBarcode` latches the first read until the scanner closes. The
+  // barcode is looked up against Open Food Facts; an unknown product (or a
+  // failed lookup) falls back to a blank "BARCODE …" entry to fill in.
+  const handleBarcodeScanned = async ({ data }) => {
     if (scannedBarcode) {
       return;
     }
-
     setScannedBarcode(data);
-    if (barcodeScannerTarget === "ingredient") {
-      addScannedIngredient(data);
+    const target = barcodeScannerTarget;
+    setBarcodeLookupBusy(true);
+    let product;
+    try {
+      product = await lookupBarcode(data);
+    } finally {
+      setBarcodeLookupBusy(false);
     }
-    if (barcodeScannerTarget === "meal") {
+
+    const name =
+      product.found && product.title ? product.title.toUpperCase() : `BARCODE ${data.slice(-6)}`;
+    const macroDelta = product.found ? product.macros : { PROTEIN: 0, CARBS: 0, FAT: 0 };
+
+    if (target === "ingredient") {
+      addScannedIngredient(name, macroDelta, data);
+    } else if (target === "meal") {
       addMealEntry(
-        {
-          category: activeMealCategory ?? "DINNER",
-          title: `BARCODE ${data.slice(-6)}`,
-          detail: "0P / 0C / 0F",
-        },
+        { category: activeMealCategory ?? "DINNER", title: name, macroDelta },
         `SCAN ${data}`,
       );
     }
@@ -838,6 +849,7 @@ export function AppShell() {
             requestCameraPermission={requestCameraPermission}
             onBarcodeScanned={handleBarcodeScanned}
             onCloseBarcodeScanner={closeBarcodeScanner}
+            barcodeLookupBusy={barcodeLookupBusy}
             onDeleteMeal={deleteMeal}
             onEditMeal={startEditMeal}
             editingMealId={editingMealId}
@@ -918,6 +930,7 @@ export function AppShell() {
     logSetDraftErrors,
     hasLogSetDraftErrors,
     scannedBarcode,
+    barcodeLookupBusy,
     todayWeight,
     workoutQueue,
     isToday,

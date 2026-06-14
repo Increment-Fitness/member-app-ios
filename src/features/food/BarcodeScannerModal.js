@@ -27,6 +27,7 @@ export function BarcodeScannerModal({
   requestPermission,
   onBarcodeScanned,
   onClose,
+  loading = false,
 }) {
   const canScan = permission?.granted;
   const targetLabel = target === "ingredient" ? "INGREDIENT" : "MEAL";
@@ -43,11 +44,16 @@ export function BarcodeScannerModal({
             <CameraView
               style={styles.cameraView}
               facing="back"
-              onBarcodeScanned={onBarcodeScanned}
+              onBarcodeScanned={loading ? undefined : onBarcodeScanned}
             />
             <View style={styles.scanGuide}>
               <View style={styles.scanBox} />
             </View>
+            {loading ? (
+              <View style={styles.lookupOverlay}>
+                <Text style={styles.lookupText}>LOOKING UP…</Text>
+              </View>
+            ) : null}
           </View>
         ) : (
           <View style={styles.permissionPanel}>
@@ -119,5 +125,17 @@ const styles = StyleSheet.create({
     borderColor: COLORS.line,
     borderRadius: 24,
     backgroundColor: COLORS.card,
+  },
+  lookupOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(0, 0, 0, 0.55)",
+  },
+  lookupText: {
+    fontSize: 14,
+    fontWeight: "900",
+    letterSpacing: 1.5,
+    color: "#FFFFFF",
   },
 });

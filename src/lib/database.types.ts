@@ -21,6 +21,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      barcode_products: {
+        Row: {
+          barcode: string
+          basis: string | null
+          carbs_g: number
+          created_at: string
+          fat_g: number
+          protein_g: number
+          serving_size: string | null
+          title: string | null
+          updated_at: string
+        }
+        Insert: {
+          barcode: string
+          basis?: string | null
+          carbs_g?: number
+          created_at?: string
+          fat_g?: number
+          protein_g?: number
+          serving_size?: string | null
+          title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          barcode?: string
+          basis?: string | null
+          carbs_g?: number
+          created_at?: string
+          fat_g?: number
+          protein_g?: number
+          serving_size?: string | null
+          title?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       body_weight_goals: {
         Row: {
           created_at: string
