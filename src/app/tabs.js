@@ -4,8 +4,8 @@
 /** Tab order, icons, and labels for the app's bottom navigation. */
 export const TABS = [
   { key: "dashboard", label: "HOME", icon: "home" },
-  { key: "food", label: "FUEL", icon: "restaurant" },
-  { key: "workout", label: "LIFT", icon: "barbell" },
-  { key: "progress", label: "PROGRESS", icon: "stats-chart" },
-  { key: "settings", label: "SETTINGS", icon: "settings" },
+  { key: "food", label: "FUEL", icon: "fast-food" },
+  { key: "workout", label: "LIFT", icon: "fitness" },
+  { key: "progress", label: "PROGRESS", icon: "trending-up" },
+  { key: "settings", label: "SETTINGS", icon: "cog" },
 ];
