@@ -8,7 +8,6 @@ import { Card } from "../../core/components/Card";
 import { Tag } from "../../core/components/Tag";
 import { COLORS } from "../../core/design/colors";
 import { sharedStyles } from "../../core/design/sharedStyles";
-import { GoalsCard } from "./GoalsCard";
 import { ProgressDropdown } from "./ProgressDropdown";
 import { ProgressPhotosCard } from "./ProgressPhotosCard";
 import { TrendLineChart } from "./TrendLineChart";
@@ -143,7 +142,6 @@ export function ProgressScreen({ macros, todayWeight }) {
           />
         </View>
         <TrendLineChart
-          title="Scale trend"
           data={weightHistory}
           selectedIndex={clampedWeightIndex}
           onSelect={setSelectedWeightPoint}
@@ -156,7 +154,6 @@ export function ProgressScreen({ macros, todayWeight }) {
         </View>
       </Card>
 
-      <GoalsCard todayWeight={todayWeight} />
       <ProgressPhotosCard />
     </ScrollView>
   );

@@ -34,9 +34,11 @@ export function TrendLineChart({
   if (!points.length) {
     return (
       <View style={styles.trendCard}>
-        <View style={styles.trendCardHeader}>
-          <Text style={styles.trendCardTitle}>{title}</Text>
-        </View>
+        {title ? (
+          <View style={styles.trendCardHeader}>
+            <Text style={styles.trendCardTitle}>{title}</Text>
+          </View>
+        ) : null}
         <View style={[styles.trendEmptyState, { width: chartWidth }]}>
           <Text style={styles.trendEmptyTitle}>No history yet</Text>
           <Text style={styles.trendEmptyText}>Log this lift to start seeing progress over time.</Text>
@@ -52,7 +54,7 @@ export function TrendLineChart({
   return (
     <View style={styles.trendCard}>
       <View style={styles.trendCardHeader}>
-        <Text style={styles.trendCardTitle}>{title}</Text>
+        {title ? <Text style={styles.trendCardTitle}>{title}</Text> : <View />}
         {activePoint ? (
           <View style={styles.trendCardValueGroup}>
             <Text style={styles.trendCardValue}>
