@@ -2,6 +2,7 @@
 // surface (email+password with a display name at signup, reset email).
 import { useState } from "react";
 import {
+  Image,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -83,8 +84,13 @@ export function AuthScreen() {
       style={styles.screen}
     >
       <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
-        <Text style={styles.wordmark}>INCREMENT</Text>
-        <Text style={styles.tagline}>MEMBER ACCESS</Text>
+        <View style={styles.logoWrap}>
+          <Image
+            source={require("../../../assets/auth-logo.png")}
+            style={styles.logo}
+            resizeMode="contain"
+          />
+        </View>
         <Card style={styles.card}>
           <View style={styles.modeRow}>
             {MODES.map((m) => (
@@ -175,20 +181,17 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     padding: 18,
   },
-  wordmark: {
-    textAlign: "center",
-    fontSize: 30,
-    fontWeight: "900",
-    letterSpacing: 2.4,
-    color: COLORS.ink,
+  logoWrap: {
+    alignSelf: "center",
+    backgroundColor: COLORS.card,
+    borderRadius: 18,
+    paddingHorizontal: 18,
+    paddingVertical: 14,
+    marginBottom: 18,
   },
-  tagline: {
-    textAlign: "center",
-    fontSize: 11,
-    fontWeight: "700",
-    letterSpacing: 1.6,
-    color: COLORS.muted,
-    marginBottom: 16,
+  logo: {
+    width: 196,
+    height: 84,
   },
   card: {
     gap: 10,
