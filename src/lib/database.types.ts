@@ -25,6 +25,7 @@ export type Database = {
         Row: {
           barcode: string
           basis: string | null
+          calories: number | null
           carbs_g: number
           created_at: string
           fat_g: number
@@ -36,6 +37,7 @@ export type Database = {
         Insert: {
           barcode: string
           basis?: string | null
+          calories?: number | null
           carbs_g?: number
           created_at?: string
           fat_g?: number
@@ -47,6 +49,7 @@ export type Database = {
         Update: {
           barcode?: string
           basis?: string | null
+          calories?: number | null
           carbs_g?: number
           created_at?: string
           fat_g?: number

@@ -29,6 +29,8 @@ const OFF_FOUND = {
       carbohydrates_100g: 3.5,
       fat_serving: 0,
       fat_100g: 0,
+      "energy-kcal_serving": 150,
+      "energy-kcal_100g": 88,
     },
   },
 };
@@ -48,6 +50,19 @@ describe("parseProduct", () => {
     expect(r.macros).toEqual({ PROTEIN: 17, CARBS: 6, FAT: 0 });
     expect(r.basis).toBe("serving");
     expect(r.servingSize).toBe("170 g");
+  });
+
+  it("reads the label's actual energy (kcal), not a macro derivation", () => {
+    // 6g carb + 17g protein would derive to 92 kcal via 4/4/9; the label says 150.
+    expect(parseProduct(OFF_FOUND).calories).toBe(150);
+  });
+
+  it("leaves calories null when the product has no energy value", () => {
+    const r = parseProduct({
+      status: 1,
+      product: { product_name: "Oats", nutriments: { proteins_100g: 13 } },
+    });
+    expect(r.calories).toBeNull();
   });
 
   it("falls back to per-100g when no serving figure exists", () => {
@@ -90,6 +105,7 @@ describe("cacheRowToResult", () => {
       protein_g: 20,
       carbs_g: 24,
       fat_g: 8,
+      calories: 210,
       basis: "serving",
       serving_size: "60 g",
     });
@@ -97,6 +113,7 @@ describe("cacheRowToResult", () => {
       found: true,
       title: "Bar",
       macros: { PROTEIN: 20, CARBS: 24, FAT: 8 },
+      calories: 210,
       basis: "serving",
       servingSize: "60 g",
     });
@@ -129,7 +146,7 @@ describe("lookupBarcode (tiered cache)", () => {
     expect(global.fetch).toHaveBeenCalledTimes(1);
     expect(mockUpsert).toHaveBeenCalledTimes(1);
     expect(mockUpsert).toHaveBeenCalledWith(
-      expect.objectContaining({ barcode: "222", title: "Greek Yogurt", protein_g: 17 }),
+      expect.objectContaining({ barcode: "222", title: "Greek Yogurt", protein_g: 17, calories: 150 }),
     );
   });
 

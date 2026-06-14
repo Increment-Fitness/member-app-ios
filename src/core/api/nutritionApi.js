@@ -15,6 +15,7 @@ const MISS = {
   found: false,
   title: null,
   macros: { PROTEIN: 0, CARBS: 0, FAT: 0 },
+  calories: null,
   basis: null,
   servingSize: null,
 };
@@ -61,6 +62,8 @@ export function parseProduct(json) {
   const protein = pickMacro(nutriments, "proteins");
   const carbs = pickMacro(nutriments, "carbohydrates");
   const fat = pickMacro(nutriments, "fat");
+  // The label's actual energy (kcal), matching the macro basis where possible.
+  const energy = pickMacro(nutriments, "energy-kcal");
 
   const name = (product.product_name || "").trim();
   const brand = (product.brands || "").split(",")[0].trim();
@@ -73,7 +76,8 @@ export function parseProduct(json) {
       CARBS: Math.max(0, Math.round(carbs.value)),
       FAT: Math.max(0, Math.round(fat.value)),
     },
-    basis: protein.basis || carbs.basis || fat.basis,
+    calories: energy.basis ? Math.max(0, Math.round(energy.value)) : null,
+    basis: protein.basis || carbs.basis || fat.basis || energy.basis,
     servingSize: product.serving_size || null,
   };
 }
@@ -96,6 +100,7 @@ export function cacheRowToResult(row) {
       CARBS: Number(row.carbs_g) || 0,
       FAT: Number(row.fat_g) || 0,
     },
+    calories: row.calories != null ? Number(row.calories) : null,
     basis: row.basis ?? null,
     servingSize: row.serving_size ?? null,
   };
@@ -125,6 +130,7 @@ async function writeServerCache(barcode, result) {
       protein_g: result.macros.PROTEIN,
       carbs_g: result.macros.CARBS,
       fat_g: result.macros.FAT,
+      calories: result.calories,
       basis: result.basis,
       serving_size: result.servingSize,
     });

@@ -70,7 +70,9 @@ export function serverDayToRecord(isoDate, day, { editable = false, targets = nu
       time: meal.time ?? "",
       title: meal.title,
       detail: formatMacroDetail(macroDelta),
-      calories: calculateCalories(macroDelta),
+      // Use the stored (label) calories; fall back to the macro derivation
+      // for legacy rows that predate the stored-calories column.
+      calories: meal.calories != null ? Number(meal.calories) : calculateCalories(macroDelta),
       source: dbSourceToApp(meal.source),
       edited: !!meal.edited,
       macroDelta,
@@ -155,6 +157,9 @@ export function recordToPayload(record) {
         protein: macroDelta.PROTEIN,
         carbs: macroDelta.CARBS,
         fat: macroDelta.FAT,
+        // Persist the actual calories (label energy for scans); save_day
+        // derives 4/4/9 when this is null.
+        calories: meal.calories ?? null,
         source: appSourceToDb(meal.source),
         edited: !!meal.edited,
       };

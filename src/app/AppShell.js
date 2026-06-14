@@ -381,12 +381,14 @@ export function AppShell() {
     const name =
       product.found && product.title ? product.title.toUpperCase() : `BARCODE ${data.slice(-6)}`;
     const macroDelta = product.found ? product.macros : { PROTEIN: 0, CARBS: 0, FAT: 0 };
+    // Prefer the label's actual energy; addMealEntry derives 4/4/9 if null.
+    const calories = product.found ? product.calories ?? undefined : undefined;
 
     if (target === "ingredient") {
       addScannedIngredient(name, macroDelta, data);
     } else if (target === "meal") {
       addMealEntry(
-        { category: activeMealCategory ?? "DINNER", title: name, macroDelta },
+        { category: activeMealCategory ?? "DINNER", title: name, macroDelta, calories },
         `SCAN ${data}`,
       );
     }

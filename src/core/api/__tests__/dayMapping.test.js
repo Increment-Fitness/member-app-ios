@@ -64,9 +64,26 @@ describe("serverDayToRecord", () => {
     const record = serverDayToRecord("2026-06-11", SERVER_DAY, { editable: false });
     expect(record.workout.exercises).toHaveLength(1);
   });
+
+  it("uses the stored label calories instead of deriving from macros", () => {
+    // 1g carb would derive to 4 kcal; the label/stored value is 10.
+    const day = {
+      ...SERVER_DAY,
+      meals: [{ ...SERVER_DAY.meals[0], protein: 0, carbs: 1, fat: 0, calories: 10 }],
+    };
+    const record = serverDayToRecord("2026-06-11", day, { editable: false });
+    expect(record.meals[0].calories).toBe(10);
+  });
 });
 
 describe("recordToPayload", () => {
+  it("carries each meal's calories into the payload", () => {
+    const record = serverDayToRecord("2026-06-11", SERVER_DAY, { editable: true });
+    expect(record.meals[0].calories).toBeGreaterThan(0);
+    const payload = recordToPayload(record);
+    expect(payload.meals[0].calories).toBe(record.meals[0].calories);
+  });
+
   it("round-trips a server day and drops setless scaffolding", () => {
     const record = serverDayToRecord("2026-06-11", SERVER_DAY, { editable: true });
     const payload = recordToPayload(record);
