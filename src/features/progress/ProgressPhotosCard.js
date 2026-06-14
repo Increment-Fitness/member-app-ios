@@ -1,5 +1,5 @@
-// Progress photo gallery: a grid of every uploaded photo (newest first) with
-// a count, an inline add button (attaches to today), and a swipeable
+// Progress photo gallery: a single swipeable row of every uploaded photo
+// (newest first), an inline add button (attaches to today), and a swipeable
 // full-screen viewer with delete.
 import { useEffect, useState } from "react";
 import {
@@ -24,10 +24,8 @@ import { deleteProgressPhoto, listProgressPhotos, uploadProgressPhoto } from "..
 import { chartLabel } from "../../core/api/progressApi";
 import { todayISO } from "../../core/storage/dates";
 
-const COLUMNS = 3;
-const GAP = 8;
-// Card sits inside the screen's 14pt scroll padding and its own 14pt padding.
-const HORIZONTAL_INSET = (14 + 14) * 2;
+const THUMB_WIDTH = 108;
+const THUMB_HEIGHT = 144;
 
 export function ProgressPhotosCard() {
   const { width, height } = useWindowDimensions();
@@ -40,8 +38,6 @@ export function ProgressPhotosCard() {
   };
   useEffect(refresh, []);
 
-  const thumbWidth = Math.floor((width - HORIZONTAL_INSET - GAP * (COLUMNS - 1)) / COLUMNS);
-  const thumbHeight = Math.round(thumbWidth * (4 / 3));
   const viewerImageHeight = Math.round(height * 0.62);
   const current = viewerIndex != null ? photos[viewerIndex] : null;
 
@@ -95,9 +91,7 @@ export function ProgressPhotosCard() {
   return (
     <Card style={styles.card}>
       <View style={styles.header}>
-        <Text style={styles.title}>
-          PROGRESS PHOTOS{photos.length ? `  ${photos.length}` : ""}
-        </Text>
+        <Text style={styles.title}>PROGRESS PHOTOS</Text>
         <Tag label={busy ? "..." : "+ ADD"} hot onPress={busy ? undefined : addPhoto} />
       </View>
 
@@ -106,22 +100,22 @@ export function ProgressPhotosCard() {
           No photos yet. Tap + ADD to upload your first progress photo.
         </Text>
       ) : (
-        <View style={styles.grid}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.strip}
+        >
           {photos.map((photo, index) => (
             <Pressable
               key={`${photo.date}-${photo.url}`}
               onPress={() => setViewerIndex(index)}
-              style={({ pressed }) => [{ width: thumbWidth }, pressed && sharedStyles.pressed]}
+              style={({ pressed }) => [styles.thumbWrap, pressed && sharedStyles.pressed]}
             >
-              <Image
-                source={{ uri: photo.url }}
-                style={[styles.thumb, { width: thumbWidth, height: thumbHeight }]}
-                resizeMode="cover"
-              />
+              <Image source={{ uri: photo.url }} style={styles.thumb} resizeMode="cover" />
               <Text style={styles.thumbDate}>{chartLabel(photo.date)}</Text>
             </Pressable>
           ))}
-        </View>
+        </ScrollView>
       )}
 
       <Modal
@@ -186,12 +180,17 @@ const styles = StyleSheet.create({
     letterSpacing: 0.8,
     color: COLORS.ink,
   },
-  grid: {
+  strip: {
     flexDirection: "row",
-    flexWrap: "wrap",
-    gap: GAP,
+    gap: 10,
+    paddingVertical: 2,
+  },
+  thumbWrap: {
+    alignItems: "center",
   },
   thumb: {
+    width: THUMB_WIDTH,
+    height: THUMB_HEIGHT,
     borderRadius: 14,
     borderWidth: 2,
     borderColor: COLORS.line,
