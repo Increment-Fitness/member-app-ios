@@ -1,6 +1,6 @@
 // LIFT tab: today's workout queue with add-lift and log-set modals.
 import { useState } from "react";
-import { ScrollView, StyleSheet, View } from "react-native";
+import { ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { ActionButton } from "../../core/components/ActionButton";
 import { sharedStyles } from "../../core/design/sharedStyles";
@@ -47,20 +47,31 @@ export function WorkoutScreen({
       <View style={[sharedStyles.card, styles.workoutPanel]}>
         <ScrollView
           style={styles.workoutList}
-          contentContainerStyle={styles.workoutListContent}
+          contentContainerStyle={[
+            styles.workoutListContent,
+            !workoutQueue.length && styles.workoutListEmpty,
+          ]}
           showsVerticalScrollIndicator={false}
         >
-          {workoutQueue.map((item) => (
-            <WorkoutRow
-              key={item.id}
-              item={item}
-              selected={item.id === selectedLiftId}
-              onPress={() => onSelectLift(item.id)}
-              onDelete={() => onDeleteLift(item.id)}
-              onHistory={() => setHistoryLift(item.lift)}
-              editable={isEditable}
-            />
-          ))}
+          {workoutQueue.length ? (
+            workoutQueue.map((item) => (
+              <WorkoutRow
+                key={item.id}
+                item={item}
+                selected={item.id === selectedLiftId}
+                onPress={() => onSelectLift(item.id)}
+                onDelete={() => onDeleteLift(item.id)}
+                onHistory={() => setHistoryLift(item.lift)}
+                editable={isEditable}
+              />
+            ))
+          ) : (
+            <Text style={[sharedStyles.sectionText, styles.workoutEmptyText]}>
+              {isEditable
+                ? "No lifts yet. Tap + ADD LIFT to start building today's workout."
+                : "No lifts were logged on this day."}
+            </Text>
+          )}
         </ScrollView>
         {isEditable ? (
           <View style={styles.actionColumn}>
@@ -112,6 +123,14 @@ const styles = StyleSheet.create({
   },
   workoutListContent: {
     paddingBottom: 6,
+  },
+  workoutListEmpty: {
+    flexGrow: 1,
+    justifyContent: "center",
+  },
+  workoutEmptyText: {
+    textAlign: "center",
+    paddingHorizontal: 12,
   },
   actionColumn: {
     gap: 8,
