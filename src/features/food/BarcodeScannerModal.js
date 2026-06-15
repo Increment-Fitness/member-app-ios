@@ -4,7 +4,6 @@ import { Modal, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { ActionButton } from "../../core/components/ActionButton";
-import { Tag } from "../../core/components/Tag";
 import { COLORS } from "../../core/design/colors";
 import { sharedStyles } from "../../core/design/sharedStyles";
 
@@ -37,7 +36,6 @@ export function BarcodeScannerModal({
       <SafeAreaView style={styles.scannerScreen} edges={["top", "left", "right", "bottom"]}>
         <View style={styles.scannerHeader}>
           <Text style={styles.scannerTitle}>SCAN {targetLabel}</Text>
-          <Tag label="CLOSE" outline onPress={onClose} />
         </View>
         {canScan ? (
           <View style={styles.cameraFrame}>
@@ -62,6 +60,9 @@ export function BarcodeScannerModal({
             <ActionButton label="ALLOW CAMERA" hot onPress={requestPermission} />
           </View>
         )}
+        <View style={styles.scannerFooter}>
+          <ActionButton label="CLOSE" outline onPress={onClose} />
+        </View>
       </SafeAreaView>
     </Modal>
   );
@@ -81,9 +82,14 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     backgroundColor: COLORS.paper2,
     flexDirection: "row",
-    justifyContent: "space-between",
+    justifyContent: "center",
     alignItems: "center",
-    gap: 8,
+  },
+  scannerFooter: {
+    flexDirection: "row",
+    marginHorizontal: 14,
+    marginTop: 6,
+    marginBottom: 6,
   },
   scannerTitle: {
     fontSize: 13,
