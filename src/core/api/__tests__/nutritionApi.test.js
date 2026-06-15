@@ -46,7 +46,7 @@ describe("parseProduct", () => {
   it("prefers per-serving macros and rounds them", () => {
     const r = parseProduct(OFF_FOUND);
     expect(r.found).toBe(true);
-    expect(r.title).toBe("Greek Yogurt");
+    expect(r.title).toBe("Greek Yogurt (Fage)");
     expect(r.macros).toEqual({ PROTEIN: 17, CARBS: 6, FAT: 0 });
     expect(r.basis).toBe("serving");
     expect(r.servingSize).toBe("170 g");
@@ -80,6 +80,14 @@ describe("parseProduct", () => {
       product: { product_name: "", brands: "Quest, Inc", nutriments: { proteins_100g: 30 } },
     });
     expect(r.title).toBe("Quest");
+  });
+
+  it("does not repeat a brand that is already in the product name", () => {
+    const r = parseProduct({
+      status: 1,
+      product: { product_name: "Fage Total 0%", brands: "Fage", nutriments: { proteins_100g: 10 } },
+    });
+    expect(r.title).toBe("Fage Total 0%");
   });
 
   it("returns not-found for status 0 or missing product", () => {
@@ -142,11 +150,11 @@ describe("lookupBarcode (tiered cache)", () => {
     global.fetch.mockResolvedValue({ ok: true, json: async () => OFF_FOUND });
 
     const r = await lookupBarcode("222");
-    expect(r.title).toBe("Greek Yogurt");
+    expect(r.title).toBe("Greek Yogurt (Fage)");
     expect(global.fetch).toHaveBeenCalledTimes(1);
     expect(mockUpsert).toHaveBeenCalledTimes(1);
     expect(mockUpsert).toHaveBeenCalledWith(
-      expect.objectContaining({ barcode: "222", title: "Greek Yogurt", protein_g: 17, calories: 150 }),
+      expect.objectContaining({ barcode: "222", title: "Greek Yogurt (Fage)", protein_g: 17, calories: 150 }),
     );
   });
 

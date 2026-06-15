@@ -67,10 +67,15 @@ export function parseProduct(json) {
 
   const name = (product.product_name || "").trim();
   const brand = (product.brands || "").split(",")[0].trim();
+  // Include the brand alongside the name (unless the name already has it).
+  const title =
+    name && brand && !name.toLowerCase().includes(brand.toLowerCase())
+      ? `${name} (${brand})`
+      : name || brand || null;
 
   return {
     found: true,
-    title: name || brand || null,
+    title,
     macros: {
       PROTEIN: Math.max(0, Math.round(protein.value)),
       CARBS: Math.max(0, Math.round(carbs.value)),
