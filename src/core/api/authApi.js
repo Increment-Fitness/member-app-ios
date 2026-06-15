@@ -1,6 +1,7 @@
 // Auth operations, mirroring the legacy app's AuthenticationManager surface:
 // sign up (with display name), sign in, sign out, password-reset email.
 import { supabase } from "./client";
+import { clearAll as clearLocalDays } from "../storage/dayStore";
 
 /**
  * Creates an account. The name lands in user metadata, where the backend's
@@ -21,6 +22,9 @@ export async function signUp(email, password, name) {
   if (error) {
     throw new Error(error.message);
   }
+  // A brand-new account must start empty — drop any cached days left on this
+  // device by a previous session before its data loads.
+  await clearLocalDays();
   return data.session;
 }
 
@@ -33,6 +37,9 @@ export async function signIn(email, password) {
   if (error) {
     throw new Error(error.message);
   }
+  // Clear the local cache so the signed-in member never sees another
+  // account's cached days; the server re-hydrates the real history.
+  await clearLocalDays();
   return data.session;
 }
 
@@ -41,6 +48,7 @@ export async function signOut() {
   if (error) {
     throw new Error(error.message);
   }
+  await clearLocalDays();
 }
 
 /** Sends the password-reset email (the legacy app's reset flow). */

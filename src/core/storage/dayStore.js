@@ -47,6 +47,25 @@ export async function saveDay(isoDate, record) {
 }
 
 /**
+ * Wipes every locally cached day (and the date index). Called on auth
+ * transitions so one account never sees another's cached days: the cache is
+ * keyed only by date, not by user, and the server is the source of truth.
+ *
+ * @returns {Promise<void>}
+ */
+export async function clearAll() {
+  try {
+    const keys = await AsyncStorage.getAllKeys();
+    const dayKeys = keys.filter((key) => key.startsWith(DAY_KEY_PREFIX));
+    if (dayKeys.length) {
+      await AsyncStorage.multiRemove(dayKeys);
+    }
+  } catch (error) {
+    console.warn("dayStore.clearAll failed", error);
+  }
+}
+
+/**
  * Sorted ISO dates that have stored records (drives the calendar dots).
  *
  * @returns {Promise<string[]>}
