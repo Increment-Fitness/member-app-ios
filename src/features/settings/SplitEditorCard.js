@@ -106,26 +106,39 @@ export function SplitEditorCard() {
     }
   };
 
+  const hasSplits = splitDays.length > 0;
+
   return (
     <Card>
-      {splitDays.map((day) => (
-        <Pressable
-          key={day.id}
-          onPress={() => openDay(day)}
-          style={({ pressed }) => [styles.dayRow, pressed && sharedStyles.pressed]}
-        >
-          <View style={styles.dayText}>
-            <Text style={styles.dayName}>{day.name.toUpperCase()}</Text>
-            <Text style={styles.dayDetail}>
-              {day.exercises.length
-                ? day.exercises.map((exercise) => exercise.name.toUpperCase()).join(" · ")
-                : "NO EXERCISES YET"}
-            </Text>
-          </View>
-        </Pressable>
-      ))}
+      {hasSplits ? (
+        splitDays.map((day) => (
+          <Pressable
+            key={day.id}
+            onPress={() => openDay(day)}
+            style={({ pressed }) => [styles.dayRow, pressed && sharedStyles.pressed]}
+          >
+            <View style={styles.dayText}>
+              <Text style={styles.dayName}>{day.name.toUpperCase()}</Text>
+              <Text style={styles.dayDetail}>
+                {day.exercises.length
+                  ? day.exercises.map((exercise) => exercise.name.toUpperCase()).join(" · ")
+                  : "NO EXERCISES YET"}
+              </Text>
+            </View>
+          </Pressable>
+        ))
+      ) : (
+        <Text style={sharedStyles.sectionText}>
+          Build a workout split to group your lifts by day (e.g. PUSH, PULL, LEGS). Splits you
+          create show up on the dashboard and LIFT tab.
+        </Text>
+      )}
       <View style={sharedStyles.actionRow}>
-        <ActionButton label="+ WORKOUT" outline onPress={() => openDay(null)} />
+        <ActionButton
+          label={hasSplits ? "+ WORKOUT" : "CREATE SPLIT"}
+          outline
+          onPress={() => openDay(null)}
+        />
       </View>
 
       <Modal visible={!!editing} animationType="fade" transparent onRequestClose={() => setEditing(null)}>
