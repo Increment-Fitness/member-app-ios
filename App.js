@@ -5,7 +5,6 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { getSession, onAuthChange } from "./src/core/api/authApi";
 import { resetDayApiCache } from "./src/core/api/dayApi";
-import { seedDefaultSplitsIfEmpty } from "./src/core/api/profileApi";
 import { AppShell } from "./src/app/AppShell";
 import { AuthScreen } from "./src/features/auth/AuthScreen";
 
@@ -21,15 +20,6 @@ export default function App() {
       setSession(next);
     });
   }, []);
-
-  // First sign-in bootstrap: members with no split templates get the
-  // PUSH/PULL/LEGS presets (legacy members keep their migrated splits).
-  useEffect(() => {
-    if (session) {
-      seedDefaultSplitsIfEmpty().catch(() => {});
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [session?.user?.id]);
 
   if (session === undefined) {
     return <SafeAreaProvider />; // blank while the stored session restores

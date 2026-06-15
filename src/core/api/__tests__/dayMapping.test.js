@@ -31,7 +31,7 @@ const SERVER_DAY = {
 
 describe("serverDayToRecord", () => {
   it("rebuilds display metadata the database does not store", () => {
-    const record = serverDayToRecord("2026-06-11", SERVER_DAY, { editable: false });
+    const record = serverDayToRecord("2026-06-11", SERVER_DAY);
     const meal = record.meals[0];
     expect(meal.detail).toBe("42P / 18C / 24F");
     expect(meal.calories).toBe(42 * 4 + 18 * 4 + 24 * 9);
@@ -53,16 +53,11 @@ describe("serverDayToRecord", () => {
     expect(protein.target).toBe(200);
   });
 
-  it("appends the preset queue on editable days without duplicating logged lifts", () => {
-    const record = serverDayToRecord("2026-06-11", SERVER_DAY, { editable: true });
+  it("includes only the logged exercises (no preset/mock lifts injected)", () => {
+    const record = serverDayToRecord("2026-06-11", SERVER_DAY);
     const names = record.workout.exercises.map((exercise) => exercise.name);
-    expect(names.filter((name) => name === "BENCH")).toHaveLength(1);
-    expect(names).toContain("OHP"); // from the PUSH preset
-  });
-
-  it("leaves read-only days exactly as logged", () => {
-    const record = serverDayToRecord("2026-06-11", SERVER_DAY, { editable: false });
     expect(record.workout.exercises).toHaveLength(1);
+    expect(names).toEqual(["BENCH"]);
   });
 
   it("uses the stored label calories instead of deriving from macros", () => {

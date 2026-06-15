@@ -7,7 +7,6 @@ import { Card } from "../../core/components/Card";
 import { Tag } from "../../core/components/Tag";
 import { COLORS } from "../../core/design/colors";
 import { sharedStyles } from "../../core/design/sharedStyles";
-import { WORKOUT_SPLITS } from "../workout/data/workoutSplits";
 import { asciiProgress } from "./utils/asciiProgress";
 import { MacroRow } from "./MacroRow";
 import { WeightModal } from "./WeightModal";
@@ -104,11 +103,11 @@ export function DashboardScreen({
 
       <Card>
         <View style={styles.liftHero}>
-          <Text style={styles.liftHeroName}>{currentSplit} DAY</Text>
+          <Text style={styles.liftHeroName}>{currentSplit ? `${currentSplit} DAY` : "WORKOUT"}</Text>
         </View>
-        {isEditable ? (
+        {isEditable && splitOptions.length ? (
           <View style={sharedStyles.chipWrap}>
-            {(splitOptions ?? Object.keys(WORKOUT_SPLITS)).map((split) => (
+            {splitOptions.map((split) => (
               <Tag
                 key={split}
                 label={split}
@@ -119,18 +118,26 @@ export function DashboardScreen({
             ))}
           </View>
         ) : null}
-        <View style={styles.exerciseList}>
-          {workoutQueue.map((item) => (
-            <View key={item.id} style={styles.exerciseRow}>
-              <Text style={styles.exerciseName}>{item.lift}</Text>
-              {item.loggedSets?.length ? (
-                <Text style={styles.exerciseMeta}>
-                  {item.scheme} @ {item.load}
-                </Text>
-              ) : null}
-            </View>
-          ))}
-        </View>
+        {workoutQueue.length ? (
+          <View style={styles.exerciseList}>
+            {workoutQueue.map((item) => (
+              <View key={item.id} style={styles.exerciseRow}>
+                <Text style={styles.exerciseName}>{item.lift}</Text>
+                {item.loggedSets?.length ? (
+                  <Text style={styles.exerciseMeta}>
+                    {item.scheme} @ {item.load}
+                  </Text>
+                ) : null}
+              </View>
+            ))}
+          </View>
+        ) : (
+          <Text style={sharedStyles.sectionText}>
+            {splitOptions.length
+              ? "Pick a split above, or open LIFT to add exercises."
+              : "Create a workout split in Settings, or open LIFT to add exercises."}
+          </Text>
+        )}
         <View style={sharedStyles.actionRow}>
           <ActionButton label="OPEN LIFT" hot onPress={jumpToWorkout} />
         </View>

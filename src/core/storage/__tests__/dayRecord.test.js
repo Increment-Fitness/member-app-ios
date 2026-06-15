@@ -104,23 +104,19 @@ describe("fromStoredRecord", () => {
 });
 
 describe("blankDay", () => {
-  it("gives editable days the default split queue", () => {
-    const record = blankDay("2026-06-11", { editable: true });
-    expect(record.workout.exercises).toHaveLength(5);
-    expect(record.workout.exercises[0].sets).toEqual([]);
+  it("is a truly empty day — no preset/mock workout", () => {
+    const record = blankDay("2026-06-11");
+    expect(record.workout.exercises).toEqual([]);
+    expect(record.split).toBe("");
     expect(record.meals).toEqual([]);
     expect(record.weight).toBeNull();
     expect(record.macros.every((macro) => macro.consumed === 0)).toBe(true);
   });
-
-  it("gives read-only days a truly empty workout", () => {
-    expect(blankDay("2026-05-01").workout.exercises).toEqual([]);
-  });
 });
 
 describe("isEmptyDay", () => {
-  it("is true for blank days even with the default queue", () => {
-    expect(isEmptyDay(blankDay("2026-06-11", { editable: true }))).toBe(true);
+  it("is true for blank days", () => {
+    expect(isEmptyDay(blankDay("2026-06-11"))).toBe(true);
     expect(isEmptyDay(blankDay("2026-05-01"))).toBe(true);
   });
 

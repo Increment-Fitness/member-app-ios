@@ -33,7 +33,6 @@ import {
 import { ProgressScreen } from "../features/progress/ProgressScreen";
 import { SettingsScreen } from "../features/settings/SettingsScreen";
 import { WorkoutScreen } from "../features/workout/WorkoutScreen";
-import { WORKOUT_SPLITS, makeWorkoutQueue } from "../features/workout/data/workoutSplits";
 import { validateLiftDraft, validateLogSetDraft } from "../features/workout/validation";
 import { Header } from "./Header";
 import { TABS } from "./tabs";
@@ -55,7 +54,7 @@ export function AppShell() {
   // Boot with a blank editable today; the mount effect hydrates real data.
   const bootStateRef = useRef(null);
   if (bootStateRef.current === null) {
-    bootStateRef.current = fromStoredRecord(blankDay(todayISO(), { editable: true }));
+    bootStateRef.current = fromStoredRecord(blankDay(todayISO()));
   }
   const bootState = bootStateRef.current;
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
@@ -150,7 +149,7 @@ export function AppShell() {
   /** Loads a day's record (or a blank day) into the state hooks. */
   const loadDay = async (isoDate) => {
     const stored = await getDay(isoDate);
-    const record = stored ?? blankDay(isoDate, { editable: isWithinEditWindow(isoDate) });
+    const record = stored ?? blankDay(isoDate);
     const state = fromStoredRecord(record);
     daySeededRef.current = state.seeded;
     skipNextSaveRef.current = true;
@@ -810,9 +809,9 @@ export function AppShell() {
         load: "--",
       }));
     }
-    return Object.prototype.hasOwnProperty.call(WORKOUT_SPLITS, split)
-      ? makeWorkoutQueue(split)
-      : [];
+    // No built-in presets: an unknown split starts with an empty queue the
+    // member fills via + ADD LIFT.
+    return [];
   };
 
   const changeSplit = (split) => {
@@ -868,9 +867,7 @@ export function AppShell() {
   const screen = useMemo(() => {
     const dashboardProps = {
       selectedDate,
-      splitOptions: splitDays.length
-        ? splitDays.map((day) => day.name.toUpperCase())
-        : Object.keys(WORKOUT_SPLITS),
+      splitOptions: splitDays.map((day) => day.name.toUpperCase()),
       caloriesRemaining,
       caloriesConsumed,
       caloriesGoal,

@@ -1,5 +1,4 @@
 // Profile, macro targets, and workout-split templates.
-import { WORKOUT_SPLITS } from "../../features/workout/data/workoutSplits";
 import { supabase } from "./client";
 
 async function uid() {
@@ -184,64 +183,3 @@ export async function setSplitDayExercises(splitDayId, names) {
   emitSplitsChanged();
 }
 
-/**
- * First-login bootstrap: members with no split templates get the app's
- * PUSH/PULL/LEGS presets as real split_days rows (legacy members keep the
- * custom splits migrated from the Swift app).
- */
-export async function seedDefaultSplitsIfEmpty() {
-  const userId = await uid();
-  const { count, error: countError } = await supabase
-    .from("split_days")
-    .select("id", { count: "exact", head: true });
-  if (countError) {
-    throw new Error(countError.message);
-  }
-  if ((count ?? 0) > 0) {
-    return false;
-  }
-
-  const names = Object.keys(WORKOUT_SPLITS);
-  for (let i = 0; i < names.length; i += 1) {
-    const splitName = names[i];
-    const { data: day, error: dayError } = await supabase
-      .from("split_days")
-      .insert({ user_id: userId, name: splitName, position: i })
-      .select("id")
-      .single();
-    if (dayError) {
-      throw new Error(dayError.message);
-    }
-
-    for (let j = 0; j < WORKOUT_SPLITS[splitName].length; j += 1) {
-      const lift = WORKOUT_SPLITS[splitName][j].lift;
-      // Find-or-create the catalog exercise, then the template row.
-      let { data: exercise } = await supabase
-        .from("exercises")
-        .select("id")
-        .ilike("name", lift)
-        .maybeSingle();
-      if (!exercise) {
-        const { data: created, error: exerciseError } = await supabase
-          .from("exercises")
-          .insert({ user_id: userId, name: lift })
-          .select("id")
-          .single();
-        if (exerciseError) {
-          throw new Error(exerciseError.message);
-        }
-        exercise = created;
-      }
-      const { error: linkError } = await supabase.from("split_day_exercises").insert({
-        user_id: userId,
-        split_day_id: day.id,
-        exercise_id: exercise.id,
-        position: j,
-      });
-      if (linkError) {
-        throw new Error(linkError.message);
-      }
-    }
-  }
-  return true;
-}

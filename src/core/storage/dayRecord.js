@@ -8,7 +8,6 @@
 // nothing in those folders imports core/storage back, so there is no cycle.
 // If a third storage module needs them, promote the data into src/core/.
 import { INITIAL_MACROS } from "../../features/food/data/initialMeals";
-import { makeWorkoutQueue } from "../../features/workout/data/workoutSplits";
 
 /** @returns {Array<object>} Macro rows with targets kept and consumed reset. */
 function zeroedMacros() {
@@ -76,32 +75,19 @@ export function fromStoredRecord(record) {
 }
 
 /**
- * Record for a day with nothing stored. Editable days (today/yesterday) get
- * the default PUSH queue so logging can start immediately; read-only days
- * stay truly blank and render as "no data".
+ * Record for a day with nothing stored: truly blank. The member builds their
+ * own workout (no preset lifts) and picks a split they created.
  *
  * @param {string} isoDate
- * @param {{editable?: boolean}} [options]
  * @returns {object} Stored-shape day record.
  */
-export function blankDay(isoDate, { editable = false } = {}) {
+export function blankDay(isoDate) {
   return {
     date: isoDate,
-    split: "PUSH",
+    split: "",
     meals: [],
     macros: zeroedMacros(),
-    workout: {
-      name: "PUSH",
-      exercises: editable
-        ? makeWorkoutQueue("PUSH").map((item) => ({
-            id: item.id,
-            name: item.lift,
-            scheme: item.scheme,
-            load: item.load,
-            sets: [],
-          }))
-        : [],
-    },
+    workout: { name: "", exercises: [] },
     weight: null,
     seeded: false,
   };

@@ -3,7 +3,6 @@
 // Display metadata the database does not store (meal `detail`, lift
 // `scheme`/`load`, macro totals) is rebuilt here.
 import { INITIAL_MACROS } from "../../features/food/data/initialMeals";
-import { WORKOUT_SPLITS, makeWorkoutQueue } from "../../features/workout/data/workoutSplits";
 import { calculateCalories, formatMacroDetail, parseMacroDetail } from "../../features/food/utils/macros";
 
 const APP_TO_DB_SOURCE = {
@@ -37,10 +36,6 @@ export function dbSourceToApp(source) {
   return DB_TO_APP_SOURCE[source] ?? "MANUAL";
 }
 
-function isPresetSplit(split) {
-  return Object.prototype.hasOwnProperty.call(WORKOUT_SPLITS, split);
-}
-
 function macroDeltaOf(meal) {
   return {
     PROTEIN: Number(meal.protein) || 0,
@@ -59,8 +54,8 @@ function macroDeltaOf(meal) {
  *   continue; `targets` overrides the default macro targets.
  * @returns {object} Stored-shape day record (dayRecord.js).
  */
-export function serverDayToRecord(isoDate, day, { editable = false, targets = null } = {}) {
-  const split = day.split && day.split.length ? day.split : "PUSH";
+export function serverDayToRecord(isoDate, day, { targets = null } = {}) {
+  const split = day.split && day.split.length ? day.split : "";
 
   const meals = (day.meals ?? []).map((meal) => {
     const macroDelta = macroDeltaOf(meal);
@@ -80,36 +75,21 @@ export function serverDayToRecord(isoDate, day, { editable = false, targets = nu
     };
   });
 
-  const presetQueue = isPresetSplit(split) ? makeWorkoutQueue(split) : [];
-  const presetByName = new Map(presetQueue.map((item) => [item.lift.toLowerCase(), item]));
-
   const exercises = (day.exercises ?? []).map((exercise) => {
     const sets = (exercise.sets ?? []).map((set) => ({
       id: set.id,
       weight: Number(set.weight),
       reps: Number(set.reps),
     }));
-    const preset = presetByName.get((exercise.name ?? "").toLowerCase());
     const last = sets[sets.length - 1];
     return {
       id: exercise.id,
       name: exercise.name,
-      scheme: sets.length ? `${sets.length} SETS` : preset?.scheme ?? "--",
-      load: last ? `${last.weight} x ${last.reps}` : preset?.load ?? "--",
+      scheme: sets.length ? `${sets.length} SETS` : "--",
+      load: last ? `${last.weight} x ${last.reps}` : "--",
       sets,
     };
   });
-
-  // Editable days keep the full preset queue visible: append preset lifts
-  // that have no logged sets yet (matches blankDay's behavior).
-  if (editable) {
-    const present = new Set(exercises.map((exercise) => exercise.name.toLowerCase()));
-    for (const item of presetQueue) {
-      if (!present.has(item.lift.toLowerCase())) {
-        exercises.push({ id: item.id, name: item.lift, scheme: item.scheme, load: item.load, sets: [] });
-      }
-    }
-  }
 
   const consumed = { PROTEIN: 0, CARBS: 0, FAT: 0 };
   for (const meal of meals) {
