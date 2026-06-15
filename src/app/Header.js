@@ -63,7 +63,9 @@ export function Header({
         {!isToday ? <Text style={styles.pastDayTag}>VIEWING PAST DAY</Text> : null}
       </View>
       <View style={styles.badgeHot}>
-        <Text style={styles.badgeHotText}>{String(caloriesRemaining).padStart(4, "0")} LEFT</Text>
+        <Text style={styles.badgeHotText}>
+          {caloriesRemaining == null ? "SET GOAL" : `${String(caloriesRemaining).padStart(4, "0")} LEFT`}
+        </Text>
       </View>
     </View>
   );

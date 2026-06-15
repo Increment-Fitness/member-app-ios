@@ -5,11 +5,11 @@ import { COLORS } from "../../../core/design/colors";
 
 /**
  * Macro-bar definitions. `label` doubles as the key into each meal's
- * `macroDelta`, `color` drives the dashboard bars, and `target` is a neutral
- * fallback that the member's server-saved targets override.
+ * `macroDelta` and `color` drives the dashboard bars. `target` is null until
+ * the member sets their macro targets — nothing is auto-filled.
  */
 export const INITIAL_MACROS = [
-  { label: "PROTEIN", consumed: 0, target: 150, color: COLORS.signal },
-  { label: "CARBS", consumed: 0, target: 250, color: COLORS.slate },
-  { label: "FAT", consumed: 0, target: 70, color: COLORS.plum },
+  { label: "PROTEIN", consumed: 0, target: null, color: COLORS.signal },
+  { label: "CARBS", consumed: 0, target: null, color: COLORS.slate },
+  { label: "FAT", consumed: 0, target: null, color: COLORS.plum },
 ];

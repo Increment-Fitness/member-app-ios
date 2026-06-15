@@ -28,10 +28,12 @@ export function DashboardScreen({
   caloriesRemaining,
   caloriesConsumed,
   caloriesGoal,
+  hasCalorieGoal,
   progressBar,
   progressPercent,
   jumpToWorkout,
   jumpToFood,
+  jumpToSettings,
   macros,
   activeLift,
   workoutQueue,
@@ -49,6 +51,8 @@ export function DashboardScreen({
   isEditable,
   showEmptyState,
 }) {
+  const hasMacroTargets = macros.some((macro) => macro.target != null && macro.target > 0);
+
   if (showEmptyState) {
     return (
       <ScrollView contentContainerStyle={sharedStyles.scrollContent} showsVerticalScrollIndicator={false}>
@@ -64,16 +68,28 @@ export function DashboardScreen({
   return (
     <ScrollView contentContainerStyle={sharedStyles.scrollContent} showsVerticalScrollIndicator={false}>
       <View style={styles.statRow}>
-        <View style={styles.statTile}>
-          <Text style={styles.statLabel}>CALORIES LEFT</Text>
-          <Text style={styles.statValue}>{caloriesRemaining}</Text>
-          <Text style={styles.statSub}>
-            {caloriesConsumed} EATEN · GOAL {caloriesGoal}
-          </Text>
-          <Text style={styles.statBar} numberOfLines={1}>
-            {asciiProgress(progressPercent, 10)}
-          </Text>
-        </View>
+        {hasCalorieGoal ? (
+          <View style={styles.statTile}>
+            <Text style={styles.statLabel}>CALORIES LEFT</Text>
+            <Text style={styles.statValue}>{caloriesRemaining}</Text>
+            <Text style={styles.statSub}>
+              {caloriesConsumed} EATEN · GOAL {caloriesGoal}
+            </Text>
+            <Text style={styles.statBar} numberOfLines={1}>
+              {asciiProgress(progressPercent, 10)}
+            </Text>
+          </View>
+        ) : (
+          <Pressable
+            style={({ pressed }) => [styles.statTile, pressed && sharedStyles.pressed]}
+            onPress={isEditable ? jumpToSettings : undefined}
+          >
+            <Text style={styles.statLabel}>CALORIES</Text>
+            <Text style={styles.statValue}>{caloriesConsumed}</Text>
+            <Text style={styles.statSub}>EATEN TODAY</Text>
+            {isEditable ? <Text style={styles.statPrompt}>SET A GOAL →</Text> : null}
+          </Pressable>
+        )}
         <View style={styles.statTile}>
           <Text style={styles.statLabel}>{isToday ? "TODAY'S WEIGHT" : "WEIGHT"}</Text>
           <View style={styles.statValueRow}>
@@ -94,8 +110,18 @@ export function DashboardScreen({
         {macros.map((macro) => (
           <MacroRow key={macro.label} {...macro} />
         ))}
+        {!hasMacroTargets ? (
+          <Text style={sharedStyles.sectionText}>
+            {isEditable
+              ? "Set your daily macro targets in Settings to track against them."
+              : "No macro targets were set."}
+          </Text>
+        ) : null}
         {isEditable ? (
           <View style={sharedStyles.actionRow}>
+            {!hasMacroTargets ? (
+              <ActionButton label="SET TARGETS" outline onPress={jumpToSettings} />
+            ) : null}
             <ActionButton label="+ LOG FOOD" outline onPress={jumpToFood} />
           </View>
         ) : null}
@@ -201,6 +227,13 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     letterSpacing: 0.6,
     color: COLORS.muted2,
+  },
+  statPrompt: {
+    marginTop: "auto",
+    fontSize: 9,
+    fontWeight: "800",
+    letterSpacing: 0.6,
+    color: COLORS.signal,
   },
   statBar: {
     fontSize: 9,

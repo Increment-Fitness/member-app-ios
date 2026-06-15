@@ -31,8 +31,9 @@ export function ProgressScreen({ macros, todayWeight }) {
   const [selectedWeightPoint, setSelectedWeightPoint] = useState(0);
   const [weightHistoryAll, setWeightHistoryAll] = useState([]);
   const [workoutDates, setWorkoutDates] = useState([]);
-  const [weeklyWorkoutGoal, setWeeklyWorkoutGoal] = useState("4");
-  const [monthlyWorkoutGoal, setMonthlyWorkoutGoal] = useState("16");
+  // Unset until the member picks a target — nothing is auto-filled.
+  const [weeklyWorkoutGoal, setWeeklyWorkoutGoal] = useState("0");
+  const [monthlyWorkoutGoal, setMonthlyWorkoutGoal] = useState("0");
   const [editingGoalWindow, setEditingGoalWindow] = useState(null); // "week" | "month" | null
 
   // Average macro adherence (currently unrendered; kept for the upcoming
@@ -100,7 +101,7 @@ export function ProgressScreen({ macros, todayWeight }) {
           >
             <Text style={styles.progressGoalSummaryLabel}>THIS WEEK</Text>
             <Text style={styles.progressGoalSummaryValue}>
-              {weeklyWorkoutCount}/{weeklyWorkoutGoal}
+              {weeklyWorkoutCount}/{Number(weeklyWorkoutGoal) > 0 ? weeklyWorkoutGoal : "—"}
             </Text>
           </Pressable>
           <View style={styles.progressGoalSummaryDivider} />
@@ -113,10 +114,15 @@ export function ProgressScreen({ macros, todayWeight }) {
           >
             <Text style={styles.progressGoalSummaryLabel}>THIS MONTH</Text>
             <Text style={styles.progressGoalSummaryValue}>
-              {monthlyWorkoutCount}/{monthlyWorkoutGoal}
+              {monthlyWorkoutCount}/{Number(monthlyWorkoutGoal) > 0 ? monthlyWorkoutGoal : "—"}
             </Text>
           </Pressable>
         </View>
+        {Number(weeklyWorkoutGoal) <= 0 && Number(monthlyWorkoutGoal) <= 0 && !editingGoalWindow ? (
+          <Text style={sharedStyles.sectionText}>
+            Tap a tile to set your workout frequency goal.
+          </Text>
+        ) : null}
         {editingGoalWindow && (
           <View style={styles.goalStepperRow}>
             <Text style={styles.goalStepperLabel}>

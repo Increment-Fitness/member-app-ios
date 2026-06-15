@@ -120,9 +120,11 @@ export function AppShell() {
   const [isEditingWeight, setIsEditingWeight] = useState(false);
 
   const caloriesConsumed = meals.reduce((sum, meal) => sum + meal.calories, 0);
-  const [caloriesGoal, setCaloriesGoal] = useState(2400);
-  const caloriesRemaining = Math.max(caloriesGoal - caloriesConsumed, 0);
-  const progressPercent = Math.min((caloriesConsumed / caloriesGoal) * 100, 100);
+  // Null until the member sets a calorie goal — nothing is auto-filled.
+  const [caloriesGoal, setCaloriesGoal] = useState(null);
+  const hasCalorieGoal = caloriesGoal != null;
+  const caloriesRemaining = hasCalorieGoal ? Math.max(caloriesGoal - caloriesConsumed, 0) : null;
+  const progressPercent = hasCalorieGoal ? Math.min((caloriesConsumed / caloriesGoal) * 100, 100) : 0;
   const progressBar = asciiProgress(progressPercent);
   const selectedLift = workoutQueue.find((item) => item.id === selectedLiftId) ?? workoutQueue[0] ?? null;
   const liftDraftErrors = validateLiftDraft(liftDraft, workoutQueue);
@@ -177,7 +179,7 @@ export function AppShell() {
   useEffect(() => {
     (async () => {
       getProfile()
-        .then((profile) => setCaloriesGoal(profile?.calorie_target ?? 2400))
+        .then((profile) => setCaloriesGoal(profile?.calorie_target ?? null))
         .catch(() => {});
       getSplitDays().then(setSplitDays).catch(() => {});
       await refreshDatesWithData();
@@ -794,6 +796,10 @@ export function AppShell() {
     setActiveTab("food");
   };
 
+  const jumpToSettings = () => {
+    setActiveTab("settings");
+  };
+
   /** Switches splits and rebuilds the queue, resetting any open modals. */
   /**
    * Builds the queue for a split: a server template's exercises when the
@@ -871,10 +877,12 @@ export function AppShell() {
       caloriesRemaining,
       caloriesConsumed,
       caloriesGoal,
+      hasCalorieGoal,
       progressBar,
       progressPercent,
       jumpToWorkout,
       jumpToFood,
+      jumpToSettings,
       macros,
       activeLift: selectedLift,
       workoutQueue,
@@ -986,6 +994,7 @@ export function AppShell() {
     activeTab,
     caloriesConsumed,
     caloriesGoal,
+    hasCalorieGoal,
     caloriesRemaining,
     currentSplit,
     splitDays,

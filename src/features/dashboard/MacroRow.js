@@ -10,20 +10,19 @@ import { COLORS } from "../../core/design/colors";
  * @param {object} props
  * @param {string} props.label Macro name (matches macroDelta keys).
  * @param {number} props.consumed Grams consumed today.
- * @param {number} props.target Daily target in grams.
+ * @param {number|null} props.target Daily target in grams, or null when unset.
  * @param {string} props.color Fill color for this macro.
  */
 export function MacroRow({ label, consumed, target, color }) {
-  const width = `${Math.min((consumed / target) * 100, 100)}%`;
+  const hasTarget = target != null && target > 0;
+  const width = hasTarget ? `${Math.min((consumed / target) * 100, 100)}%` : "0%";
   return (
     <View style={styles.macroRow}>
       <Text style={styles.rowLabel}>{label}</Text>
       <View style={styles.macroTrack}>
         <View style={[styles.macroFill, { width, backgroundColor: color }]} />
       </View>
-      <Text style={styles.rowValue}>
-        {consumed}/{target}G
-      </Text>
+      <Text style={styles.rowValue}>{hasTarget ? `${consumed}/${target}G` : `${consumed}G`}</Text>
     </View>
   );
 }
