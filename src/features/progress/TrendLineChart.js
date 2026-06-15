@@ -52,15 +52,24 @@ export function TrendLineChart({
   const firstPoint = points[0];
   const delta = activePoint && firstPoint ? activePoint.value - firstPoint.value : 0;
   const deltaLabel = `${delta < 0 ? "" : "+"}${delta.toFixed(valueDecimals)}${valueSuffix}`;
-  // Thin the x-axis labels so a dense series stays legible: keep the ends, the
-  // selected point, and an even sampling between them; blank the rest.
-  const maxLabels = 6;
-  const labelInterval = Math.max(1, Math.ceil(points.length / maxLabels));
-  const showLabelAt = (index) =>
-    index === 0 ||
-    index === points.length - 1 ||
-    index === selectedIndex ||
-    index % labelInterval === 0;
+  // Anchor the x-axis with just the interval bounds (and a midpoint), pinned to
+  // the chart's edges. Per-point dates crowd on dense series and never align to
+  // their points; the exact date of any tapped point already shows in the
+  // header readout above, so the axis only needs to convey the range.
+  const lastIndex = points.length - 1;
+  const axisAnchors =
+    points.length === 1
+      ? [{ label: points[0].label, align: "center" }]
+      : points.length === 2
+        ? [
+            { label: points[0].label, align: "left" },
+            { label: points[lastIndex].label, align: "right" },
+          ]
+        : [
+            { label: points[0].label, align: "left" },
+            { label: points[Math.floor(lastIndex / 2)].label, align: "center" },
+            { label: points[lastIndex].label, align: "right" },
+          ];
 
   return (
     <View style={styles.trendCard}>
@@ -132,16 +141,13 @@ export function TrendLineChart({
         ))}
       </View>
       <View style={[styles.trendLabelsRow, { width: chartWidth }]}>
-        {points.map((point, index) => (
+        {axisAnchors.map((anchor, index) => (
           <Text
-            key={`label-${point.label}-${index}`}
+            key={`axis-${anchor.align}-${index}`}
             numberOfLines={1}
-            style={[
-              styles.trendAxisLabel,
-              index === selectedIndex && styles.trendAxisLabelActive,
-            ]}
+            style={[styles.trendAxisLabel, { textAlign: anchor.align }]}
           >
-            {showLabelAt(index) ? point.label : ""}
+            {anchor.label}
           </Text>
         ))}
       </View>
@@ -254,9 +260,5 @@ const styles = StyleSheet.create({
     fontSize: 8,
     fontWeight: "700",
     color: COLORS.muted,
-    textAlign: "center",
-  },
-  trendAxisLabelActive: {
-    color: COLORS.ink,
   },
 });
