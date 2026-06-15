@@ -185,7 +185,6 @@ export function SettingsScreen() {
   };
 
   const profileRows = [
-    ["MEMBER", profile?.display_name || "--"],
     ["CALORIE TARGET", profile?.calorie_target ? `${profile.calorie_target} KCAL` : "--"],
     ["MACRO TARGETS", targets ? `${targets.PROTEIN}P / ${targets.CARBS}C / ${targets.FAT}F` : "--"],
   ];
@@ -201,10 +200,13 @@ export function SettingsScreen() {
               <Text style={styles.avatarPlaceholder}>{busy ? "..." : "+ PHOTO"}</Text>
             )}
           </Pressable>
-          <View style={styles.avatarText}>
+          <Pressable
+            onPress={openProfileEditor}
+            style={({ pressed }) => [styles.avatarText, pressed && sharedStyles.pressed]}
+          >
             <Text style={styles.memberName}>{profile?.display_name || "MEMBER"}</Text>
-            <Text style={styles.memberSub}>INCREMENT MEMBER</Text>
-          </View>
+            <Text style={styles.memberSub}>TAP TO EDIT NAME</Text>
+          </Pressable>
         </View>
         {profileRows.map(([label, value]) => (
           <View key={label} style={settingsStyles.settingsRow}>
@@ -213,7 +215,6 @@ export function SettingsScreen() {
           </View>
         ))}
         <View style={sharedStyles.actionRow}>
-          <ActionButton label="EDIT PROFILE" outline onPress={openProfileEditor} />
           <ActionButton label="EDIT TARGETS" outline onPress={openTargetsEditor} />
         </View>
       </Card>

@@ -45,7 +45,13 @@ export function ProgressScreen({ macros, todayWeight }) {
 
   const weightHistory = pickPeriodData(weightHistoryAll, weightPeriod);
   const weightSummary = trendSummary(weightHistory);
-  const weightDeltaLabel = `${weightSummary.delta <= 0 ? "" : "+"}${weightSummary.delta.toFixed(1)} LB`;
+  const clampedWeightIndex = Math.min(selectedWeightPoint, Math.max(weightHistory.length - 1, 0));
+  // Change since the start of the visible interval, measured to the point the
+  // user is currently viewing on the graph (not first-to-last).
+  const firstWeight = weightHistory[0]?.value ?? 0;
+  const viewedWeight = weightHistory[clampedWeightIndex]?.value ?? firstWeight;
+  const weightDelta = viewedWeight - firstWeight;
+  const weightDeltaLabel = `${weightDelta <= 0 ? "" : "+"}${weightDelta.toFixed(1)} LB`;
 
   const todayIso = todayISO();
   const weeklyWorkoutCount = countWorkoutsBetween(workoutDates, addDays(todayIso, -6), todayIso);
@@ -69,8 +75,6 @@ export function ProgressScreen({ macros, todayWeight }) {
       })
       .catch(() => {});
   }, []);
-
-  const clampedWeightIndex = Math.min(selectedWeightPoint, Math.max(weightHistory.length - 1, 0));
 
   /** Adjusts a frequency target inline and persists immediately. */
   const adjustGoal = (window, delta) => {

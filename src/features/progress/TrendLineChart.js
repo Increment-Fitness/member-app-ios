@@ -47,9 +47,20 @@ export function TrendLineChart({
     );
   }
   const activePoint = points[selectedIndex] ?? points[points.length - 1];
-  const previousPoint = points[Math.max(selectedIndex - 1, 0)] ?? activePoint;
-  const delta = activePoint ? activePoint.value - previousPoint.value : 0;
+  // The +/- reads as the change from the first sample in the visible interval
+  // to the point the user is currently viewing — not the prior single sample.
+  const firstPoint = points[0];
+  const delta = activePoint && firstPoint ? activePoint.value - firstPoint.value : 0;
   const deltaLabel = `${delta < 0 ? "" : "+"}${delta.toFixed(valueDecimals)}${valueSuffix}`;
+  // Thin the x-axis labels so a dense series stays legible: keep the ends, the
+  // selected point, and an even sampling between them; blank the rest.
+  const maxLabels = 6;
+  const labelInterval = Math.max(1, Math.ceil(points.length / maxLabels));
+  const showLabelAt = (index) =>
+    index === 0 ||
+    index === points.length - 1 ||
+    index === selectedIndex ||
+    index % labelInterval === 0;
 
   return (
     <View style={styles.trendCard}>
@@ -124,12 +135,13 @@ export function TrendLineChart({
         {points.map((point, index) => (
           <Text
             key={`label-${point.label}-${index}`}
+            numberOfLines={1}
             style={[
               styles.trendAxisLabel,
               index === selectedIndex && styles.trendAxisLabelActive,
             ]}
           >
-            {point.label}
+            {showLabelAt(index) ? point.label : ""}
           </Text>
         ))}
       </View>
