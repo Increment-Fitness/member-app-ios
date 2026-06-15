@@ -960,6 +960,9 @@ export function AppShell() {
         return (
           <WorkoutScreen
             workoutQueue={workoutQueue}
+            splitOptions={splitDays.map((day) => day.name.toUpperCase())}
+            currentSplit={currentSplit}
+            changeSplit={changeSplit}
             selectedLiftId={selectedLiftId}
             onSelectLift={setSelectedLiftId}
             isAddingLift={isAddingLift}

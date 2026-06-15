@@ -3,6 +3,7 @@ import { useState } from "react";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { ActionButton } from "../../core/components/ActionButton";
+import { Tag } from "../../core/components/Tag";
 import { sharedStyles } from "../../core/design/sharedStyles";
 import { AddLiftModal } from "./AddLiftModal";
 import { LiftHistoryModal } from "./LiftHistoryModal";
@@ -19,6 +20,9 @@ import { WorkoutRow } from "./WorkoutRow";
  */
 export function WorkoutScreen({
   workoutQueue,
+  splitOptions = [],
+  currentSplit,
+  changeSplit,
   selectedLiftId,
   onSelectLift,
   isAddingLift,
@@ -45,6 +49,19 @@ export function WorkoutScreen({
   return (
     <View style={styles.workoutScreen}>
       <View style={[sharedStyles.card, styles.workoutPanel]}>
+        {isEditable && splitOptions.length ? (
+          <View style={sharedStyles.chipWrap}>
+            {splitOptions.map((split) => (
+              <Tag
+                key={split}
+                label={split}
+                hot={currentSplit === split}
+                outline={currentSplit !== split}
+                onPress={() => changeSplit(split)}
+              />
+            ))}
+          </View>
+        ) : null}
         <ScrollView
           style={styles.workoutList}
           contentContainerStyle={[
@@ -67,9 +84,11 @@ export function WorkoutScreen({
             ))
           ) : (
             <Text style={[sharedStyles.sectionText, styles.workoutEmptyText]}>
-              {isEditable
-                ? "No lifts yet. Tap + ADD LIFT to start building today's workout."
-                : "No lifts were logged on this day."}
+              {!isEditable
+                ? "No lifts were logged on this day."
+                : splitOptions.length
+                  ? "No lifts yet. Pick a split above or tap + ADD LIFT to start today's workout."
+                  : "No lifts yet. Tap + ADD LIFT to start building today's workout."}
             </Text>
           )}
         </ScrollView>
