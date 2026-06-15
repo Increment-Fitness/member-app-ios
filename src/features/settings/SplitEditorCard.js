@@ -70,7 +70,7 @@ export function SplitEditorCard() {
   const save = async () => {
     setError(null);
     if (!editing.name.trim()) {
-      setError("The split day needs a name.");
+      setError("The workout needs a name.");
       return;
     }
     setBusy(true);
@@ -129,13 +129,13 @@ export function SplitEditorCard() {
         ))
       ) : (
         <Text style={sharedStyles.sectionText}>
-          Build a workout split to group your lifts by day (e.g. PUSH, PULL, LEGS). Splits you
+          Build a workout to group your lifts by day (e.g. PUSH, PULL, LEGS). Workouts you
           create show up on the dashboard and LIFT tab.
         </Text>
       )}
       <View style={sharedStyles.actionRow}>
         <ActionButton
-          label={hasSplits ? "+ WORKOUT" : "CREATE SPLIT"}
+          label={hasSplits ? "+ WORKOUT" : "CREATE WORKOUT"}
           outline
           onPress={() => openDay(null)}
         />
@@ -148,10 +148,10 @@ export function SplitEditorCard() {
             style={sharedStyles.weightModalAvoider}
           >
             <Pressable style={sharedStyles.weightModalCard} onPress={() => {}}>
-              <FieldLabel label="SPLIT DAY NAME" />
+              <FieldLabel label="WORKOUT NAME" />
               <TextInput
                 style={styles.input}
-                placeholder="SPLIT DAY NAME (E.G. PUSH A)"
+                placeholder="WORKOUT NAME (E.G. PUSH A)"
                 placeholderTextColor={COLORS.muted2}
                 autoCapitalize="characters"
                 value={editing?.name ?? ""}

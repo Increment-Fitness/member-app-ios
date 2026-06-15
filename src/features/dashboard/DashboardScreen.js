@@ -160,8 +160,8 @@ export function DashboardScreen({
         ) : (
           <Text style={sharedStyles.sectionText}>
             {splitOptions.length
-              ? "Pick a split above, or open LIFT to add exercises."
-              : "Create a workout split in Settings, or open LIFT to add exercises."}
+              ? "Pick a workout above, or open LIFT to add exercises."
+              : "Create a workout in Settings, or open LIFT to add exercises."}
           </Text>
         )}
         <View style={sharedStyles.actionRow}>

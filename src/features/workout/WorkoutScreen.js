@@ -87,7 +87,7 @@ export function WorkoutScreen({
               {!isEditable
                 ? "No lifts were logged on this day."
                 : splitOptions.length
-                  ? "No lifts yet. Pick a split above or tap + ADD LIFT to start today's workout."
+                  ? "No lifts yet. Pick a workout above or tap + ADD LIFT to start today's session."
                   : "No lifts yet. Tap + ADD LIFT to start building today's workout."}
             </Text>
           )}

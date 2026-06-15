@@ -825,7 +825,17 @@ export function AppShell() {
       return;
     }
     setCurrentSplit(split);
-    const nextQueue = queueForSplit(split);
+    // Switching workouts must never discard sets already logged today: keep
+    // every lift that has logged sets and layer the chosen workout's remaining
+    // template lifts on top. (Without this, changing workout — even back to the
+    // first one — rebuilt the queue from scratch and the autosave then wiped
+    // the logged sets from the day.)
+    const logged = workoutQueue.filter((item) => item.loggedSets?.length);
+    const loggedNames = new Set(logged.map((item) => item.lift.toUpperCase()));
+    const template = queueForSplit(split).filter(
+      (item) => !loggedNames.has(item.lift.toUpperCase()),
+    );
+    const nextQueue = [...logged, ...template];
     setWorkoutQueue(nextQueue);
     setSelectedLiftId(nextQueue[0]?.id ?? null);
     setIsAddingLift(false);
