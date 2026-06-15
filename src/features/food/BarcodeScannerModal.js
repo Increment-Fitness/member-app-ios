@@ -1,7 +1,7 @@
 // Full-screen camera modal for scanning meal or ingredient barcodes.
 import { CameraView } from "expo-camera";
 import { Modal, StyleSheet, Text, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 
 import { ActionButton } from "../../core/components/ActionButton";
 import { COLORS } from "../../core/design/colors";
@@ -33,7 +33,8 @@ export function BarcodeScannerModal({
 
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
-      <SafeAreaView style={styles.scannerScreen} edges={["top", "left", "right", "bottom"]}>
+      <SafeAreaProvider>
+        <SafeAreaView style={styles.scannerScreen} edges={["top", "left", "right", "bottom"]}>
         <View style={styles.scannerHeader}>
           <Text style={styles.scannerTitle}>SCAN {targetLabel}</Text>
         </View>
@@ -63,7 +64,8 @@ export function BarcodeScannerModal({
         <View style={styles.scannerFooter}>
           <ActionButton label="CLOSE" outline onPress={onClose} />
         </View>
-      </SafeAreaView>
+        </SafeAreaView>
+      </SafeAreaProvider>
     </Modal>
   );
 }
