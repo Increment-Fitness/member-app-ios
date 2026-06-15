@@ -187,10 +187,6 @@ const styles = StyleSheet.create({
   },
   trendEmptyState: {
     minHeight: 160,
-    borderWidth: 2,
-    borderColor: COLORS.line,
-    borderRadius: 20,
-    backgroundColor: COLORS.card2,
     alignItems: "center",
     justifyContent: "center",
     padding: 18,
