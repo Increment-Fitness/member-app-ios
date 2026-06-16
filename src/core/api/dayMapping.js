@@ -111,6 +111,9 @@ export function serverDayToRecord(isoDate, day, { targets = null } = {}) {
     workout: { name: split, exercises },
     weight: day.weight != null ? Number(day.weight) : null,
     photoPath: day.photoPath ?? null,
+    // Lift names removed from this day (so re-applying the split won't re-add
+    // them). Uppercased to match the queue's lift names.
+    excludedLifts: (day.excludedExercises ?? []).map((name) => String(name).toUpperCase()),
     seeded: false,
   };
 }
@@ -158,5 +161,6 @@ export function recordToPayload(record) {
         })),
       })),
     weight: record.weight ?? null,
+    excludedExercises: (record.excludedLifts ?? []).map((name) => String(name).toUpperCase()),
   };
 }

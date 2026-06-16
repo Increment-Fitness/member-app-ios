@@ -59,7 +59,7 @@ export function LogSetModal({
           style={sharedStyles.weightModalAvoider}
         >
           <Pressable style={sharedStyles.weightModalCard} onPress={() => {}}>
-            <FieldLabel label="WEIGHT (LB)" />
+            <FieldLabel label="WEIGHT (LB) · OPTIONAL" />
             <TextInput
               value={logSetDraft.weight}
               onChangeText={(value) => {
@@ -68,7 +68,7 @@ export function LogSetModal({
                 }
                 setLogSetDraft((current) => ({ ...current, weight: value }));
               }}
-              placeholder="Weight"
+              placeholder="Bodyweight (leave blank)"
               placeholderTextColor={COLORS.muted}
               keyboardType="decimal-pad"
               style={[

@@ -5,7 +5,8 @@ import { MAX_LIFT_NAME_LENGTH } from "../../core/validation/liftName";
 
 /**
  * Validates a weight input string. Accepts plain decimals like "185" or
- * "185.5".
+ * "185.5". Blank is allowed and means bodyweight (0) -- only the reps are
+ * required for a set to count.
  *
  * @param {string} value Raw input.
  * @returns {string} Error message, or "" when valid.
@@ -13,7 +14,7 @@ import { MAX_LIFT_NAME_LENGTH } from "../../core/validation/liftName";
 export function validateWeightValue(value) {
   const trimmed = value.trim();
   if (!trimmed) {
-    return "Add a weight to continue.";
+    return "";
   }
   if (!/^\d+(\.\d+)?$/.test(trimmed)) {
     return "Use numbers only, like 185 or 185.5.";

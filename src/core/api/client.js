@@ -15,6 +15,18 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   },
 });
 
+// The device's IANA timezone (e.g. "America/Denver"), or "UTC" if the runtime
+// can't resolve one. Reported to the member's profile so the day RPCs bucket
+// workouts by the member's local day instead of UTC -- otherwise an
+// evening-logged workout crosses midnight UTC and shows up a day late.
+export const DEVICE_TZ = (() => {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+  } catch {
+    return "UTC";
+  }
+})();
+
 /**
  * Calls a Postgres RPC and unwraps the supabase-js envelope.
  *
