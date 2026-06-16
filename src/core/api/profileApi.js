@@ -32,6 +32,7 @@ export async function updateProfile(fields) {
   if (error) {
     throw new Error(error.message);
   }
+  emitProfileChanged();
 }
 
 /** @returns {Promise<{PROTEIN: number, CARBS: number, FAT: number} | null>} */
@@ -57,6 +58,21 @@ export async function updateMacroTargets(targets) {
   if (error) {
     throw new Error(error.message);
   }
+  emitProfileChanged();
+}
+
+// Profile / macro-target edits notify subscribers so the dashboard can refresh
+// the calorie goal and macro bars without a full reload.
+const profileListeners = new Set();
+
+/** @param {() => void} listener @returns {() => void} Unsubscribe. */
+export function onProfileChanged(listener) {
+  profileListeners.add(listener);
+  return () => profileListeners.delete(listener);
+}
+
+function emitProfileChanged() {
+  profileListeners.forEach((listener) => listener());
 }
 
 /**

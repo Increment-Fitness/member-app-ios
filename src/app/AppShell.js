@@ -10,8 +10,14 @@ import { Ionicons } from "@expo/vector-icons";
 
 import { COLORS } from "../core/design/colors";
 import { blankDay, fromStoredRecord, isEmptyDay, toStoredRecord } from "../core/storage/dayRecord";
-import { getDatesWithData, getDay, saveDay } from "../core/api/dayApi";
-import { getProfile, getSplitDays, onSplitsChanged } from "../core/api/profileApi";
+import { getDatesWithData, getDay, resetDayApiCache, saveDay } from "../core/api/dayApi";
+import {
+  getMacroTargets,
+  getProfile,
+  getSplitDays,
+  onProfileChanged,
+  onSplitsChanged,
+} from "../core/api/profileApi";
 import { lookupBarcode } from "../core/api/nutritionApi";
 import {
   addDays,
@@ -190,6 +196,23 @@ export function AppShell() {
       getSplitDays().then(setSplitDays).catch(() => {});
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Saving the calorie goal or macro targets in Settings should reflect on the
+  // dashboard immediately. The targets are memoized in dayApi, so drop that
+  // cache and re-pull both, updating the macro bars in place (consumed totals
+  // stay; only the targets change).
+  useEffect(() => {
+    return onProfileChanged(async () => {
+      resetDayApiCache();
+      try {
+        const [profile, targets] = await Promise.all([getProfile(), getMacroTargets()]);
+        setCaloriesGoal(profile?.calorie_target ?? null);
+        setMacros((prev) => prev.map((macro) => ({ ...macro, target: targets?.[macro.label] ?? null })));
+      } catch {
+        // Ignore; the next day load reconciles targets from the server.
+      }
+    });
   }, []);
 
   // Autosave the selected day (debounced) whenever its data changes. The
