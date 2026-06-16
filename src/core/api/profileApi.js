@@ -1,5 +1,5 @@
 // Profile, macro targets, and workout-split templates.
-import { supabase } from "./client";
+import { DEVICE_TZ, supabase } from "./client";
 
 async function uid() {
   const { data } = await supabase.auth.getSession();
@@ -33,6 +33,21 @@ export async function updateProfile(fields) {
     throw new Error(error.message);
   }
   emitProfileChanged();
+}
+
+/**
+ * Records the device's timezone on the member's profile. The day RPCs bucket
+ * workouts by this tz, so this is what keeps an evening workout on its real
+ * local day instead of the UTC day. Idempotent and cheap; call on launch.
+ */
+export async function syncDeviceTimezone() {
+  const { error } = await supabase
+    .from("profiles")
+    .update({ timezone: DEVICE_TZ })
+    .eq("user_id", await uid());
+  if (error) {
+    throw new Error(error.message);
+  }
 }
 
 /** @returns {Promise<{PROTEIN: number, CARBS: number, FAT: number} | null>} */

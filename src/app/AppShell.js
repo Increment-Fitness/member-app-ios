@@ -17,6 +17,7 @@ import {
   getSplitDays,
   onProfileChanged,
   onSplitsChanged,
+  syncDeviceTimezone,
 } from "../core/api/profileApi";
 import { lookupBarcode } from "../core/api/nutritionApi";
 import {
@@ -114,6 +115,9 @@ export function AppShell() {
   const [currentSplit, setCurrentSplit] = useState(bootState.split);
   const [workoutQueue, setWorkoutQueue] = useState(bootState.workoutQueue);
   const [selectedLiftId, setSelectedLiftId] = useState(bootState.workoutQueue[0]?.id ?? null);
+  // Lift names the member removed from this day; persisted so re-applying the
+  // split doesn't bring them back (the split template itself is untouched).
+  const [excludedLifts, setExcludedLifts] = useState(bootState.excludedLifts ?? []);
   const [isAddingLift, setIsAddingLift] = useState(false);
   const [liftDraft, setLiftDraft] = useState({ lift: "" });
   const [isLoggingSet, setIsLoggingSet] = useState(false);
@@ -166,6 +170,7 @@ export function AppShell() {
     setMeals(state.meals);
     setMacros(state.macros);
     setWorkoutQueue(state.workoutQueue);
+    setExcludedLifts(state.excludedLifts ?? []);
     setSelectedLiftId(state.workoutQueue[0]?.id ?? null);
     setSelectedMealId(state.meals[0]?.id ?? null);
     setTodayWeight(state.weight);
@@ -184,6 +189,13 @@ export function AppShell() {
   // Boot: hydrate the calorie target, the calendar index, and today.
   useEffect(() => {
     (async () => {
+      // Report the device timezone before the first load so day RPCs bucket
+      // workouts by the member's local day, not UTC.
+      try {
+        await syncDeviceTimezone();
+      } catch {
+        // Non-fatal: the day functions fall back to UTC bucketing.
+      }
       getProfile()
         .then((profile) => setCaloriesGoal(profile?.calorie_target ?? null))
         .catch(() => {});
@@ -229,6 +241,7 @@ export function AppShell() {
       macros,
       workoutQueue,
       weight: todayWeight,
+      excludedLifts,
       seeded: daySeededRef.current,
     });
     pendingSaveRef.current = { date: selectedDate, record };
@@ -241,7 +254,7 @@ export function AppShell() {
     // selectedDate changes always arrive with the skip flag set by loadDay,
     // so it is deliberately not a dependency here.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [meals, macros, workoutQueue, currentSplit, todayWeight]);
+  }, [meals, macros, workoutQueue, currentSplit, todayWeight, excludedLifts]);
 
   /** Writes any pending debounced save immediately (called before navigating). */
   const flushPendingSave = async () => {
@@ -725,10 +738,12 @@ export function AppShell() {
 
       return current.map((item, index) => {
         if (index === targetIndex) {
+          const weightStr = logSetDraft.weight.trim();
           const loggedSet = {
             id: `set-${Date.now()}`,
             reps: Number.parseInt(logSetDraft.reps.trim(), 10),
-            weight: Number.parseFloat(logSetDraft.weight.trim()),
+            // Blank weight = bodyweight (0); reps are what make the set count.
+            weight: weightStr === "" ? 0 : Number.parseFloat(weightStr),
           };
           const loggedSets = [...(item.loggedSets ?? []), loggedSet];
           return {
@@ -784,6 +799,8 @@ export function AppShell() {
     };
 
     setWorkoutQueue((current) => [...current, nextLift]);
+    // Re-adding a lift clears any prior removal for this day.
+    setExcludedLifts((current) => current.filter((name) => name !== nextLift.lift));
     setSelectedLiftId(nextLift.id);
     setLiftDraft({ lift: "" });
     setIsAddingLift(false);
@@ -796,6 +813,12 @@ export function AppShell() {
     }
     setWorkoutQueue((current) => {
       const deletedLift = current.find((item) => item.id === liftId);
+      // Remember the removal for this day so re-applying the split won't bring
+      // the lift back. The split template itself is never modified.
+      if (deletedLift) {
+        const name = deletedLift.lift.toUpperCase();
+        setExcludedLifts((names) => (names.includes(name) ? names : [...names, name]));
+      }
       const remaining = current.filter((item) => item.id !== liftId);
       if (!remaining.length) {
         setSelectedLiftId(null);
@@ -855,8 +878,12 @@ export function AppShell() {
     // the logged sets from the day.)
     const logged = workoutQueue.filter((item) => item.loggedSets?.length);
     const loggedNames = new Set(logged.map((item) => item.lift.toUpperCase()));
+    // Skip template lifts the member removed from this day (excludedLifts) so
+    // re-applying the split doesn't resurrect a deleted lift.
+    const excludedSet = new Set(excludedLifts.map((name) => name.toUpperCase()));
     const template = queueForSplit(split).filter(
-      (item) => !loggedNames.has(item.lift.toUpperCase()),
+      (item) =>
+        !loggedNames.has(item.lift.toUpperCase()) && !excludedSet.has(item.lift.toUpperCase()),
     );
     const nextQueue = [...logged, ...template];
     setWorkoutQueue(nextQueue);

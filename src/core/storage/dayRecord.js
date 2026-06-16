@@ -25,7 +25,10 @@ function zeroedMacros() {
  *   writing exercises — callers are expected to pass pre-validated values
  *   (the log-set modal validates input upstream before calling this).
  */
-export function toStoredRecord(isoDate, { split, meals, macros, workoutQueue, weight, seeded = false }) {
+export function toStoredRecord(
+  isoDate,
+  { split, meals, macros, workoutQueue, weight, excludedLifts = [], seeded = false },
+) {
   return {
     date: isoDate,
     split,
@@ -46,6 +49,9 @@ export function toStoredRecord(isoDate, { split, meals, macros, workoutQueue, we
       })),
     },
     weight: weight ?? null,
+    // Lift names the member removed from this day's workout. Persisted so the
+    // deletion sticks for the day without touching the split template.
+    excludedLifts,
     seeded,
   };
 }
@@ -70,6 +76,7 @@ export function fromStoredRecord(record) {
       ...(exercise.sets.length ? { loggedSets: exercise.sets } : {}),
     })),
     weight: record.weight,
+    excludedLifts: record.excludedLifts ?? [],
     seeded: record.seeded ?? false,
   };
 }
@@ -89,6 +96,7 @@ export function blankDay(isoDate) {
     macros: zeroedMacros(),
     workout: { name: "", exercises: [] },
     weight: null,
+    excludedLifts: [],
     seeded: false,
   };
 }
