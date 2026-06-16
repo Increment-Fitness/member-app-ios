@@ -1,8 +1,9 @@
 // LIFT tab: today's workout queue with add-lift and log-set modals.
 import { useState } from "react";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { ScrollView, StyleSheet, View } from "react-native";
 
 import { ActionButton } from "../../core/components/ActionButton";
+import { EmptyState } from "../../core/components/EmptyState";
 import { Tag } from "../../core/components/Tag";
 import { sharedStyles } from "../../core/design/sharedStyles";
 import { AddLiftModal } from "./AddLiftModal";
@@ -83,13 +84,16 @@ export function WorkoutScreen({
               />
             ))
           ) : (
-            <Text style={[sharedStyles.sectionText, styles.workoutEmptyText]}>
-              {!isEditable
-                ? "No lifts were logged on this day."
-                : splitOptions.length
-                  ? "No lifts yet. Pick a workout above or tap + ADD LIFT to start today's session."
-                  : "No lifts yet. Tap + ADD LIFT to start building today's workout."}
-            </Text>
+            <EmptyState
+              title={isEditable ? "No lifts yet" : "No lifts logged"}
+              message={
+                !isEditable
+                  ? "Nothing was recorded on this day."
+                  : splitOptions.length
+                    ? "Pick a workout above, or tap + ADD LIFT to start your session."
+                    : "Tap + ADD LIFT to start building today's workout."
+              }
+            />
           )}
         </ScrollView>
         {isEditable ? (
@@ -146,10 +150,6 @@ const styles = StyleSheet.create({
   workoutListEmpty: {
     flexGrow: 1,
     justifyContent: "center",
-  },
-  workoutEmptyText: {
-    textAlign: "center",
-    paddingHorizontal: 12,
   },
   actionColumn: {
     gap: 8,

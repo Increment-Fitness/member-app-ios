@@ -15,6 +15,7 @@ import {
 } from "react-native";
 
 import { ActionButton } from "../../core/components/ActionButton";
+import { EmptyState } from "../../core/components/EmptyState";
 import { FieldLabel } from "../../core/components/FieldLabel";
 import { Card } from "../../core/components/Card";
 import { Tag } from "../../core/components/Tag";
@@ -128,10 +129,11 @@ export function SplitEditorCard() {
           </Pressable>
         ))
       ) : (
-        <Text style={sharedStyles.sectionText}>
-          Build a workout to group your lifts by day (e.g. PUSH, PULL, LEGS). Workouts you
-          create show up on the dashboard and LIFT tab.
-        </Text>
+        <EmptyState
+          compact
+          title="No workouts yet"
+          message="Group your lifts into days like PUSH, PULL, or LEGS. Workouts you create show up on the dashboard and LIFT tab."
+        />
       )}
       <View style={sharedStyles.actionRow}>
         <ActionButton

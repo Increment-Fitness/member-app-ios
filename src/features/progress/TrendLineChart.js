@@ -2,6 +2,7 @@
 import { Pressable, StyleSheet, Text, View, useWindowDimensions } from "react-native";
 
 import { COLORS } from "../../core/design/colors";
+import { EmptyState } from "../../core/components/EmptyState";
 import { buildTrendCoordinates } from "./utils/trend";
 
 /**
@@ -39,10 +40,11 @@ export function TrendLineChart({
             <Text style={styles.trendCardTitle}>{title}</Text>
           </View>
         ) : null}
-        <View style={[styles.trendEmptyState, { width: chartWidth }]}>
-          <Text style={styles.trendEmptyTitle}>No history yet</Text>
-          <Text style={styles.trendEmptyText}>Log this lift to start seeing progress over time.</Text>
-        </View>
+        <EmptyState
+          style={[styles.trendEmptyState, { width: chartWidth }]}
+          title="No history yet"
+          message="Log this lift to start seeing progress over time."
+        />
       </View>
     );
   }
@@ -193,21 +195,6 @@ const styles = StyleSheet.create({
   },
   trendEmptyState: {
     minHeight: 160,
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 18,
-    gap: 8,
-  },
-  trendEmptyTitle: {
-    fontSize: 16,
-    fontWeight: "900",
-    color: COLORS.ink,
-  },
-  trendEmptyText: {
-    fontSize: 11,
-    lineHeight: 16,
-    textAlign: "center",
-    color: COLORS.muted,
   },
   trendCanvas: {
     position: "relative",

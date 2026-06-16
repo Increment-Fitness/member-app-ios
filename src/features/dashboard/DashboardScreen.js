@@ -4,6 +4,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { ActionButton } from "../../core/components/ActionButton";
 import { Card } from "../../core/components/Card";
+import { EmptyState } from "../../core/components/EmptyState";
 import { Tag } from "../../core/components/Tag";
 import { COLORS } from "../../core/design/colors";
 import { sharedStyles } from "../../core/design/sharedStyles";
@@ -57,9 +58,10 @@ export function DashboardScreen({
     return (
       <ScrollView contentContainerStyle={sharedStyles.scrollContent} showsVerticalScrollIndicator={false}>
         <Card grid>
-          <Text style={sharedStyles.sectionText}>
-            Nothing was logged on this day. Days older than yesterday are read-only.
-          </Text>
+          <EmptyState
+            title="Nothing logged"
+            message="No entries for this day. Days older than yesterday are read-only."
+          />
         </Card>
       </ScrollView>
     );
@@ -111,11 +113,14 @@ export function DashboardScreen({
           <MacroRow key={macro.label} {...macro} />
         ))}
         {!hasMacroTargets ? (
-          <Text style={sharedStyles.sectionText}>
-            {isEditable
-              ? "Set your daily macro targets in Settings to track against them."
-              : "No macro targets were set."}
-          </Text>
+          <EmptyState
+            compact
+            message={
+              isEditable
+                ? "Set your daily macro targets in Settings to track against them."
+                : "No macro targets were set."
+            }
+          />
         ) : null}
         {isEditable ? (
           <View style={sharedStyles.actionRow}>
@@ -158,11 +163,14 @@ export function DashboardScreen({
             ))}
           </View>
         ) : (
-          <Text style={sharedStyles.sectionText}>
-            {splitOptions.length
-              ? "Pick a workout above, or open LIFT to add exercises."
-              : "Create a workout in Settings, or open LIFT to add exercises."}
-          </Text>
+          <EmptyState
+            compact
+            message={
+              splitOptions.length
+                ? "Pick a workout above, or open LIFT to add exercises."
+                : "Create a workout in Settings, or open LIFT to add exercises."
+            }
+          />
         )}
         <View style={sharedStyles.actionRow}>
           <ActionButton label="OPEN LIFT" hot onPress={jumpToWorkout} />

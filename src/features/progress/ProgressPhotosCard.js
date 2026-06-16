@@ -7,6 +7,7 @@ import { Alert, Image, Pressable, ScrollView, StyleSheet, Text, View } from "rea
 import * as ImagePicker from "expo-image-picker";
 
 import { Card } from "../../core/components/Card";
+import { EmptyState } from "../../core/components/EmptyState";
 import { Tag } from "../../core/components/Tag";
 import { COLORS } from "../../core/design/colors";
 import { sharedStyles } from "../../core/design/sharedStyles";
@@ -89,9 +90,11 @@ export function ProgressPhotosCard() {
       </View>
 
       {photos.length === 0 ? (
-        <Text style={sharedStyles.sectionText}>
-          No photos yet. Tap + ADD to take or upload your first progress photo.
-        </Text>
+        <EmptyState
+          compact
+          title="No progress photos"
+          message="Tap + ADD to capture or upload your first one."
+        />
       ) : (
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.strip}>
           {photos.map((photo, index) => (

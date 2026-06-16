@@ -435,9 +435,12 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   emptySectionText: {
-    fontSize: 10,
-    color: COLORS.muted,
-    paddingVertical: 4,
+    fontSize: 11,
+    lineHeight: 16,
+    fontWeight: "600",
+    color: COLORS.muted2,
+    textAlign: "center",
+    paddingVertical: 10,
   },
   searchResultList: {
     gap: 8,
