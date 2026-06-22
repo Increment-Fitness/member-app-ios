@@ -22,7 +22,7 @@ import { BarcodeScannerModal } from "./BarcodeScannerModal";
 import { ScanConfirmModal } from "./ScanConfirmModal";
 import { MealRow } from "./MealRow";
 import { foodStyles } from "./styles";
-import { calculateCalories, formatMacroDetail } from "./utils/macros";
+import { calculateCalories } from "./utils/macros";
 
 /**
  * Meal logging screen. Renders the day's meals grouped into the four fixed
@@ -48,21 +48,11 @@ export function FoodScreen({
   setManualMealDraft,
   onAddManualMeal,
   onAddScannedMeal,
-  pastMealSearchDraft,
-  setPastMealSearchDraft,
-  onAddPastMeal,
-  customMealDraft,
-  setCustomMealDraft,
-  onAddCustomMeal,
-  isCreatingCustomMeal,
-  setIsCreatingCustomMeal,
-  isAddingManualIngredient,
-  setIsAddingManualIngredient,
-  ingredientDraft,
-  setIngredientDraft,
-  onAddManualIngredient,
-  onStartIngredientScan,
-  onRemoveIngredient,
+  aiMealDraft,
+  onChangeAiDescription,
+  onChangeAiMacro,
+  onEstimateAiMacros,
+  onAddAiMeal,
   barcodeScannerTarget,
   barcodeLookupBusy,
   scanResult,
@@ -108,18 +98,13 @@ export function FoodScreen({
     items: meals.filter((meal) => meal.category === category),
   }));
   const mealCategoryLabel = (activeMealCategory ?? "meal").toLowerCase();
-  const pastMealMatches = meals.filter((meal) =>
-    meal.title.toLowerCase().includes((pastMealSearchDraft.trim() || "").toLowerCase()),
-  );
-  const customMealTotals = customMealDraft.ingredients.reduce(
-    (sum, ingredient) => ({
-      PROTEIN: sum.PROTEIN + ingredient.macroDelta.PROTEIN,
-      CARBS: sum.CARBS + ingredient.macroDelta.CARBS,
-      FAT: sum.FAT + ingredient.macroDelta.FAT,
-    }),
-    { PROTEIN: 0, CARBS: 0, FAT: 0 },
-  );
-  const customMealCalories = calculateCalories(customMealTotals);
+  const aiMacros = {
+    PROTEIN: Number.parseInt(aiMealDraft.protein || "0", 10) || 0,
+    CARBS: Number.parseInt(aiMealDraft.carbs || "0", 10) || 0,
+    FAT: Number.parseInt(aiMealDraft.fat || "0", 10) || 0,
+  };
+  const aiCalories = calculateCalories(aiMacros);
+  const aiShowFields = aiMealDraft.status === "ready" || aiMealDraft.status === "error";
   const manualMealMacros = {
     PROTEIN: Number.parseInt(manualMealDraft.protein || "0", 10) || 0,
     CARBS: Number.parseInt(manualMealDraft.carbs || "0", 10) || 0,
@@ -185,7 +170,7 @@ export function FoodScreen({
               >
                 <Card>
                   <View style={sharedStyles.chipWrap}>
-                    {["MANUAL INPUT", "SCAN LABEL", "CUSTOM MEAL"].map((mode) => (
+                    {["MANUAL INPUT", "SCAN LABEL", "AI ESTIMATE"].map((mode) => (
                       <Tag
                         key={mode}
                         label={mode}
@@ -255,130 +240,73 @@ export function FoodScreen({
                       </View>
                     </View>
                   ) : null}
-                  {mealInputMode === "CUSTOM MEAL" ? (
+                  {mealInputMode === "AI ESTIMATE" ? (
                     <View style={styles.modePanel}>
-                      <Text style={sharedStyles.sectionText}>Search past meals first, or create a new recipe for {mealCategoryLabel}.</Text>
-                      <FieldLabel label="SEARCH PAST MEALS" />
+                      <Text style={sharedStyles.sectionText}>
+                        Describe what you ate (include amounts) and AI estimates the macros for {mealCategoryLabel}. You can adjust before adding.
+                      </Text>
+                      <FieldLabel label="MEAL DESCRIPTION" />
                       <TextInput
-                        value={pastMealSearchDraft}
-                        onChangeText={setPastMealSearchDraft}
-                        placeholder="Chicken bowl"
+                        value={aiMealDraft.description}
+                        onChangeText={onChangeAiDescription}
+                        placeholder="6 oz grilled chicken, 1 cup white rice, 2 tbsp olive oil, side salad"
                         placeholderTextColor={COLORS.muted}
-                        style={sharedStyles.mealEditorInput}
+                        multiline
+                        style={[sharedStyles.mealEditorInput, styles.aiDescriptionInput]}
                       />
-                      <View style={styles.searchResultList}>
-                        {pastMealMatches.length ? (
-                          pastMealMatches.slice(0, 4).map((meal) => (
-                            <View key={meal.id} style={styles.searchResultRow}>
-                              <View style={styles.searchResultCopy}>
-                                <Text style={styles.searchResultTitle}>{meal.title}</Text>
-                                <Text style={styles.searchResultMeta}>{meal.detail} // {meal.calories} KCAL</Text>
-                              </View>
-                              <Tag label="ADD" outline onPress={() => onAddPastMeal(meal)} />
-                            </View>
-                          ))
-                        ) : (
-                          <Text style={styles.emptySectionText}>No matching past meals yet.</Text>
-                        )}
-                      </View>
                       <View style={sharedStyles.actionRow}>
-                        <ActionButton label="CREATE NEW MEAL" hot onPress={() => setIsCreatingCustomMeal(true)} />
+                        <ActionButton
+                          label={aiMealDraft.status === "loading" ? "ESTIMATING..." : "ESTIMATE MACROS"}
+                          hot
+                          disabled={!aiMealDraft.description.trim() || aiMealDraft.status === "loading"}
+                          onPress={onEstimateAiMacros}
+                        />
                       </View>
-                      {isCreatingCustomMeal ? (
+                      {aiMealDraft.status === "error" ? (
+                        <Text style={sharedStyles.validationText}>
+                          Couldn't estimate — try again or edit the macros below.
+                        </Text>
+                      ) : null}
+                      {aiShowFields ? (
                         <>
-                          <View style={styles.modeDivider} />
-                          <Text style={sharedStyles.sectionText}>Build a meal by adding ingredients. Each ingredient can come from a barcode scan or manual entry, and the meal totals update automatically.</Text>
-                          <FieldLabel label="MEAL NAME" />
-                          <TextInput
-                            value={customMealDraft.title}
-                            onChangeText={(value) => setCustomMealDraft((current) => ({ ...current, title: value }))}
-                            placeholder="Turkey chili"
-                            placeholderTextColor={COLORS.muted}
-                            style={sharedStyles.mealEditorInput}
-                          />
-                          <View style={sharedStyles.actionRow}>
-                            <ActionButton label="SCAN BARCODE" outline onPress={onStartIngredientScan} />
-                            <ActionButton
-                              label={isAddingManualIngredient ? "HIDE MANUAL ENTRY" : "ADD INGREDIENT"}
-                              hot
-                              onPress={() => setIsAddingManualIngredient((value) => !value)}
-                            />
-                          </View>
-                          {isAddingManualIngredient ? (
-                            <View style={styles.ingredientEditor}>
-                              <FieldLabel label="INGREDIENT NAME" />
+                          <View style={styles.ingredientMacroGrid}>
+                            <View style={styles.macroField}>
+                              <FieldLabel label="PROTEIN (G)" />
                               <TextInput
-                                value={ingredientDraft.name}
-                                onChangeText={(value) => setIngredientDraft((current) => ({ ...current, name: value }))}
-                                placeholder="Ingredient name"
+                                value={aiMealDraft.protein}
+                                onChangeText={(value) => onChangeAiMacro("protein", value)}
+                                placeholder="Protein"
                                 placeholderTextColor={COLORS.muted}
-                                style={sharedStyles.mealEditorInput}
+                                keyboardType="number-pad"
+                                style={styles.ingredientMacroInput}
                               />
-                              <View style={styles.ingredientMacroGrid}>
-                                <View style={styles.macroField}>
-                                  <FieldLabel label="PROTEIN (G)" />
-                                <TextInput
-                                    value={ingredientDraft.protein}
-                                    onChangeText={(value) => setIngredientDraft((current) => ({ ...current, protein: value }))}
-                                    placeholder="Protein"
-                                    placeholderTextColor={COLORS.muted}
-                                    keyboardType="number-pad"
-                                    style={styles.ingredientMacroInput}
-                                  />
-                                </View>
-                                <View style={styles.macroField}>
-                                  <FieldLabel label="CARBS (G)" />
-                                <TextInput
-                                    value={ingredientDraft.carbs}
-                                    onChangeText={(value) => setIngredientDraft((current) => ({ ...current, carbs: value }))}
-                                    placeholder="Carbs"
-                                    placeholderTextColor={COLORS.muted}
-                                    keyboardType="number-pad"
-                                    style={styles.ingredientMacroInput}
-                                  />
-                                </View>
-                                <View style={styles.macroField}>
-                                  <FieldLabel label="FAT (G)" />
-                                <TextInput
-                                    value={ingredientDraft.fat}
-                                    onChangeText={(value) => setIngredientDraft((current) => ({ ...current, fat: value }))}
-                                    placeholder="Fat"
-                                    placeholderTextColor={COLORS.muted}
-                                    keyboardType="number-pad"
-                                    style={styles.ingredientMacroInput}
-                                  />
-                                </View>
-                              </View>
-                              <View style={sharedStyles.actionRow}>
-                                <ActionButton label="ADD THIS INGREDIENT" hot onPress={onAddManualIngredient} />
-                              </View>
                             </View>
-                          ) : null}
-                          <View style={styles.recipeSummaryCard}>
-                            <Text style={styles.recipeSummaryTitle}>INGREDIENTS</Text>
-                            {customMealDraft.ingredients.length ? (
-                              customMealDraft.ingredients.map((ingredient) => (
-                                <View key={ingredient.id} style={styles.ingredientRow}>
-                                  <View style={styles.ingredientCopy}>
-                                    <Text style={styles.searchResultTitle}>{ingredient.name}</Text>
-                                    <Text style={styles.searchResultMeta}>
-                                      {formatMacroDetail(ingredient.macroDelta)} // {calculateCalories(ingredient.macroDelta)} KCAL // {ingredient.source}
-                                    </Text>
-                                  </View>
-                                  <Tag label="REMOVE" outline onPress={() => onRemoveIngredient(ingredient.id)} />
-                                </View>
-                              ))
-                            ) : (
-                              <Text style={styles.emptySectionText}>No ingredients added yet.</Text>
-                            )}
-                            <View style={styles.recipeTotalsRow}>
-                              <Text style={styles.recipeTotalsText}>{formatMacroDetail(customMealTotals)}</Text>
-                              <Text style={styles.recipeTotalsCalories}>{customMealCalories} KCAL</Text>
+                            <View style={styles.macroField}>
+                              <FieldLabel label="CARBS (G)" />
+                              <TextInput
+                                value={aiMealDraft.carbs}
+                                onChangeText={(value) => onChangeAiMacro("carbs", value)}
+                                placeholder="Carbs"
+                                placeholderTextColor={COLORS.muted}
+                                keyboardType="number-pad"
+                                style={styles.ingredientMacroInput}
+                              />
+                            </View>
+                            <View style={styles.macroField}>
+                              <FieldLabel label="FAT (G)" />
+                              <TextInput
+                                value={aiMealDraft.fat}
+                                onChangeText={(value) => onChangeAiMacro("fat", value)}
+                                placeholder="Fat"
+                                placeholderTextColor={COLORS.muted}
+                                keyboardType="number-pad"
+                                style={styles.ingredientMacroInput}
+                              />
                             </View>
                           </View>
+                          <Text style={foodStyles.editorCalories}>Calories auto-update: {aiCalories} KCAL</Text>
                           <View style={sharedStyles.actionRow}>
-                            <ActionButton label="ADD CUSTOM MEAL" hot onPress={onAddCustomMeal} />
-                            <ActionButton label="CANCEL" outline onPress={() => setIsCreatingCustomMeal(false)} />
+                            <ActionButton label="ADD FOOD" hot onPress={onAddAiMeal} />
                           </View>
                         </>
                       ) : null}
@@ -442,34 +370,6 @@ const styles = StyleSheet.create({
     textAlign: "center",
     paddingVertical: 10,
   },
-  searchResultList: {
-    gap: 8,
-  },
-  searchResultRow: {
-    flexDirection: "row",
-    gap: 8,
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: COLORS.muted2,
-    borderRadius: 16,
-    backgroundColor: COLORS.card,
-    padding: 8,
-  },
-  searchResultCopy: {
-    flex: 1,
-    minWidth: 0,
-    gap: 3,
-  },
-  searchResultTitle: {
-    fontSize: 11,
-    fontWeight: "800",
-    color: COLORS.ink,
-  },
-  searchResultMeta: {
-    fontSize: 10,
-    color: COLORS.muted,
-    flexShrink: 1,
-  },
   modePanel: {
     marginTop: 6,
     padding: 10,
@@ -522,14 +422,6 @@ const styles = StyleSheet.create({
     paddingBottom: 22,
     gap: 14,
   },
-  modeDivider: {
-    height: 1,
-    backgroundColor: COLORS.muted2,
-    marginVertical: 2,
-  },
-  ingredientEditor: {
-    gap: 8,
-  },
   ingredientMacroGrid: {
     flexDirection: "row",
     gap: 8,
@@ -550,51 +442,9 @@ const styles = StyleSheet.create({
     color: COLORS.ink,
     textAlign: "center",
   },
-  recipeSummaryCard: {
-    gap: 8,
-    borderWidth: 2,
-    borderColor: COLORS.line,
-    borderRadius: 18,
-    backgroundColor: COLORS.card,
-    padding: 10,
-  },
-  recipeSummaryTitle: {
-    fontSize: 10,
-    fontWeight: "900",
-    letterSpacing: 1,
-    color: COLORS.ink,
-  },
-  ingredientRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    borderTopWidth: 1,
-    borderTopColor: COLORS.muted2,
-    paddingTop: 8,
-  },
-  ingredientCopy: {
-    flex: 1,
-    minWidth: 0,
-    gap: 3,
-  },
-  recipeTotalsRow: {
-    marginTop: 4,
-    paddingTop: 8,
-    borderTopWidth: 2,
-    borderTopColor: COLORS.line,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    gap: 8,
-    alignItems: "center",
-  },
-  recipeTotalsText: {
-    fontSize: 11,
-    fontWeight: "900",
-    color: COLORS.ink,
-  },
-  recipeTotalsCalories: {
-    fontSize: 11,
-    fontWeight: "900",
-    color: COLORS.signal,
+  aiDescriptionInput: {
+    minHeight: 64,
+    paddingTop: 10,
+    textAlignVertical: "top",
   },
 });

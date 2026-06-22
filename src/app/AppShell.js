@@ -19,7 +19,7 @@ import {
   onSplitsChanged,
   syncDeviceTimezone,
 } from "../core/api/profileApi";
-import { lookupBarcode } from "../core/api/nutritionApi";
+import { estimateMacros, lookupBarcode } from "../core/api/nutritionApi";
 import {
   addDays,
   formatHeaderDate,
@@ -97,19 +97,13 @@ export function AppShell() {
     carbs: "",
     fat: "",
   });
-  const [pastMealSearchDraft, setPastMealSearchDraft] = useState("");
-  const [isCreatingCustomMeal, setIsCreatingCustomMeal] = useState(false);
-  const [customMealDraft, setCustomMealDraft] = useState({
-    title: "",
-    category: "DINNER",
-    ingredients: [],
-  });
-  const [isAddingManualIngredient, setIsAddingManualIngredient] = useState(false);
-  const [ingredientDraft, setIngredientDraft] = useState({
-    name: "",
+  // AI ESTIMATE draft. status: "idle" -> "loading" -> "ready" | "error".
+  const [aiMealDraft, setAiMealDraft] = useState({
+    description: "",
     protein: "",
     carbs: "",
     fat: "",
+    status: "idle",
   });
   const [barcodeScannerTarget, setBarcodeScannerTarget] = useState(null);
   const [scannedBarcode, setScannedBarcode] = useState(null);
@@ -191,8 +185,7 @@ export function AppShell() {
     setIsLoggingSet(false);
     setActiveMealCategory(null);
     setEditingMealId(null);
-    setIsCreatingCustomMeal(false);
-    setIsAddingManualIngredient(false);
+    setAiMealDraft({ description: "", protein: "", carbs: "", fat: "", status: "idle" });
     setBarcodeScannerTarget(null);
   };
 
@@ -349,14 +342,11 @@ export function AppShell() {
   const openMealCategory = (category) => {
     setActiveMealCategory(category);
     setMealInputMode("MANUAL INPUT");
-    setIsCreatingCustomMeal(false);
-    setIsAddingManualIngredient(false);
   };
 
   const closeMealCategory = () => {
     setActiveMealCategory(null);
-    setIsCreatingCustomMeal(false);
-    setIsAddingManualIngredient(false);
+    setAiMealDraft({ description: "", protein: "", carbs: "", fat: "", status: "idle" });
     setBarcodeScannerTarget(null);
   };
 
@@ -401,22 +391,6 @@ export function AppShell() {
     setScannedBarcode(null);
   };
 
-  const addScannedIngredient = (name, macroDelta, barcodeData) => {
-    setCustomMealDraft((current) => ({
-      ...current,
-      ingredients: [
-        ...current.ingredients,
-        {
-          id: `ingredient-${Date.now()}`,
-          name,
-          macroDelta,
-          source: `SCAN ${barcodeData}`,
-        },
-      ],
-    }));
-    setIsAddingManualIngredient(false);
-  };
-
   // Guard against the camera firing multiple times for one barcode:
   // `scannedBarcode` latches the first read until the scanner closes. The
   // barcode is looked up against Open Food Facts; an unknown product (or a
@@ -426,7 +400,6 @@ export function AppShell() {
       return;
     }
     setScannedBarcode(data);
-    const target = barcodeScannerTarget;
     setBarcodeLookupBusy(true);
     let product;
     try {
@@ -440,10 +413,6 @@ export function AppShell() {
     const macroDelta = product.found ? product.macros : { PROTEIN: 0, CARBS: 0, FAT: 0 };
     setBarcodeScannerTarget(null);
 
-    if (target === "ingredient") {
-      addScannedIngredient(name, macroDelta, data);
-      return;
-    }
     // Meal scans: a known product goes to the servings confirm sheet; an
     // unknown one drops in a blank "BARCODE …" entry to fill in manually.
     if (product.found) {
@@ -537,93 +506,52 @@ export function AppShell() {
     setEditingServingsMeal(null);
   };
 
-  const addManualIngredient = () => {
-    const name = ingredientDraft.name.trim() || "CUSTOM INGREDIENT";
+  const setAiDescription = (description) =>
+    setAiMealDraft((current) => ({ ...current, description }));
+
+  const setAiMacroField = (field, value) =>
+    setAiMealDraft((current) => ({ ...current, [field]: value }));
+
+  /** Calls the edge function and prefills the editable macro fields. */
+  const estimateAiMacros = async () => {
+    if (!canEditSelectedDay()) {
+      return;
+    }
+    const description = aiMealDraft.description.trim();
+    if (!description) {
+      return;
+    }
+    setAiMealDraft((current) => ({ ...current, status: "loading" }));
+    const result = await estimateMacros(description);
+    setAiMealDraft((current) => ({
+      ...current,
+      protein: String(result.macros.PROTEIN),
+      carbs: String(result.macros.CARBS),
+      fat: String(result.macros.FAT),
+      status: result.found ? "ready" : "error",
+    }));
+  };
+
+  /** Logs the (possibly edited) AI meal. Title is the typed description. */
+  const addAiMeal = () => {
+    if (!canEditSelectedDay()) {
+      return;
+    }
     const macroDelta = {
-      PROTEIN: Number.parseInt(ingredientDraft.protein || "0", 10) || 0,
-      CARBS: Number.parseInt(ingredientDraft.carbs || "0", 10) || 0,
-      FAT: Number.parseInt(ingredientDraft.fat || "0", 10) || 0,
+      PROTEIN: Number.parseInt(aiMealDraft.protein || "0", 10) || 0,
+      CARBS: Number.parseInt(aiMealDraft.carbs || "0", 10) || 0,
+      FAT: Number.parseInt(aiMealDraft.fat || "0", 10) || 0,
     };
-
-    setCustomMealDraft((current) => ({
-      ...current,
-      ingredients: [
-        ...current.ingredients,
-        {
-          id: `ingredient-${Date.now()}`,
-          name: name.toUpperCase(),
-          macroDelta,
-          source: "MANUAL",
-        },
-      ],
-    }));
-    setIngredientDraft({
-      name: "",
-      protein: "",
-      carbs: "",
-      fat: "",
-    });
-    setIsAddingManualIngredient(false);
-  };
-
-  const removeIngredient = (ingredientId) => {
-    setCustomMealDraft((current) => ({
-      ...current,
-      ingredients: current.ingredients.filter((ingredient) => ingredient.id !== ingredientId),
-    }));
-  };
-
-  const addCustomMeal = () => {
-    if (!customMealDraft.ingredients.length) {
-      return;
-    }
-
-    const totalMacros = customMealDraft.ingredients.reduce(
-      (sum, ingredient) => ({
-        PROTEIN: sum.PROTEIN + ingredient.macroDelta.PROTEIN,
-        CARBS: sum.CARBS + ingredient.macroDelta.CARBS,
-        FAT: sum.FAT + ingredient.macroDelta.FAT,
-      }),
-      { PROTEIN: 0, CARBS: 0, FAT: 0 },
-    );
-    const detail = formatMacroDetail(totalMacros);
     addMealEntry(
       {
-        category: customMealDraft.category,
-        title: (customMealDraft.title.trim() || "CUSTOM MEAL").toUpperCase(),
-        detail,
+        category: activeMealCategory ?? "LUNCH",
+        title: (aiMealDraft.description.trim() || "AI MEAL").toUpperCase().slice(0, 60),
+        detail: formatMacroDetail(macroDelta),
+        macroDelta,
       },
-      "CUSTOM MEAL",
+      "AI PARSE",
     );
-    setCustomMealDraft((current) => ({
-      ...current,
-      title: "",
-      ingredients: [],
-    }));
-    setIngredientDraft({
-      name: "",
-      protein: "",
-      carbs: "",
-      fat: "",
-    });
-    setIsCreatingCustomMeal(false);
-    setIsAddingManualIngredient(false);
-  };
-
-  const addPastMeal = (meal) => {
-    if (!meal) {
-      return;
-    }
-
-    addMealEntry(
-      {
-        category: activeMealCategory ?? meal.category,
-        title: meal.title,
-        detail: meal.detail,
-      },
-      "PAST MEAL",
-    );
-    setPastMealSearchDraft("");
+    setAiMealDraft({ description: "", protein: "", carbs: "", fat: "", status: "idle" });
   };
 
   const deleteMeal = (mealId) => {
@@ -994,21 +922,11 @@ export function AppShell() {
             setManualMealDraft={setManualMealDraft}
             onAddManualMeal={addManualMeal}
             onAddScannedMeal={addScannedMeal}
-            pastMealSearchDraft={pastMealSearchDraft}
-            setPastMealSearchDraft={setPastMealSearchDraft}
-            onAddPastMeal={addPastMeal}
-            customMealDraft={customMealDraft}
-            setCustomMealDraft={setCustomMealDraft}
-            onAddCustomMeal={addCustomMeal}
-            isCreatingCustomMeal={isCreatingCustomMeal}
-            setIsCreatingCustomMeal={setIsCreatingCustomMeal}
-            isAddingManualIngredient={isAddingManualIngredient}
-            setIsAddingManualIngredient={setIsAddingManualIngredient}
-            ingredientDraft={ingredientDraft}
-            setIngredientDraft={setIngredientDraft}
-            onAddManualIngredient={addManualIngredient}
-            onStartIngredientScan={() => openBarcodeScanner("ingredient")}
-            onRemoveIngredient={removeIngredient}
+            aiMealDraft={aiMealDraft}
+            onChangeAiDescription={setAiDescription}
+            onChangeAiMacro={setAiMacroField}
+            onEstimateAiMacros={estimateAiMacros}
+            onAddAiMeal={addAiMeal}
             barcodeScannerTarget={barcodeScannerTarget}
             cameraPermission={cameraPermission}
             requestCameraPermission={requestCameraPermission}
@@ -1079,6 +997,7 @@ export function AppShell() {
     currentSplit,
     splitDays,
     activeMealCategory,
+    aiMealDraft,
     barcodeScannerTarget,
     cameraPermission,
     editingMealId,
@@ -1089,15 +1008,10 @@ export function AppShell() {
     macros,
     mealInputMode,
     meals,
-    pastMealSearchDraft,
     progressBar,
     progressPercent,
     selectedLiftId,
     selectedMealId,
-    customMealDraft,
-    ingredientDraft,
-    isCreatingCustomMeal,
-    isAddingManualIngredient,
     isAddingLift,
     isEditingWeight,
     liftDraft,

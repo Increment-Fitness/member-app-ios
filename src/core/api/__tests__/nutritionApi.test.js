@@ -1,17 +1,22 @@
-// Mock the Supabase client (server cache) before importing the module.
+// Mock the Supabase client (server cache + edge functions) before importing.
 const mockMaybeSingle = jest.fn();
 const mockEq = jest.fn(() => ({ maybeSingle: mockMaybeSingle }));
 const mockSelect = jest.fn(() => ({ eq: mockEq }));
 const mockUpsert = jest.fn(async () => ({ error: null }));
 const mockFrom = jest.fn(() => ({ select: mockSelect, upsert: mockUpsert }));
+const mockInvoke = jest.fn();
 
 jest.mock("../client", () => ({
-  supabase: { from: (...args) => mockFrom(...args) },
+  supabase: {
+    from: (...args) => mockFrom(...args),
+    functions: { invoke: (...args) => mockInvoke(...args) },
+  },
 }));
 
 import {
   _resetMemCache,
   cacheRowToResult,
+  estimateMacros,
   lookupBarcode,
   parseProduct,
 } from "../nutritionApi";
@@ -193,5 +198,34 @@ describe("lookupBarcode (tiered cache)", () => {
     const r = await lookupBarcode("666");
     expect(r.found).toBe(true);
     expect(global.fetch).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("estimateMacros", () => {
+  it("maps a successful estimate to the found/macros shape", async () => {
+    mockInvoke.mockResolvedValue({ data: { protein_g: 42, carbs_g: 60, fat_g: 18 }, error: null });
+    const r = await estimateMacros("6 oz chicken, 1 cup rice");
+    expect(r).toEqual({ found: true, macros: { PROTEIN: 42, CARBS: 60, FAT: 18 } });
+    expect(mockInvoke).toHaveBeenCalledWith("estimate-macros", { body: { description: "6 oz chicken, 1 cup rice" } });
+  });
+  it("rounds and clamps the returned numbers", async () => {
+    mockInvoke.mockResolvedValue({ data: { protein_g: 42.6, carbs_g: -3, fat_g: "x" }, error: null });
+    const r = await estimateMacros("something");
+    expect(r.macros).toEqual({ PROTEIN: 43, CARBS: 0, FAT: 0 });
+  });
+  it("returns not-found when the function returns an error field", async () => {
+    mockInvoke.mockResolvedValue({ data: { error: "no_estimate" }, error: null });
+    const r = await estimateMacros("asdf");
+    expect(r).toEqual({ found: false, macros: { PROTEIN: 0, CARBS: 0, FAT: 0 } });
+  });
+  it("returns not-found when invoke errors", async () => {
+    mockInvoke.mockResolvedValue({ data: null, error: { message: "boom" } });
+    const r = await estimateMacros("x");
+    expect(r.found).toBe(false);
+  });
+  it("returns not-found without calling the function for empty input", async () => {
+    const r = await estimateMacros("   ");
+    expect(r.found).toBe(false);
+    expect(mockInvoke).not.toHaveBeenCalled();
   });
 });

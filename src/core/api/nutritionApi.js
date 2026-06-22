@@ -158,6 +158,37 @@ async function fetchFromOpenFoodFacts(barcode) {
   }
 }
 
+const NO_ESTIMATE = { found: false, macros: { PROTEIN: 0, CARBS: 0, FAT: 0 } };
+
+/**
+ * Estimates a meal's macros from a free-text description via the
+ * `estimate-macros` edge function. Mirrors the barcode lookup's result shape.
+ *
+ * @param {string} description Free text, amounts allowed ("6 oz chicken...").
+ * @returns {Promise<{found: boolean, macros: {PROTEIN: number, CARBS: number, FAT: number}}>}
+ */
+export async function estimateMacros(description) {
+  const text = (description ?? "").trim().slice(0, 500);
+  if (!text) {
+    return NO_ESTIMATE;
+  }
+  try {
+    const { data, error } = await supabase.functions.invoke("estimate-macros", {
+      body: { description: text },
+    });
+    if (error || !data || data.error) {
+      return NO_ESTIMATE;
+    }
+    const clamp = (v) => Math.max(0, Math.round(Number(v) || 0));
+    return {
+      found: true,
+      macros: { PROTEIN: clamp(data.protein_g), CARBS: clamp(data.carbs_g), FAT: clamp(data.fat_g) },
+    };
+  } catch {
+    return NO_ESTIMATE;
+  }
+}
+
 /**
  * Looks up a barcode through the cache tiers, backfilling on a network hit.
  *

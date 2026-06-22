@@ -324,9 +324,9 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   avatarFrame: {
-    borderRadius: 16,
-    width: 64,
-    height: 64,
+    borderRadius: 24,
+    width: 96,
+    height: 96,
     borderWidth: 2,
     borderColor: COLORS.line,
     backgroundColor: COLORS.paper2,
@@ -339,7 +339,7 @@ const styles = StyleSheet.create({
     height: "100%",
   },
   avatarPlaceholder: {
-    fontSize: 9,
+    fontSize: 11,
     fontWeight: "800",
     color: COLORS.muted,
   },
