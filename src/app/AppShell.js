@@ -77,6 +77,10 @@ export function AppShell() {
   const saveTimerRef = useRef(null);
   const pendingSaveRef = useRef(null);
   const daySeededRef = useRef(false);
+  // The member's macro targets (profile-level, not per-day). undefined = not yet
+  // loaded, null = none set, object = set. Overlaid onto each day's macro bars so
+  // a blank day (which carries no targets) still shows the real ones.
+  const macroTargetsRef = useRef(undefined);
   // True while a navigation's flush+load is in flight; taps during that
   // window are ignored so overlapping loads can't latch the skip flag.
   const isNavigatingRef = useRef(false);
@@ -158,6 +162,12 @@ export function AppShell() {
     setDatesWithData(await getDatesWithData());
   };
 
+  /** Overlays the member's profile-level macro targets onto a macro array. */
+  const withMacroTargets = (macros) =>
+    macroTargetsRef.current === undefined
+      ? macros
+      : macros.map((macro) => ({ ...macro, target: macroTargetsRef.current?.[macro.label] ?? null }));
+
   /** Loads a day's record (or a blank day) into the state hooks. */
   const loadDay = async (isoDate) => {
     const stored = await getDay(isoDate);
@@ -168,7 +178,7 @@ export function AppShell() {
     setSelectedDate(isoDate);
     setCurrentSplit(state.split ?? "PUSH");
     setMeals(state.meals);
-    setMacros(state.macros);
+    setMacros(withMacroTargets(state.macros));
     setWorkoutQueue(state.workoutQueue);
     setExcludedLifts(state.excludedLifts ?? []);
     setSelectedLiftId(state.workoutQueue[0]?.id ?? null);
@@ -200,6 +210,12 @@ export function AppShell() {
         .then((profile) => setCaloriesGoal(profile?.calorie_target ?? null))
         .catch(() => {});
       getSplitDays().then(setSplitDays).catch(() => {});
+      // Load the macro targets before the first day so blank days show them.
+      try {
+        macroTargetsRef.current = await getMacroTargets();
+      } catch {
+        // Leave as "unknown" so we don't clobber a day's baked-in targets.
+      }
       await refreshDatesWithData();
       await loadDay(todayISO());
     })();
@@ -219,6 +235,7 @@ export function AppShell() {
       resetDayApiCache();
       try {
         const [profile, targets] = await Promise.all([getProfile(), getMacroTargets()]);
+        macroTargetsRef.current = targets;
         setCaloriesGoal(profile?.calorie_target ?? null);
         setMacros((prev) => prev.map((macro) => ({ ...macro, target: targets?.[macro.label] ?? null })));
       } catch {
