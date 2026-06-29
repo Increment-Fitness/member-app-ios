@@ -134,7 +134,7 @@ export function DashboardScreen({
 
       <Card>
         <View style={styles.liftHero}>
-          <Text style={styles.liftHeroName}>{currentSplit ? `${currentSplit} DAY` : "WORKOUT"}</Text>
+          <Text style={styles.liftHeroName}>{currentSplit || "WORKOUT"}</Text>
         </View>
         {isEditable && splitOptions.length ? (
           <View style={sharedStyles.chipWrap}>
