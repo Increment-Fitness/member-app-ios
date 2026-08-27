@@ -87,40 +87,23 @@ export function ActiveLiftCard({
 
   return (
     <View style={styles.card}>
-      {/* Header: lift name + overflow menu */}
+      {/* Header: lift name + overflow menu trigger */}
       <View style={styles.headerRow}>
         <Pressable onPress={onHistory} style={styles.header}>
           <Text style={styles.liftName}>{item.lift}</Text>
         </Pressable>
         {onRemoveFromDay ? (
-          <View style={styles.overflowWrap}>
-            <Pressable
-              onPress={() => setMenuOpen((o) => !o)}
-              style={({ pressed }) => [
-                styles.overflowButton,
-                pressed && sharedStyles.pressed,
-              ]}
-              accessibilityLabel="More options"
-              testID="overflow-menu-button"
-            >
-              <Ionicons name="ellipsis-vertical" size={18} color={COLORS.ink} />
-            </Pressable>
-            {menuOpen ? (
-              <View style={styles.overflowMenu}>
-                <Pressable
-                  onPress={handleRemoveFromDay}
-                  style={({ pressed }) => [
-                    styles.overflowMenuItem,
-                    pressed && sharedStyles.pressed,
-                  ]}
-                  testID="remove-from-day-button"
-                >
-                  <Ionicons name="trash-outline" size={14} color={COLORS.signal} />
-                  <Text style={styles.overflowMenuItemText}>REMOVE FROM DAY</Text>
-                </Pressable>
-              </View>
-            ) : null}
-          </View>
+          <Pressable
+            onPress={() => setMenuOpen((o) => !o)}
+            style={({ pressed }) => [
+              styles.overflowButton,
+              pressed && sharedStyles.pressed,
+            ]}
+            accessibilityLabel="More options"
+            testID="overflow-menu-button"
+          >
+            <Ionicons name="ellipsis-vertical" size={18} color={COLORS.ink} />
+          </Pressable>
         ) : null}
       </View>
 
@@ -231,6 +214,23 @@ export function ActiveLiftCard({
         disabled={hasErrors && showValidation}
         onPress={handleLogSet}
       />
+
+      {/* Overflow menu - rendered last to paint above all card content */}
+      {menuOpen && onRemoveFromDay ? (
+        <View style={styles.overflowMenuPortal}>
+          <Pressable
+            onPress={handleRemoveFromDay}
+            style={({ pressed }) => [
+              styles.overflowMenuItem,
+              pressed && sharedStyles.pressed,
+            ]}
+            testID="remove-from-day-button"
+          >
+            <Ionicons name="trash-outline" size={14} color={COLORS.signal} />
+            <Text style={styles.overflowMenuItemText}>REMOVE FROM DAY</Text>
+          </Pressable>
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -244,6 +244,7 @@ const styles = StyleSheet.create({
     padding: 16,
     marginBottom: 12,
     gap: 12,
+    position: "relative",
   },
   headerRow: {
     flexDirection: "row",
@@ -260,10 +261,6 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
     color: COLORS.ink,
   },
-  overflowWrap: {
-    position: "relative",
-    zIndex: 10,
-  },
   overflowButton: {
     width: 32,
     height: 32,
@@ -271,10 +268,10 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     borderRadius: 16,
   },
-  overflowMenu: {
+  overflowMenuPortal: {
     position: "absolute",
-    top: 34,
-    right: 0,
+    top: 50,
+    right: 16,
     minWidth: 180,
     borderWidth: 1,
     borderColor: COLORS.line,
@@ -285,7 +282,8 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.12,
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 4 },
-    elevation: 6,
+    elevation: 1000,
+    zIndex: 1000,
   },
   overflowMenuItem: {
     flexDirection: "row",
