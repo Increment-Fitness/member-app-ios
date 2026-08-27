@@ -110,4 +110,38 @@ describe("WorkoutScreen", () => {
     );
     expect(emptyText.length).toBeGreaterThan(0);
   });
+
+  it("shows overflow menu on single-lift queue (queue length 1)", () => {
+    const singleLiftQueue = [
+      { id: "only-lift", lift: "BENCH PRESS", scheme: "3x10", load: "135", loggedSets: [] },
+    ];
+    const tree = render({
+      workoutQueue: singleLiftQueue,
+      selectedLiftId: "only-lift",
+      isEditable: true,
+    });
+    const overflowButton = findByTestID(tree, "overflow-menu-button");
+    expect(overflowButton.length).toBe(1);
+  });
+
+  it("can remove the last lift from the day (single-lift queue)", () => {
+    const singleLiftQueue = [
+      { id: "only-lift", lift: "BENCH PRESS", scheme: "3x10", load: "135", loggedSets: [] },
+    ];
+    const onDeleteLift = jest.fn();
+    const tree = render({
+      workoutQueue: singleLiftQueue,
+      selectedLiftId: "only-lift",
+      isEditable: true,
+      onDeleteLift,
+    });
+
+    const overflowButton = findByTestID(tree, "overflow-menu-button")[0];
+    act(() => overflowButton.props.onPress());
+
+    const removeButton = findByTestID(tree, "remove-from-day-button")[0];
+    act(() => removeButton.props.onPress());
+
+    expect(onDeleteLift).toHaveBeenCalledWith("only-lift");
+  });
 });
