@@ -1,4 +1,4 @@
-// LIFT tab: today's workout queue with add-lift and log-set modals.
+// LIFT tab: today's workout queue with inline set logging on the active lift.
 import { useState } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
 
@@ -6,15 +6,15 @@ import { ActionButton } from "../../core/components/ActionButton";
 import { EmptyState } from "../../core/components/EmptyState";
 import { Tag } from "../../core/components/Tag";
 import { sharedStyles } from "../../core/design/sharedStyles";
+import { ActiveLiftCard } from "./ActiveLiftCard";
 import { AddLiftModal } from "./AddLiftModal";
 import { LiftHistoryModal } from "./LiftHistoryModal";
-import { LogSetModal } from "./LogSetModal";
 import { WorkoutRow } from "./WorkoutRow";
 
 /**
- * Workout screen. Lists the queue for the current split and exposes the two
- * primary actions (+ ADD LIFT, + LOG SET); all queue state and handlers come
- * from AppShell.
+ * Workout screen. Lists the queue for the current split. The selected lift
+ * shows an expanded card with inline weight/reps editing and LOG SET button.
+ * Other lifts are collapsed rows. All queue state and handlers come from AppShell.
  *
  * @param {boolean} props.isToday True when the selected day is today.
  * @param {boolean} props.isEditable True when the selected day accepts edits.
@@ -31,7 +31,6 @@ export function WorkoutScreen({
   setLiftDraft,
   liftDraftErrors,
   hasLiftDraftErrors,
-  isLoggingSet,
   logSetDraft,
   logSetDraftErrors,
   hasLogSetDraftErrors,
@@ -40,13 +39,17 @@ export function WorkoutScreen({
   onCancelAddLift,
   onAddLift,
   onDeleteLift,
-  onAdvance,
   onSaveLoggedSet,
-  onCancelLogSet,
   isToday,
   isEditable,
+  restTimers = {},
+  defaultRestSeconds = 90,
+  onClearRestTimer,
+  lastSetLabels = {},
 }) {
   const [historyLift, setHistoryLift] = useState(null);
+  const selectedLift = workoutQueue.find((item) => item.id === selectedLiftId);
+
   return (
     <View style={styles.workoutScreen}>
       <View style={[sharedStyles.card, styles.workoutPanel]}>
@@ -72,17 +75,38 @@ export function WorkoutScreen({
           showsVerticalScrollIndicator={false}
         >
           {workoutQueue.length ? (
-            workoutQueue.map((item) => (
-              <WorkoutRow
-                key={item.id}
-                item={item}
-                selected={item.id === selectedLiftId}
-                onPress={() => onSelectLift(item.id)}
-                onDelete={() => onDeleteLift(item.id)}
-                onHistory={() => setHistoryLift(item.lift)}
-                editable={isEditable}
-              />
-            ))
+            workoutQueue.map((item) => {
+              const isSelected = item.id === selectedLiftId;
+              const lastSetLabel = lastSetLabels[item.id];
+
+              if (isSelected && isEditable) {
+                return (
+                  <ActiveLiftCard
+                    key={item.id}
+                    item={item}
+                    lastSetLabel={lastSetLabel}
+                    draft={logSetDraft}
+                    errors={logSetDraftErrors}
+                    hasErrors={hasLogSetDraftErrors}
+                    setDraft={setLogSetDraft}
+                    onLogSet={onSaveLoggedSet}
+                    onHistory={() => setHistoryLift(item.lift)}
+                    restStartedAt={restTimers[item.id]}
+                    defaultRestSeconds={defaultRestSeconds}
+                    onSkipRest={() => onClearRestTimer?.(item.id)}
+                  />
+                );
+              }
+
+              return (
+                <WorkoutRow
+                  key={item.id}
+                  item={item}
+                  lastSetLabel={lastSetLabel}
+                  onPress={() => onSelectLift(item.id)}
+                />
+              );
+            })
           ) : (
             <EmptyState
               title={isEditable ? "No lifts yet" : "No lifts logged"}
@@ -99,7 +123,6 @@ export function WorkoutScreen({
         {isEditable ? (
           <View style={styles.actionColumn}>
             <ActionButton label="+ ADD LIFT" outline onPress={onOpenAddLift} />
-            <ActionButton label="+ LOG SET" hot onPress={onAdvance} />
           </View>
         ) : null}
       </View>
@@ -107,15 +130,6 @@ export function WorkoutScreen({
         visible={historyLift != null}
         liftName={historyLift}
         onClose={() => setHistoryLift(null)}
-      />
-      <LogSetModal
-        visible={isLoggingSet}
-        logSetDraft={logSetDraft}
-        errors={logSetDraftErrors}
-        hasErrors={hasLogSetDraftErrors}
-        setLogSetDraft={setLogSetDraft}
-        onSave={onSaveLoggedSet}
-        onCancel={onCancelLogSet}
       />
       <AddLiftModal
         visible={isAddingLift}

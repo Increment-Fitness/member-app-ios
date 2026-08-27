@@ -25,8 +25,20 @@ import { deleteAccount } from "../../core/api/accountApi";
 import { signOut } from "../../core/api/authApi";
 import { getMacroTargets, getProfile, updateMacroTargets, updateProfile } from "../../core/api/profileApi";
 import { avatarUrl, uploadAvatar } from "../../core/api/photosApi";
+import { getWorkoutSettings, updateWorkoutSettings } from "../../core/api/workoutSettingsApi";
 import { SplitEditorCard } from "./SplitEditorCard";
 import { settingsStyles } from "./styles";
+
+const REST_MIN = 30;
+const REST_MAX = 180;
+const REST_STEP = 15;
+
+/** Formats seconds as "X:XX" for display. */
+function formatRestDuration(seconds) {
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  return `${mins}:${secs.toString().padStart(2, "0")}`;
+}
 
 const MACRO_KCAL = { PROTEIN: 4, CARBS: 4, FAT: 9 };
 
@@ -61,6 +73,7 @@ export function SettingsScreen() {
   const [draft, setDraft] = useState({});
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
+  const [restDuration, setRestDuration] = useState(90);
 
   const refresh = () => {
     getProfile()
@@ -72,8 +85,23 @@ export function SettingsScreen() {
       })
       .catch(() => {});
     getMacroTargets().then(setTargets).catch(() => {});
+    getWorkoutSettings()
+      .then((settings) => setRestDuration(settings.restDurationSeconds))
+      .catch(() => {});
   };
   useEffect(refresh, []);
+
+  const decreaseRest = () => {
+    const next = Math.max(REST_MIN, restDuration - REST_STEP);
+    setRestDuration(next);
+    updateWorkoutSettings({ restDurationSeconds: next });
+  };
+
+  const increaseRest = () => {
+    const next = Math.min(REST_MAX, restDuration + REST_STEP);
+    setRestDuration(next);
+    updateWorkoutSettings({ restDurationSeconds: next });
+  };
 
   const openProfileEditor = () => {
     setDraft({
@@ -222,6 +250,41 @@ export function SettingsScreen() {
       <SplitEditorCard />
 
       <Card>
+        <View style={settingsStyles.settingsRow}>
+          <Text style={settingsStyles.settingsLabel}>REST BETWEEN SETS</Text>
+          <View style={styles.stepperRow}>
+            <Pressable
+              onPress={decreaseRest}
+              disabled={restDuration <= REST_MIN}
+              style={({ pressed }) => [
+                styles.stepperButton,
+                restDuration <= REST_MIN && styles.stepperButtonDisabled,
+                pressed && sharedStyles.pressed,
+              ]}
+            >
+              <Text style={[styles.stepperButtonText, restDuration <= REST_MIN && styles.stepperButtonTextDisabled]}>
+                −
+              </Text>
+            </Pressable>
+            <Text style={styles.stepperValue}>{formatRestDuration(restDuration)}</Text>
+            <Pressable
+              onPress={increaseRest}
+              disabled={restDuration >= REST_MAX}
+              style={({ pressed }) => [
+                styles.stepperButton,
+                restDuration >= REST_MAX && styles.stepperButtonDisabled,
+                pressed && sharedStyles.pressed,
+              ]}
+            >
+              <Text style={[styles.stepperButtonText, restDuration >= REST_MAX && styles.stepperButtonTextDisabled]}>
+                +
+              </Text>
+            </Pressable>
+          </View>
+        </View>
+      </Card>
+
+      <Card>
         <View style={sharedStyles.actionRow}>
           <ActionButton label="SIGN OUT" outline onPress={() => signOut().catch(() => {})} />
           <ActionButton label="DELETE ACCOUNT" hot onPress={confirmDeleteAccount} />
@@ -316,6 +379,38 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     flexShrink: 1,
     textAlign: "right",
+  },
+  stepperRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  stepperButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: COLORS.ink,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  stepperButtonDisabled: {
+    backgroundColor: COLORS.line,
+  },
+  stepperButtonText: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: COLORS.paper,
+    lineHeight: 20,
+  },
+  stepperButtonTextDisabled: {
+    color: COLORS.muted,
+  },
+  stepperValue: {
+    fontSize: 14,
+    fontWeight: "800",
+    color: COLORS.ink,
+    minWidth: 44,
+    textAlign: "center",
   },
   avatarRow: {
     flexDirection: "row",

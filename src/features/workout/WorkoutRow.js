@@ -1,95 +1,72 @@
-// One lift in today's workout queue, showing logged weights/reps.
+// Collapsed lift row: shows name + last set info. Tappable to select/expand.
+// No inline editing, no DELETE button — those live on the active lift card.
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
-import { Tag } from "../../core/components/Tag";
 import { COLORS } from "../../core/design/colors";
 import { sharedStyles } from "../../core/design/sharedStyles";
 
 /**
- * Workout queue row. Before any sets are logged it shows the split's default
- * scheme/load; afterwards it lists the logged weights and reps as
- * comma-separated columns.
+ * Collapsed workout row. Shows lift name and last set summary.
+ * Tap to select this lift (which expands it in the ActiveLiftCard).
  *
  * @param {object} props
  * @param {object} props.item Queue entry (may carry `loggedSets`).
- * @param {boolean} [props.selected=false] Highlights the active lift.
+ * @param {string} [props.lastSetLabel] Last set info (e.g., "140 × 10").
  * @param {() => void} [props.onPress] Selects this lift.
- * @param {() => void} [props.onDelete] Removes the lift from today's queue.
- * @param {() => void} [props.onHistory] Opens this lift's history (tap the name).
- * @param {boolean} [props.editable=true] Hides DELETE when false.
  */
-export function WorkoutRow({ item, selected = false, onPress, onDelete, onHistory, editable = true }) {
-  const weights = item.loggedSets?.length
-    ? item.loggedSets.map((set) => set.weight).join(", ")
-    : item.load ?? "--";
-  const reps = item.loggedSets?.length
-    ? item.loggedSets.map((set) => set.reps).join(", ")
-    : item.scheme ?? "--";
+export function WorkoutRow({ item, lastSetLabel, onPress }) {
+  const setsCount = item.loggedSets?.length ?? 0;
 
   return (
-    <View style={[styles.workoutRow, selected && sharedStyles.selectedRow]}>
-      <Pressable onPress={onPress} style={({ pressed }) => [styles.workoutRowMain, pressed && sharedStyles.pressed]}>
-        <Pressable
-          onPress={onHistory ?? onPress}
-          hitSlop={8}
-          style={({ pressed }) => [styles.workoutTitleBlock, pressed && sharedStyles.pressed]}
-        >
-          <Text style={[styles.workoutName, selected && sharedStyles.activeRowText]}>{item.lift}</Text>
-        </Pressable>
-        <View style={styles.workoutMetaRow}>
-          <Text style={[styles.workoutMetricInline, selected && sharedStyles.activeRowText]}>{weights}</Text>
-          <Text style={[styles.workoutMetricDivider, selected && sharedStyles.activeDetailText]}>/</Text>
-          <Text style={[styles.workoutMetricInline, selected && sharedStyles.activeRowText]}>{reps}</Text>
-        </View>
-      </Pressable>
-      {editable ? <Tag label="DELETE" outline onPress={onDelete} /> : null}
-    </View>
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [styles.row, pressed && sharedStyles.pressed]}
+    >
+      <View style={styles.content}>
+        <Text style={styles.liftName}>{item.lift}</Text>
+        {lastSetLabel ? (
+          <Text style={styles.lastSet}>LAST SET {lastSetLabel}</Text>
+        ) : setsCount > 0 ? (
+          <Text style={styles.lastSet}>
+            {setsCount} SET{setsCount === 1 ? "" : "S"} LOGGED
+          </Text>
+        ) : null}
+      </View>
+      <Text style={styles.chevron}>›</Text>
+    </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  workoutRow: {
+  row: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    borderRadius: 16,
+    paddingVertical: 14,
+    paddingHorizontal: 14,
+    borderRadius: 14,
     borderWidth: 2,
     borderColor: COLORS.line,
     backgroundColor: COLORS.card2,
     marginBottom: 8,
   },
-  workoutRowMain: {
+  content: {
     flex: 1,
-    minWidth: 0,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
+    gap: 2,
   },
-  workoutTitleBlock: {
-    flex: 1,
-    minWidth: 0,
-  },
-  workoutName: {
-    fontSize: 11,
+  liftName: {
+    fontSize: 13,
     fontWeight: "800",
     color: COLORS.ink,
   },
-  workoutMetaRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    flexShrink: 0,
-  },
-  workoutMetricInline: {
+  lastSet: {
     fontSize: 10,
     fontWeight: "700",
-    color: COLORS.ink,
+    color: COLORS.muted,
+    letterSpacing: 0.3,
   },
-  workoutMetricDivider: {
-    fontSize: 10,
-    fontWeight: "700",
+  chevron: {
+    fontSize: 18,
+    fontWeight: "600",
     color: COLORS.muted,
   },
 });
