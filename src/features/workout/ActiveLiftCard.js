@@ -72,13 +72,18 @@ export function ActiveLiftCard({
 
   return (
     <View style={styles.card}>
-      {/* Header: lift name + last set */}
+      {/* Header: lift name */}
       <Pressable onPress={onHistory} style={styles.header}>
         <Text style={styles.liftName}>{item.lift}</Text>
-        {lastSetLabel ? (
-          <Text style={styles.lastSetLabel}>LAST SET {lastSetLabel}</Text>
-        ) : null}
       </Pressable>
+
+      {/* Last set context - prominent, reads as the source for prefilled values */}
+      {lastSetLabel ? (
+        <View style={styles.lastSetBlock}>
+          <Text style={styles.lastSetPrefix}>LAST SET</Text>
+          <Text style={styles.lastSetValue}>{lastSetLabel}</Text>
+        </View>
+      ) : null}
 
       {/* Weight and Reps inputs */}
       <View style={styles.inputRow}>
@@ -124,26 +129,6 @@ export function ActiveLiftCard({
         </View>
       </View>
 
-      {/* LOG SET button */}
-      <ActionButton label="LOG SET" hot disabled={hasErrors && showValidation} onPress={handleLogSet} />
-
-      {/* Rest timer (only when active) */}
-      {hasRestTimer ? (
-        <View style={styles.restSection}>
-          <View style={styles.restHeader}>
-            <Text style={[styles.restLabel, isRestComplete && styles.restComplete]}>
-              REST {isRestComplete ? "DONE" : formatRestTime(remainingSeconds)}
-            </Text>
-            {isRestComplete ? (
-              <Text style={styles.restMessage}>Next set is ready.</Text>
-            ) : null}
-          </View>
-          <View style={styles.restBarTrack}>
-            <View style={[styles.restBarFill, { width: `${restProgress * 100}%` }]} />
-          </View>
-        </View>
-      ) : null}
-
       {/* Logged sets list */}
       {loggedSets.length > 0 ? (
         <View style={styles.setsSection}>
@@ -160,10 +145,45 @@ export function ActiveLiftCard({
         </View>
       ) : null}
 
-      {/* SKIP REST button (when timer is active) */}
+      {/* Rest section - owns hierarchy when active */}
       {hasRestTimer ? (
-        <ActionButton label="SKIP REST" outline onPress={onSkipRest} />
+        <View style={[styles.restSection, isRestComplete && styles.restSectionDone]}>
+          <View style={styles.restContent}>
+            <Text style={[styles.restTimer, isRestComplete && styles.restTimerDone]}>
+              {isRestComplete ? "REST DONE" : `REST ${formatRestTime(remainingSeconds)}`}
+            </Text>
+            {isRestComplete ? (
+              <Text style={styles.restReadyMessage}>Ready for next set</Text>
+            ) : (
+              <View style={styles.restBarTrack}>
+                <View style={[styles.restBarFill, { width: `${restProgress * 100}%` }]} />
+              </View>
+            )}
+          </View>
+          {/* SKIP REST - large, obvious, primary action during rest */}
+          <Pressable
+            onPress={onSkipRest}
+            style={({ pressed }) => [
+              styles.skipRestButton,
+              isRestComplete && styles.skipRestButtonDone,
+              pressed && styles.skipRestButtonPressed,
+            ]}
+          >
+            <Text style={[styles.skipRestText, isRestComplete && styles.skipRestTextDone]}>
+              {isRestComplete ? "DISMISS" : "SKIP REST"}
+            </Text>
+          </Pressable>
+        </View>
       ) : null}
+
+      {/* LOG SET button - secondary during rest, primary otherwise */}
+      <ActionButton
+        label="LOG SET"
+        hot={!hasRestTimer}
+        outline={hasRestTimer}
+        disabled={hasErrors && showValidation}
+        onPress={handleLogSet}
+      />
     </View>
   );
 }
@@ -187,11 +207,27 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
     color: COLORS.ink,
   },
-  lastSetLabel: {
+  // LAST SET block - prominent context for the prefilled values
+  lastSetBlock: {
+    backgroundColor: COLORS.card2,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    flexDirection: "row",
+    alignItems: "baseline",
+    gap: 8,
+  },
+  lastSetPrefix: {
     fontSize: 11,
-    fontWeight: "700",
-    color: COLORS.muted,
+    fontWeight: "800",
     letterSpacing: 0.5,
+    color: COLORS.muted,
+  },
+  lastSetValue: {
+    fontSize: 16,
+    fontWeight: "900",
+    color: COLORS.ink,
+    letterSpacing: 0.3,
   },
   inputRow: {
     flexDirection: "row",
@@ -227,39 +263,6 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: COLORS.signal,
   },
-  restSection: {
-    gap: 6,
-  },
-  restHeader: {
-    flexDirection: "row",
-    alignItems: "baseline",
-    gap: 8,
-  },
-  restLabel: {
-    fontSize: 12,
-    fontWeight: "800",
-    letterSpacing: 0.5,
-    color: COLORS.ink,
-  },
-  restComplete: {
-    color: COLORS.gold,
-  },
-  restMessage: {
-    fontSize: 10,
-    fontWeight: "600",
-    color: COLORS.muted,
-  },
-  restBarTrack: {
-    height: 6,
-    backgroundColor: COLORS.line,
-    borderRadius: 3,
-    overflow: "hidden",
-  },
-  restBarFill: {
-    height: "100%",
-    backgroundColor: COLORS.ink,
-    borderRadius: 3,
-  },
   setsSection: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -293,5 +296,71 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "700",
     color: COLORS.ink,
+  },
+  // Rest section - owns visual hierarchy when active
+  restSection: {
+    backgroundColor: COLORS.ink,
+    borderRadius: 14,
+    padding: 14,
+    gap: 12,
+  },
+  restSectionDone: {
+    backgroundColor: COLORS.forest,
+  },
+  restContent: {
+    gap: 8,
+  },
+  restTimer: {
+    fontSize: 20,
+    fontWeight: "900",
+    letterSpacing: 0.5,
+    color: COLORS.paper,
+    textAlign: "center",
+  },
+  restTimerDone: {
+    color: "#FFFFFF",
+  },
+  restReadyMessage: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "rgba(255, 255, 255, 0.8)",
+    textAlign: "center",
+  },
+  restBarTrack: {
+    height: 6,
+    backgroundColor: "rgba(255, 255, 255, 0.3)",
+    borderRadius: 3,
+    overflow: "hidden",
+  },
+  restBarFill: {
+    height: "100%",
+    backgroundColor: COLORS.paper,
+    borderRadius: 3,
+  },
+  // SKIP REST button - large, obvious, easy to hit
+  skipRestButton: {
+    backgroundColor: "rgba(255, 255, 255, 0.15)",
+    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    alignItems: "center",
+    borderWidth: 2,
+    borderColor: "rgba(255, 255, 255, 0.3)",
+  },
+  skipRestButtonDone: {
+    backgroundColor: "rgba(255, 255, 255, 0.25)",
+    borderColor: "rgba(255, 255, 255, 0.5)",
+  },
+  skipRestButtonPressed: {
+    opacity: 0.7,
+  },
+  skipRestText: {
+    fontSize: 14,
+    fontWeight: "800",
+    letterSpacing: 1,
+    color: COLORS.paper,
+  },
+  skipRestTextDone: {
+    color: "#FFFFFF",
   },
 });
