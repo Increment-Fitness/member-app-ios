@@ -123,4 +123,21 @@ describe("ActiveLiftCard", () => {
     );
     expect(setText.length).toBeGreaterThan(0);
   });
+
+  it("renders overflow menu at card level for proper stacking (not inside header)", () => {
+    const tree = render({ onRemoveFromDay: jest.fn() });
+    const overflowButton = findByTestID(tree, "overflow-menu-button")[0];
+
+    act(() => overflowButton.props.onPress());
+
+    const card = tree.root;
+    const cardChildren = card.children[0].children;
+    const lastChild = cardChildren[cardChildren.length - 1];
+
+    const menuInLastChild = lastChild.findAll
+      ? lastChild.findAll((node) => node.props?.testID === "remove-from-day-button")
+      : [];
+
+    expect(menuInLastChild.length).toBeGreaterThan(0);
+  });
 });
