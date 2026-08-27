@@ -2,9 +2,11 @@
 // rest timer with progress, and logged sets list. No modal — log in place.
 import { useEffect, useState } from "react";
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 
 import { ActionButton } from "../../core/components/ActionButton";
 import { COLORS } from "../../core/design/colors";
+import { sharedStyles } from "../../core/design/sharedStyles";
 
 /** Formats seconds as M:SS for the rest timer display. */
 function formatRestTime(seconds) {
@@ -28,6 +30,7 @@ function formatRestTime(seconds) {
  * @param {number} [props.restStartedAt] Timestamp (ms) when rest started.
  * @param {number} [props.defaultRestSeconds=90] Default rest duration.
  * @param {() => void} [props.onSkipRest] Clears the rest timer.
+ * @param {() => void} [props.onRemoveFromDay] Removes this lift from today's queue.
  */
 export function ActiveLiftCard({
   item,
@@ -41,9 +44,11 @@ export function ActiveLiftCard({
   restStartedAt,
   defaultRestSeconds = 90,
   onSkipRest,
+  onRemoveFromDay,
 }) {
   const [now, setNow] = useState(Date.now());
   const [showValidation, setShowValidation] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   // Tick the timer every second while rest is active.
   // Also immediately sync `now` when restStartedAt changes so the first
@@ -75,12 +80,49 @@ export function ActiveLiftCard({
 
   const loggedSets = item.loggedSets ?? [];
 
+  const handleRemoveFromDay = () => {
+    setMenuOpen(false);
+    onRemoveFromDay?.();
+  };
+
   return (
     <View style={styles.card}>
-      {/* Header: lift name */}
-      <Pressable onPress={onHistory} style={styles.header}>
-        <Text style={styles.liftName}>{item.lift}</Text>
-      </Pressable>
+      {/* Header: lift name + overflow menu */}
+      <View style={styles.headerRow}>
+        <Pressable onPress={onHistory} style={styles.header}>
+          <Text style={styles.liftName}>{item.lift}</Text>
+        </Pressable>
+        {onRemoveFromDay ? (
+          <View style={styles.overflowWrap}>
+            <Pressable
+              onPress={() => setMenuOpen((o) => !o)}
+              style={({ pressed }) => [
+                styles.overflowButton,
+                pressed && sharedStyles.pressed,
+              ]}
+              accessibilityLabel="More options"
+              testID="overflow-menu-button"
+            >
+              <Ionicons name="ellipsis-vertical" size={18} color={COLORS.ink} />
+            </Pressable>
+            {menuOpen ? (
+              <View style={styles.overflowMenu}>
+                <Pressable
+                  onPress={handleRemoveFromDay}
+                  style={({ pressed }) => [
+                    styles.overflowMenuItem,
+                    pressed && sharedStyles.pressed,
+                  ]}
+                  testID="remove-from-day-button"
+                >
+                  <Ionicons name="trash-outline" size={14} color={COLORS.signal} />
+                  <Text style={styles.overflowMenuItemText}>REMOVE FROM DAY</Text>
+                </Pressable>
+              </View>
+            ) : null}
+          </View>
+        ) : null}
+      </View>
 
       {/* Last set context - prominent, reads as the source for prefilled values */}
       {lastSetLabel ? (
@@ -203,7 +245,13 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     gap: 12,
   },
+  headerRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+  },
   header: {
+    flex: 1,
     gap: 2,
   },
   liftName: {
@@ -211,6 +259,47 @@ const styles = StyleSheet.create({
     fontWeight: "900",
     letterSpacing: 0.5,
     color: COLORS.ink,
+  },
+  overflowWrap: {
+    position: "relative",
+    zIndex: 10,
+  },
+  overflowButton: {
+    width: 32,
+    height: 32,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 16,
+  },
+  overflowMenu: {
+    position: "absolute",
+    top: 34,
+    right: 0,
+    minWidth: 180,
+    borderWidth: 1,
+    borderColor: COLORS.line,
+    borderRadius: 12,
+    backgroundColor: COLORS.card,
+    padding: 4,
+    shadowColor: "#0B1440",
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 6,
+  },
+  overflowMenuItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  overflowMenuItemText: {
+    fontSize: 11,
+    fontWeight: "800",
+    letterSpacing: 0.5,
+    color: COLORS.signal,
   },
   // LAST SET block - prominent context for the prefilled values
   lastSetBlock: {
