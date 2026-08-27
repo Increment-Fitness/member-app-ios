@@ -45,18 +45,23 @@ export function ActiveLiftCard({
   const [now, setNow] = useState(Date.now());
   const [showValidation, setShowValidation] = useState(false);
 
-  // Tick the timer every second while rest is active
+  // Tick the timer every second while rest is active.
+  // Also immediately sync `now` when restStartedAt changes so the first
+  // render shows the correct duration (not a stale `now` from mount time).
   useEffect(() => {
     if (restStartedAt == null) {
       return undefined;
     }
+    // Sync now immediately when rest starts to avoid stale state
+    setNow(Date.now());
     const interval = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(interval);
   }, [restStartedAt]);
 
   // Calculate rest timer state
   const hasRestTimer = restStartedAt != null;
-  const elapsedSeconds = hasRestTimer ? Math.floor((now - restStartedAt) / 1000) : 0;
+  // Ensure elapsed is never negative (stale `now` could briefly be before restStartedAt)
+  const elapsedSeconds = hasRestTimer ? Math.max(0, Math.floor((now - restStartedAt) / 1000)) : 0;
   const remainingSeconds = Math.max(defaultRestSeconds - elapsedSeconds, 0);
   const restProgress = hasRestTimer ? Math.min(elapsedSeconds / defaultRestSeconds, 1) : 0;
   const isRestComplete = hasRestTimer && remainingSeconds === 0;
