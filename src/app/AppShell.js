@@ -28,6 +28,7 @@ import {
   todayISO,
 } from "../core/storage/dates";
 import { getLastSetForLift } from "../core/api/progressApi";
+import { getWorkoutSettings, onWorkoutSettingsChanged } from "../core/api/workoutSettingsApi";
 import { CalendarModal } from "./CalendarModal";
 import { DashboardScreen } from "../features/dashboard/DashboardScreen";
 import { asciiProgress } from "../features/dashboard/utils/asciiProgress";
@@ -130,7 +131,8 @@ export function AppShell() {
   const [isEditingWeight, setIsEditingWeight] = useState(false);
   // Rest timer state: tracks active rest timer per lift { [liftId]: startedAtMs }
   const [restTimers, setRestTimers] = useState({});
-  const DEFAULT_REST_SECONDS = 90;
+  // Rest duration setting (loaded from persisted workout settings)
+  const [restDurationSeconds, setRestDurationSeconds] = useState(90);
 
   const caloriesConsumed = meals.reduce((sum, meal) => sum + meal.calories, 0);
   // Null until the member sets a calorie goal — nothing is auto-filled.
@@ -252,6 +254,18 @@ export function AppShell() {
       } catch {
         // Ignore; the next day load reconciles targets from the server.
       }
+    });
+  }, []);
+
+  // Load and listen for workout settings (rest duration).
+  useEffect(() => {
+    getWorkoutSettings()
+      .then((settings) => setRestDurationSeconds(settings.restDurationSeconds))
+      .catch(() => {});
+    return onWorkoutSettingsChanged(() => {
+      getWorkoutSettings()
+        .then((settings) => setRestDurationSeconds(settings.restDurationSeconds))
+        .catch(() => {});
     });
   }, []);
 
@@ -1049,7 +1063,7 @@ export function AppShell() {
             isToday={isToday}
             isEditable={isEditable}
             restTimers={restTimers}
-            defaultRestSeconds={DEFAULT_REST_SECONDS}
+            defaultRestSeconds={restDurationSeconds}
             onClearRestTimer={clearRestTimer}
             lastSetLabels={lastSetLabels}
           />
