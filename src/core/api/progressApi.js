@@ -58,3 +58,24 @@ export async function getLiftHistory(name) {
 export function countWorkoutsBetween(workoutDates, startISO, endISO) {
   return workoutDates.filter((date) => date >= startISO && date <= endISO).length;
 }
+
+/**
+ * Returns the most recent logged set for a lift from historical workouts.
+ * Used to prefill the log-set modal when no sets have been logged this session.
+ *
+ * @param {string} name Exercise name (case/whitespace-insensitive).
+ * @returns {Promise<{weight: number, reps: number} | null>} The last logged
+ *   set, or null if this lift has no history.
+ */
+export async function getLastSetForLift(name) {
+  const history = await getLiftHistory(name);
+  if (!history.length) {
+    return null;
+  }
+  const mostRecentDay = history[history.length - 1];
+  if (!mostRecentDay.sets?.length) {
+    return null;
+  }
+  const lastSet = mostRecentDay.sets[mostRecentDay.sets.length - 1];
+  return { weight: lastSet.weight, reps: lastSet.reps };
+}

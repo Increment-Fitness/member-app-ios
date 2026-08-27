@@ -27,6 +27,7 @@ import {
   isWithinEditWindow,
   todayISO,
 } from "../core/storage/dates";
+import { getLastSetForLift } from "../core/api/progressApi";
 import { CalendarModal } from "./CalendarModal";
 import { DashboardScreen } from "../features/dashboard/DashboardScreen";
 import { asciiProgress } from "../features/dashboard/utils/asciiProgress";
@@ -118,14 +119,18 @@ export function AppShell() {
   const [excludedLifts, setExcludedLifts] = useState(bootState.excludedLifts ?? []);
   const [isAddingLift, setIsAddingLift] = useState(false);
   const [liftDraft, setLiftDraft] = useState({ lift: "" });
-  const [isLoggingSet, setIsLoggingSet] = useState(false);
   const [logSetDraft, setLogSetDraft] = useState({
     reps: "",
     weight: "",
   });
+  // Last set labels for each lift { [liftId]: "140 × 10" } - fetched from history
+  const [lastSetLabels, setLastSetLabels] = useState({});
   const [todayWeight, setTodayWeight] = useState(null);
   const [weightDraft, setWeightDraft] = useState("");
   const [isEditingWeight, setIsEditingWeight] = useState(false);
+  // Rest timer state: tracks active rest timer per lift { [liftId]: startedAtMs }
+  const [restTimers, setRestTimers] = useState({});
+  const DEFAULT_REST_SECONDS = 90;
 
   const caloriesConsumed = meals.reduce((sum, meal) => sum + meal.calories, 0);
   // Null until the member sets a calorie goal — nothing is auto-filled.
@@ -182,11 +187,23 @@ export function AppShell() {
     // Close any open modals and drop in-progress drafts from the old day.
     setIsEditingWeight(false);
     setIsAddingLift(false);
-    setIsLoggingSet(false);
     setActiveMealCategory(null);
     setEditingMealId(null);
     setAiMealDraft({ description: "", protein: "", carbs: "", fat: "", status: "idle" });
     setBarcodeScannerTarget(null);
+    setRestTimers({});
+    setLastSetLabels({});
+    setLogSetDraft({ weight: "", reps: "" });
+
+    // Prefill the draft for the first lift if it has logged sets this session
+    const firstLift = state.workoutQueue[0];
+    if (firstLift?.loggedSets?.length) {
+      const lastSet = firstLift.loggedSets[firstLift.loggedSets.length - 1];
+      setLogSetDraft({
+        weight: lastSet.weight != null ? String(lastSet.weight) : "",
+        reps: lastSet.reps != null ? String(lastSet.reps) : "",
+      });
+    }
   };
 
   // Boot: hydrate the calorie target, the calendar index, and today.
@@ -647,25 +664,54 @@ export function AppShell() {
     setMealDraft({ title: "", detail: "" });
   };
 
-  /** Opens the log-set modal for the currently selected lift. */
-  const advanceWorkout = () => {
-    if (!canEditSelectedDay()) {
-      return;
-    }
-    const targetLift = workoutQueue.find((item) => item.id === selectedLiftId) ?? workoutQueue[0];
+  /** Selects a lift and prefills the draft from last logged set (same session or history). */
+  const selectLift = async (liftId) => {
+    const targetLift = workoutQueue.find((item) => item.id === liftId);
     if (!targetLift) {
       return;
     }
 
-    setSelectedLiftId(targetLift.id);
-    setLogSetDraft({ reps: "", weight: "" });
-    setIsLoggingSet(true);
+    setSelectedLiftId(liftId);
+
+    // Prefill from last logged set: same session first, else previous workout history
+    let prefillWeight = "";
+    let prefillReps = "";
+
+    if (targetLift.loggedSets?.length) {
+      const lastSet = targetLift.loggedSets[targetLift.loggedSets.length - 1];
+      prefillWeight = lastSet.weight != null ? String(lastSet.weight) : "";
+      prefillReps = lastSet.reps != null ? String(lastSet.reps) : "";
+    } else if (lastSetLabels[liftId]) {
+      // Already have cached last set from history
+      const match = lastSetLabels[liftId].match(/^(\d+(?:\.\d+)?)\s*×\s*(\d+)$/);
+      if (match) {
+        prefillWeight = match[1];
+        prefillReps = match[2];
+      }
+    } else {
+      // Fetch from history and cache the label
+      try {
+        const historySet = await getLastSetForLift(targetLift.lift);
+        if (historySet) {
+          prefillWeight = historySet.weight != null ? String(historySet.weight) : "";
+          prefillReps = historySet.reps != null ? String(historySet.reps) : "";
+          setLastSetLabels((current) => ({
+            ...current,
+            [liftId]: `${prefillWeight} × ${prefillReps}`,
+          }));
+        }
+      } catch {
+        // Ignore fetch errors; blank form is an acceptable fallback
+      }
+    }
+
+    setLogSetDraft({ weight: prefillWeight, reps: prefillReps });
   };
 
   /**
    * Appends the drafted set to the selected lift and rewrites its
    * scheme/load display to reflect logged sets. Returns false when the
-   * draft is invalid so the modal keeps its error state visible.
+   * draft is invalid so the ActiveLiftCard keeps its error state visible.
    */
   const saveLoggedSet = () => {
     if (!canEditSelectedDay()) {
@@ -674,6 +720,8 @@ export function AppShell() {
     if (hasLogSetDraftErrors) {
       return false;
     }
+
+    const savedLiftId = selectedLiftId;
 
     setWorkoutQueue((current) => {
       const targetIndex = current.findIndex((item) => item.id === selectedLiftId);
@@ -701,14 +749,32 @@ export function AppShell() {
         return item;
       });
     });
-    setIsLoggingSet(false);
-    setLogSetDraft({ reps: "", weight: "" });
+
+    // Start rest timer on the lift that just logged a set
+    setRestTimers((current) => ({
+      ...current,
+      [savedLiftId]: Date.now(),
+    }));
+
+    // Keep the draft values for the next set (same weight/reps is common)
     return true;
   };
 
-  const cancelLogSet = () => {
-    setIsLoggingSet(false);
-    setLogSetDraft({ reps: "", weight: "" });
+  /** Restarts the rest timer for a lift (resets to now). */
+  const resetRestTimer = (liftId) => {
+    setRestTimers((current) => ({
+      ...current,
+      [liftId]: Date.now(),
+    }));
+  };
+
+  /** Clears the rest timer for a lift (stops it). */
+  const clearRestTimer = (liftId) => {
+    setRestTimers((current) => {
+      const next = { ...current };
+      delete next[liftId];
+      return next;
+    });
   };
 
   const openAddLift = () => {
@@ -959,13 +1025,12 @@ export function AppShell() {
             currentSplit={currentSplit}
             changeSplit={changeSplit}
             selectedLiftId={selectedLiftId}
-            onSelectLift={setSelectedLiftId}
+            onSelectLift={selectLift}
             isAddingLift={isAddingLift}
             liftDraft={liftDraft}
             setLiftDraft={setLiftDraft}
             liftDraftErrors={liftDraftErrors}
             hasLiftDraftErrors={hasLiftDraftErrors}
-            isLoggingSet={isLoggingSet}
             logSetDraft={logSetDraft}
             logSetDraftErrors={logSetDraftErrors}
             hasLogSetDraftErrors={hasLogSetDraftErrors}
@@ -974,11 +1039,13 @@ export function AppShell() {
             onCancelAddLift={cancelAddLift}
             onAddLift={addDayLift}
             onDeleteLift={deleteDayLift}
-            onAdvance={advanceWorkout}
             onSaveLoggedSet={saveLoggedSet}
-            onCancelLogSet={cancelLogSet}
             isToday={isToday}
             isEditable={isEditable}
+            restTimers={restTimers}
+            defaultRestSeconds={DEFAULT_REST_SECONDS}
+            onClearRestTimer={clearRestTimer}
+            lastSetLabels={lastSetLabels}
           />
         );
       case "progress":
@@ -1028,6 +1095,8 @@ export function AppShell() {
     isToday,
     isEditable,
     showEmptyState,
+    restTimers,
+    lastSetLabels,
   ]);
 
   return (
