@@ -199,10 +199,11 @@ export function AppShell() {
     const firstLift = state.workoutQueue[0];
     if (firstLift?.loggedSets?.length) {
       const lastSet = firstLift.loggedSets[firstLift.loggedSets.length - 1];
-      setLogSetDraft({
-        weight: lastSet.weight != null ? String(lastSet.weight) : "",
-        reps: lastSet.reps != null ? String(lastSet.reps) : "",
-      });
+      const prefillWeight = lastSet.weight != null ? String(lastSet.weight) : "";
+      const prefillReps = lastSet.reps != null ? String(lastSet.reps) : "";
+      setLogSetDraft({ weight: prefillWeight, reps: prefillReps });
+      // Also set the label so it displays on the card
+      setLastSetLabels({ [firstLift.id]: `${prefillWeight} × ${prefillReps}` });
     }
   };
 
@@ -681,6 +682,11 @@ export function AppShell() {
       const lastSet = targetLift.loggedSets[targetLift.loggedSets.length - 1];
       prefillWeight = lastSet.weight != null ? String(lastSet.weight) : "";
       prefillReps = lastSet.reps != null ? String(lastSet.reps) : "";
+      // Also set the label so it displays on the card
+      setLastSetLabels((current) => ({
+        ...current,
+        [liftId]: `${prefillWeight} × ${prefillReps}`,
+      }));
     } else if (lastSetLabels[liftId]) {
       // Already have cached last set from history
       const match = lastSetLabels[liftId].match(/^(\d+(?:\.\d+)?)\s*×\s*(\d+)$/);
