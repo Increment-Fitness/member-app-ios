@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "Fuel + Increment",
-    "slug": "fuel-increment",
+    "name": "Increment Fitness",
+    "slug": "increment-fitness",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -11,13 +11,13 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "Allow Fuel + Increment to use the camera to take progress photos and scan food barcodes."
+          "cameraPermission": "Allow Increment Fitness to use the camera to take progress photos and scan food barcodes."
         }
       ],
       [
         "expo-image-picker",
         {
-          "photosPermission": "Allow Fuel + Increment to access your photos to add progress photos."
+          "photosPermission": "Allow Increment Fitness to access your photos to add progress photos."
         }
       ]
     ],
@@ -27,7 +27,11 @@
       "backgroundColor": "#e8e5dd"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.tatedev.increment-app.dev",
+      "infoPlist": {
+        "CFBundleDisplayName": "Increment Fitness"
+      }
     },
     "android": {
       "adaptiveIcon": {
