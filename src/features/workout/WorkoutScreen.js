@@ -94,6 +94,7 @@ export function WorkoutScreen({
                     restStartedAt={restTimers[item.id]}
                     defaultRestSeconds={defaultRestSeconds}
                     onSkipRest={() => onClearRestTimer?.(item.id)}
+                    onRemoveFromDay={() => onDeleteLift?.(item.id)}
                   />
                 );
               }
