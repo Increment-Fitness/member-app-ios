@@ -30,7 +30,8 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.tatedev.increment-app.dev",
       "infoPlist": {
-        "CFBundleDisplayName": "Increment Fitness"
+        "CFBundleDisplayName": "Increment Fitness",
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
