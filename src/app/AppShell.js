@@ -920,7 +920,6 @@ export function AppShell() {
     setWorkoutQueue(nextQueue);
     setSelectedLiftId(nextQueue[0]?.id ?? null);
     setIsAddingLift(false);
-    setIsLoggingSet(false);
   };
 
   /** Commits the weight draft; an unparseable draft reverts silently. */
