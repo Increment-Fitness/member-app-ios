@@ -89,9 +89,15 @@ export function ActiveLiftCard({
     <View style={styles.card}>
       {/* Header: lift name + overflow menu trigger */}
       <View style={styles.headerRow}>
-        <Pressable onPress={onHistory} style={styles.header}>
-          <Text style={styles.liftName}>{item.lift}</Text>
-        </Pressable>
+        <View style={styles.headerContent}>
+          <Pressable
+            onPress={onHistory}
+            style={({ pressed }) => [pressed && sharedStyles.pressed]}
+            testID="lift-name-button"
+          >
+            <Text style={styles.liftName}>{item.lift}</Text>
+          </Pressable>
+        </View>
         {onRemoveFromDay ? (
           <Pressable
             onPress={() => setMenuOpen((o) => !o)}
@@ -251,7 +257,7 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
     justifyContent: "space-between",
   },
-  header: {
+  headerContent: {
     flex: 1,
     gap: 2,
   },

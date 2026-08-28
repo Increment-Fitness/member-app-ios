@@ -140,4 +140,27 @@ describe("ActiveLiftCard", () => {
 
     expect(menuInLastChild.length).toBeGreaterThan(0);
   });
+
+  it("overflow button tap does NOT trigger history (separate hit targets)", () => {
+    const onHistory = jest.fn();
+    const onRemoveFromDay = jest.fn();
+    const tree = render({ onHistory, onRemoveFromDay });
+
+    const overflowButton = findByTestID(tree, "overflow-menu-button")[0];
+    act(() => overflowButton.props.onPress());
+
+    expect(onHistory).not.toHaveBeenCalled();
+  });
+
+  it("lift name tap opens history", () => {
+    const onHistory = jest.fn();
+    const tree = render({ onHistory, onRemoveFromDay: jest.fn() });
+
+    const liftNameButton = tree.root.findAll(
+      (node) => node.props?.testID === "lift-name-button" && typeof node.props.onPress === "function",
+    )[0];
+    act(() => liftNameButton.props.onPress());
+
+    expect(onHistory).toHaveBeenCalledTimes(1);
+  });
 });
