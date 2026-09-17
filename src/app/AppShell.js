@@ -409,6 +409,17 @@ export function AppShell() {
 
   const showManualEntryForm = () => {
     setShowManualEntry(true);
+    setMealInputMode("MANUAL INPUT");
+  };
+
+  const showAiEstimateForm = () => {
+    setShowManualEntry(false);
+    setMealInputMode("AI ESTIMATE");
+  };
+
+  const showScanForm = () => {
+    setShowManualEntry(false);
+    setMealInputMode("SCAN LABEL");
   };
 
   const logRepeatLast = () => {
@@ -1111,6 +1122,8 @@ export function AppShell() {
             onLogRecent={logRecentMeal}
             onShowManualEntry={showManualEntryForm}
             showManualEntry={showManualEntry}
+            onShowAiEstimate={showAiEstimateForm}
+            onShowScan={showScanForm}
           />
         );
       case "workout":
@@ -1205,6 +1218,7 @@ export function AppShell() {
       <View style={styles.appShell}>
         <Header
           caloriesRemaining={caloriesRemaining}
+          caloriesConsumed={caloriesConsumed}
           currentSplit={currentSplit}
           dateLabel={headerDateLabel}
           isToday={isToday}

@@ -141,12 +141,8 @@ describe("AddMealSheet", () => {
       onLogRecent,
       onShowManual: () => {},
     });
-    const logButtons = tree.root.findAll((node) => {
-      if (typeof node.props?.onPress !== "function") return false;
-      if (node.props.label === "Log") return true;
-      return false;
-    });
-    await act(async () => logButtons[0].props.onPress());
+    const logButton = findPressableWithText(tree, "Log");
+    await act(async () => logButton.props.onPress());
     expect(onLogRecent).toHaveBeenCalledWith(RECENTS[0]);
   });
 
@@ -176,4 +172,36 @@ describe("AddMealSheet", () => {
     });
     expect(findTextNode(tree, "28P / 32C / 8F · 312 kcal")).toBeTruthy();
   });
+  it("shows Last badge on Repeat Last card", async () => {
+    const tree = await renderAddMealSheet({
+      repeatLast: REPEAT_LAST,
+      recents: [],
+      loading: false,
+      onLogAgain: () => {},
+      onLogRecent: () => {},
+      onShowManual: () => {},
+    });
+    expect(findTextNode(tree, "Last")).toBeTruthy();
+  });
+
+  it("exposes quiet AI and Scan links when handlers provided", async () => {
+    const onShowAi = jest.fn();
+    const onShowScan = jest.fn();
+    const tree = await renderAddMealSheet({
+      repeatLast: null,
+      recents: [],
+      loading: false,
+      onLogAgain: () => {},
+      onLogRecent: () => {},
+      onShowManual: () => {},
+      onShowAi,
+      onShowScan,
+    });
+    expect(findTextNode(tree, "Use AI estimate")).toBeTruthy();
+    expect(findTextNode(tree, "Scan barcode")).toBeTruthy();
+    const ai = findPressableWithText(tree, "Use AI estimate");
+    await act(async () => ai.props.onPress());
+    expect(onShowAi).toHaveBeenCalledTimes(1);
+  });
+
 });

@@ -38,7 +38,8 @@ const brandStyles = StyleSheet.create({
  * App header shown above every tab.
  *
  * @param {object} props
- * @param {number} props.caloriesRemaining Selected day's remaining calories.
+ * @param {number|null} props.caloriesRemaining Selected day's remaining calories.
+ * @param {number} [props.caloriesConsumed] Selected day's calories eaten (shown under LEFT pill).
  * @param {string} props.currentSplit Active workout split (PUSH/PULL/LEGS).
  * @param {string} props.dateLabel Formatted selected date ("JUN 11, 2026").
  * @param {boolean} props.isToday Disables forward navigation at today.
@@ -48,6 +49,7 @@ const brandStyles = StyleSheet.create({
  */
 export function Header({
   caloriesRemaining,
+  caloriesConsumed,
   currentSplit,
   dateLabel,
   isToday,
@@ -95,10 +97,15 @@ export function Header({
         </View>
         {!isToday ? <Text style={styles.pastDayTag}>VIEWING PAST DAY</Text> : null}
       </View>
-      <View style={styles.badgeHot}>
-        <Text style={styles.badgeHotText}>
-          {caloriesRemaining == null ? "SET GOAL" : `${String(caloriesRemaining).padStart(4, "0")} LEFT`}
-        </Text>
+      <View style={styles.badgeColumn}>
+        <View style={styles.badgeHot}>
+          <Text style={styles.badgeHotText}>
+            {caloriesRemaining == null ? "SET GOAL" : `${caloriesRemaining} LEFT`}
+          </Text>
+        </View>
+        {caloriesRemaining != null && caloriesConsumed != null ? (
+          <Text style={styles.badgeSub}>{caloriesConsumed} eaten</Text>
+        ) : null}
       </View>
     </View>
   );
@@ -167,12 +174,16 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
     color: COLORS.goldMuted,
   },
+  badgeColumn: {
+    alignItems: "center",
+    gap: 4,
+    flexShrink: 1,
+  },
   badgeHot: {
     borderWidth: 0,
     backgroundColor: COLORS.navy,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    flexShrink: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
     borderRadius: 14,
   },
   badgeHotText: {
@@ -180,5 +191,10 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: "800",
     letterSpacing: 1,
+  },
+  badgeSub: {
+    fontSize: 8,
+    fontWeight: "600",
+    color: COLORS.muted,
   },
 });

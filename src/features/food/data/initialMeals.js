@@ -9,7 +9,7 @@ import { COLORS } from "../../../core/design/colors";
  * the member sets their macro targets — nothing is auto-filled.
  */
 export const INITIAL_MACROS = [
-  { label: "PROTEIN", consumed: 0, target: null, color: COLORS.signal },
-  { label: "CARBS", consumed: 0, target: null, color: COLORS.slate },
-  { label: "FAT", consumed: 0, target: null, color: COLORS.plum },
+  { label: "PROTEIN", consumed: 0, target: null, color: COLORS.navy },
+  { label: "CARBS", consumed: 0, target: null, color: COLORS.navy },
+  { label: "FAT", consumed: 0, target: null, color: COLORS.navy },
 ];

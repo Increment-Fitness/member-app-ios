@@ -8,7 +8,6 @@ import { EmptyState } from "../../core/components/EmptyState";
 import { Tag } from "../../core/components/Tag";
 import { COLORS } from "../../core/design/colors";
 import { sharedStyles } from "../../core/design/sharedStyles";
-import { asciiProgress } from "./utils/asciiProgress";
 import { MacroRow } from "./MacroRow";
 import { WeightModal } from "./WeightModal";
 import { ProgressPhotoTile } from "./ProgressPhotoCard";
@@ -77,9 +76,17 @@ export function DashboardScreen({
             <Text style={styles.statSub}>
               {caloriesConsumed} EATEN · GOAL {caloriesGoal}
             </Text>
-            <Text style={styles.statBar} numberOfLines={1}>
-              {asciiProgress(progressPercent, 10)}
-            </Text>
+            <View style={styles.calorieTrack}>
+              <View
+                style={[
+                  styles.calorieFill,
+                  { width: `${Math.max(0, Math.min(progressPercent ?? 0, 100))}%` },
+                ]}
+              />
+              <View style={[styles.calorieTick, { left: "25%" }]} />
+              <View style={[styles.calorieTick, { left: "50%" }]} />
+              <View style={[styles.calorieTick, { left: "75%" }]} />
+            </View>
           </View>
         ) : (
           <Pressable
@@ -243,9 +250,26 @@ const styles = StyleSheet.create({
     letterSpacing: 0.6,
     color: COLORS.navy,
   },
-  statBar: {
-    fontSize: 9,
-    color: COLORS.navy,
+  calorieTrack: {
+    marginTop: 4,
+    alignSelf: "stretch",
+    height: 8,
+    borderRadius: 3,
+    backgroundColor: "rgba(16, 24, 64, 0.10)",
+    overflow: "hidden",
+    position: "relative",
+  },
+  calorieFill: {
+    height: "100%",
+    backgroundColor: COLORS.navy,
+    borderRadius: 3,
+  },
+  calorieTick: {
+    position: "absolute",
+    top: 0,
+    bottom: 0,
+    width: 2,
+    backgroundColor: COLORS.cream,
   },
   statAction: {
     marginTop: "auto",
