@@ -1,5 +1,5 @@
-// Top app bar: geometric // mark + INCREMENT wordmark, day navigation
-// (arrows + tappable date), and calories-left badge.
+// Top app bar: geometric // + italic-bold INCREMENT as one recognition lockup,
+// day navigation (arrows + tappable date), and calories-left badge.
 // v3 cream/navy reskin: warm cream-adjacent header card.
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
@@ -133,6 +133,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     lineHeight: 18,
     fontWeight: "900",
+    fontStyle: "italic",
     letterSpacing: 0.4,
     color: COLORS.navy,
   },
