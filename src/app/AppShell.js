@@ -19,6 +19,7 @@ import {
   onSplitsChanged,
   syncDeviceTimezone,
 } from "../core/api/profileApi";
+import { getLastMealForCategory, getRecentMeals } from "../core/api/mealHistoryApi";
 import { estimateMacros, lookupBarcode } from "../core/api/nutritionApi";
 import {
   addDays,
@@ -107,6 +108,11 @@ export function AppShell() {
     fat: "",
     status: "idle",
   });
+  // Repeat-last + recents state for the add-meal sheet.
+  const [repeatLast, setRepeatLast] = useState(null);
+  const [recents, setRecents] = useState([]);
+  const [mealHistoryLoading, setMealHistoryLoading] = useState(false);
+  const [showManualEntry, setShowManualEntry] = useState(false);
   const [barcodeScannerTarget, setBarcodeScannerTarget] = useState(null);
   const [scannedBarcode, setScannedBarcode] = useState(null);
   const [barcodeLookupBusy, setBarcodeLookupBusy] = useState(false);
@@ -371,15 +377,78 @@ export function AppShell() {
     setMealInputMode(mode);
   };
 
-  const openMealCategory = (category) => {
+  const openMealCategory = async (category) => {
     setActiveMealCategory(category);
     setMealInputMode("MANUAL INPUT");
+    setShowManualEntry(false);
+    setRepeatLast(null);
+    setRecents([]);
+    setMealHistoryLoading(true);
+    try {
+      const [lastMeal, recentMeals] = await Promise.all([
+        getLastMealForCategory(category),
+        getRecentMeals(8),
+      ]);
+      setRepeatLast(lastMeal);
+      setRecents(recentMeals);
+    } catch {
+      // Ignore fetch errors; empty state is acceptable.
+    } finally {
+      setMealHistoryLoading(false);
+    }
   };
 
   const closeMealCategory = () => {
     setActiveMealCategory(null);
     setAiMealDraft({ description: "", protein: "", carbs: "", fat: "", status: "idle" });
     setBarcodeScannerTarget(null);
+    setShowManualEntry(false);
+    setRepeatLast(null);
+    setRecents([]);
+  };
+
+  const showManualEntryForm = () => {
+    setShowManualEntry(true);
+  };
+
+  const logRepeatLast = () => {
+    if (!canEditSelectedDay() || !repeatLast) {
+      return;
+    }
+    const macroDelta = {
+      PROTEIN: repeatLast.protein,
+      CARBS: repeatLast.carbs,
+      FAT: repeatLast.fat,
+    };
+    addMealEntry(
+      {
+        category: activeMealCategory ?? "LUNCH",
+        title: repeatLast.title,
+        macroDelta,
+        calories: repeatLast.calories,
+      },
+      "REPEAT",
+    );
+  };
+
+  const logRecentMeal = (meal) => {
+    if (!canEditSelectedDay() || !meal) {
+      return;
+    }
+    const macroDelta = {
+      PROTEIN: meal.protein,
+      CARBS: meal.carbs,
+      FAT: meal.fat,
+    };
+    addMealEntry(
+      {
+        category: activeMealCategory ?? "LUNCH",
+        title: meal.title,
+        macroDelta,
+        calories: meal.calories,
+      },
+      "PAST MEAL",
+    );
   };
 
   const addManualMeal = () => {
@@ -1035,6 +1104,13 @@ export function AppShell() {
             onCancelServings={cancelEditServings}
             isToday={isToday}
             isEditable={isEditable}
+            repeatLast={repeatLast}
+            recents={recents}
+            mealHistoryLoading={mealHistoryLoading}
+            onLogAgain={logRepeatLast}
+            onLogRecent={logRecentMeal}
+            onShowManualEntry={showManualEntryForm}
+            showManualEntry={showManualEntry}
           />
         );
       case "workout":
@@ -1117,6 +1193,10 @@ export function AppShell() {
     showEmptyState,
     restTimers,
     lastSetLabels,
+    repeatLast,
+    recents,
+    mealHistoryLoading,
+    showManualEntry,
   ]);
 
   return (
