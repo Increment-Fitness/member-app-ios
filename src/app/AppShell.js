@@ -1149,7 +1149,7 @@ export function AppShell() {
                 accessibilityLabel={tab.label}
                 style={[styles.tabButton, active && styles.tabButtonActive]}
               >
-                <Ionicons name={tab.icon} size={18} color={active ? COLORS.paper : COLORS.ink} />
+                <Ionicons name={tab.icon} size={18} color={active ? COLORS.cream : COLORS.navy} />
                 <Text
                   numberOfLines={1}
                   style={[styles.tabLabel, active && styles.tabLabelActive]}
@@ -1168,11 +1168,11 @@ export function AppShell() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: COLORS.paper,
+    backgroundColor: COLORS.cream,
   },
   appShell: {
     flex: 1,
-    backgroundColor: COLORS.paper,
+    backgroundColor: COLORS.cream,
   },
   content: {
     flex: 1,
@@ -1184,40 +1184,36 @@ const styles = StyleSheet.create({
     marginBottom: 18,
     flexDirection: "row",
     alignItems: "center",
-    borderWidth: 2,
-    borderColor: COLORS.line,
-    backgroundColor: COLORS.paper2,
+    borderWidth: 1,
+    borderColor: COLORS.cardBorder,
+    backgroundColor: COLORS.headerChrome,
     paddingHorizontal: 6,
     paddingVertical: 7,
     gap: 5,
-    borderTopLeftRadius: 32,
-    borderTopRightRadius: 32,
-    borderBottomLeftRadius: 32,
-    borderBottomRightRadius: 32,
+    borderRadius: 32,
   },
   tabButton: {
     flex: 1,
     height: 50,
-    borderWidth: 2,
-    borderColor: COLORS.line,
+    borderWidth: 0,
     flexDirection: "column",
     alignItems: "center",
     justifyContent: "center",
     gap: 3,
     paddingHorizontal: 2,
-    backgroundColor: COLORS.card,
-    borderRadius: 20,
+    backgroundColor: "transparent",
+    borderRadius: 18,
   },
   tabButtonActive: {
-    backgroundColor: COLORS.ink,
+    backgroundColor: COLORS.navy,
   },
   tabLabel: {
     fontSize: 7,
     fontWeight: "800",
     letterSpacing: 0.2,
-    color: COLORS.ink,
+    color: COLORS.navy,
   },
   tabLabelActive: {
-    color: COLORS.paper,
+    color: COLORS.cream,
   },
 });

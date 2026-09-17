@@ -1,8 +1,38 @@
-// Top app bar: wordmark, day navigation (arrows + tappable date), and
-// calories-left badge.
+// Top app bar: geometric // mark + INCREMENT wordmark, day navigation
+// (arrows + tappable date), and calories-left badge.
+// v3 cream/navy reskin: warm cream-adjacent header card.
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { COLORS } from "../core/design/colors";
+
+/**
+ * Geometric // brand mark — two navy italic parallelograms drawn as Views.
+ * Horizontal top/bottom edges, slanted sides. Rendered as geometry, not text.
+ */
+function BrandMark() {
+  return (
+    <View style={brandStyles.container}>
+      <View style={brandStyles.slash} />
+      <View style={brandStyles.slash} />
+    </View>
+  );
+}
+
+const brandStyles = StyleSheet.create({
+  container: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 3,
+    marginRight: 6,
+  },
+  slash: {
+    width: 4,
+    height: 16,
+    backgroundColor: COLORS.navy,
+    transform: [{ skewX: "-12deg" }],
+    borderRadius: 1,
+  },
+});
 
 /**
  * App header shown above every tab.
@@ -28,7 +58,10 @@ export function Header({
   return (
     <View style={styles.header}>
       <View style={styles.headerBrand}>
-        <Text style={styles.headerWordmark}>INCREMENT</Text>
+        <View style={styles.brandRow}>
+          <BrandMark />
+          <Text style={styles.headerWordmark}>INCREMENT</Text>
+        </View>
         <View style={styles.dateNavRow}>
           <Pressable
             onPress={onPrevDay}
@@ -76,32 +109,32 @@ const styles = StyleSheet.create({
     marginHorizontal: 14,
     marginTop: 14,
     paddingHorizontal: 14,
-    paddingTop: 8,
+    paddingTop: 10,
     paddingBottom: 12,
-    borderWidth: 2,
-    borderColor: COLORS.line,
-    backgroundColor: COLORS.paper2,
+    borderWidth: 1,
+    borderColor: COLORS.cardBorder,
+    backgroundColor: COLORS.headerChrome,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     flexWrap: "wrap",
     gap: 12,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    borderBottomLeftRadius: 24,
-    borderBottomRightRadius: 24,
+    borderRadius: 24,
   },
   headerBrand: {
     flex: 1,
     minWidth: 0,
   },
+  brandRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
   headerWordmark: {
-    fontSize: 18,
+    fontSize: 16,
     lineHeight: 18,
     fontWeight: "900",
-    fontStyle: "italic",
-    letterSpacing: -0.6,
-    color: COLORS.ink,
+    letterSpacing: 0.4,
+    color: COLORS.navy,
   },
   headerSub: {
     fontSize: 10,
@@ -118,7 +151,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     lineHeight: 16,
     fontWeight: "900",
-    color: COLORS.ink,
+    color: COLORS.navy,
   },
   navChevronDisabled: {
     color: COLORS.muted2,
@@ -131,19 +164,18 @@ const styles = StyleSheet.create({
     fontSize: 8,
     fontWeight: "800",
     letterSpacing: 1,
-    color: COLORS.gold,
+    color: COLORS.goldMuted,
   },
   badgeHot: {
-    borderWidth: 2,
-    borderColor: COLORS.signal,
-    backgroundColor: COLORS.signal,
-    paddingHorizontal: 8,
+    borderWidth: 0,
+    backgroundColor: COLORS.navy,
+    paddingHorizontal: 10,
     paddingVertical: 6,
     flexShrink: 1,
     borderRadius: 14,
   },
   badgeHotText: {
-    color: "#FFFFFF",
+    color: COLORS.cream,
     fontSize: 10,
     fontWeight: "800",
     letterSpacing: 1,

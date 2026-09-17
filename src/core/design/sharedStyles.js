@@ -1,6 +1,7 @@
 // Styles referenced by components in two or more features. Feature- or
 // component-specific styles live next to their owners; only genuinely
 // cross-feature keys belong here.
+// v3 cream/navy reskin: warm card surfaces, soft hairline borders.
 import { StyleSheet } from "react-native";
 
 import { COLORS } from "./colors";
@@ -19,8 +20,8 @@ export const sharedStyles = StyleSheet.create({
   },
   card: {
     backgroundColor: COLORS.card,
-    borderWidth: 2,
-    borderColor: COLORS.line,
+    borderWidth: 1,
+    borderColor: COLORS.cardBorder,
     padding: 12,
     gap: 10,
     borderRadius: 24,
@@ -54,7 +55,7 @@ export const sharedStyles = StyleSheet.create({
   weightModalOverlay: {
     flex: 1,
     justifyContent: "center",
-    backgroundColor: "rgba(255, 255, 255, 0.96)",
+    backgroundColor: "rgba(239, 233, 225, 0.96)",
     padding: 14,
   },
   weightModalAvoider: {
@@ -64,8 +65,8 @@ export const sharedStyles = StyleSheet.create({
     width: "100%",
     maxWidth: 420,
     alignSelf: "center",
-    borderWidth: 2,
-    borderColor: COLORS.line,
+    borderWidth: 1,
+    borderColor: COLORS.cardBorder,
     borderRadius: 24,
     backgroundColor: COLORS.card,
     padding: 14,
@@ -75,14 +76,14 @@ export const sharedStyles = StyleSheet.create({
   // add/log modal.
   mealEditorInput: {
     minHeight: 40,
-    borderWidth: 2,
-    borderColor: COLORS.line,
+    borderWidth: 1,
+    borderColor: COLORS.cardBorder,
     borderRadius: 14,
     backgroundColor: COLORS.card2,
     paddingHorizontal: 10,
     fontSize: 11,
     fontWeight: "700",
-    color: COLORS.ink,
+    color: COLORS.navy,
   },
   editorInputError: {
     borderColor: "#C75B5B",
@@ -99,7 +100,7 @@ export const sharedStyles = StyleSheet.create({
   },
   // Selected-row treatment shared by meal and workout list rows.
   selectedRow: {
-    backgroundColor: COLORS.slate,
+    backgroundColor: COLORS.navy,
     borderRadius: 16,
   },
   activeRowText: {

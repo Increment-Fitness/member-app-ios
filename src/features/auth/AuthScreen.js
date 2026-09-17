@@ -172,7 +172,7 @@ export function AuthScreen() {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: COLORS.paper,
+    backgroundColor: COLORS.cream,
   },
   scroll: {
     flexGrow: 1,
@@ -195,15 +195,15 @@ const styles = StyleSheet.create({
   modeButton: {
     borderRadius: 12,
     flex: 1,
-    borderWidth: 2,
-    borderColor: COLORS.line,
-    backgroundColor: COLORS.paper2,
+    borderWidth: 1,
+    borderColor: COLORS.cardBorder,
+    backgroundColor: COLORS.card2,
     paddingVertical: 7,
     alignItems: "center",
   },
   modeButtonActive: {
-    borderColor: COLORS.ink,
-    backgroundColor: COLORS.ink,
+    borderColor: COLORS.navy,
+    backgroundColor: COLORS.navy,
   },
   modeLabel: {
     fontSize: 9,
@@ -212,14 +212,14 @@ const styles = StyleSheet.create({
     color: COLORS.muted,
   },
   modeLabelActive: {
-    color: COLORS.paper,
+    color: COLORS.cream,
   },
   input: {
     borderRadius: 14,
-    borderWidth: 2,
-    borderColor: COLORS.line,
+    borderWidth: 1,
+    borderColor: COLORS.cardBorder,
     backgroundColor: COLORS.card,
-    color: COLORS.ink,
+    color: COLORS.navy,
     fontSize: 13,
     fontWeight: "700",
     paddingHorizontal: 12,

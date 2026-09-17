@@ -198,8 +198,8 @@ const styles = StyleSheet.create({
   statTile: {
     flex: 1,
     borderRadius: 20,
-    borderWidth: 2,
-    borderColor: COLORS.line,
+    borderWidth: 1,
+    borderColor: COLORS.cardBorder,
     backgroundColor: COLORS.card,
     padding: 10,
     gap: 4,
@@ -217,7 +217,7 @@ const styles = StyleSheet.create({
     lineHeight: 24,
     fontWeight: "900",
     letterSpacing: -0.8,
-    color: COLORS.ink,
+    color: COLORS.navy,
   },
   statValueRow: {
     flexDirection: "row",
@@ -241,11 +241,11 @@ const styles = StyleSheet.create({
     fontSize: 9,
     fontWeight: "800",
     letterSpacing: 0.6,
-    color: COLORS.signal,
+    color: COLORS.navy,
   },
   statBar: {
     fontSize: 9,
-    color: COLORS.ink,
+    color: COLORS.navy,
   },
   statAction: {
     marginTop: "auto",
@@ -260,7 +260,7 @@ const styles = StyleSheet.create({
     lineHeight: 24,
     fontWeight: "900",
     letterSpacing: -1.2,
-    color: COLORS.ink,
+    color: COLORS.navy,
   },
   exerciseList: {
     gap: 6,
@@ -272,14 +272,14 @@ const styles = StyleSheet.create({
     gap: 10,
     paddingVertical: 6,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.muted2,
+    borderBottomColor: COLORS.cardBorder,
   },
   exerciseName: {
     flex: 1,
     minWidth: 0,
     fontSize: 11,
     fontWeight: "800",
-    color: COLORS.ink,
+    color: COLORS.navy,
   },
   exerciseMeta: {
     fontSize: 10,

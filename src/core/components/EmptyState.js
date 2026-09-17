@@ -36,7 +36,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: "900",
     letterSpacing: -0.2,
-    color: COLORS.ink,
+    color: COLORS.navy,
     textAlign: "center",
   },
   message: {
