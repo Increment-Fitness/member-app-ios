@@ -39,10 +39,20 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#efe9e1"
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "507b6cfe-e0fd-4d02-bf57-aa815e28b3f1"
+      }
+    },
+    "owner": "tate.dev"
   }
 }
