@@ -51,6 +51,43 @@ describe("AddMealSheet", () => {
     expect(findTextNode(tree, "Loading meals...")).toBeTruthy();
   });
 
+  it("shows PRIMARY modes above Repeat Last and Recents", async () => {
+    const tree = await renderAddMealSheet({
+      repeatLast: REPEAT_LAST,
+      recents: RECENTS,
+      loading: false,
+      onLogAgain: () => {},
+      onLogRecent: () => {},
+      onShowManual: () => {},
+      onShowAi: () => {},
+      onShowScan: () => {},
+    });
+    expect(findTextNode(tree, "PRIMARY")).toBeTruthy();
+    expect(findTextNode(tree, "Enter macros manually")).toBeTruthy();
+    expect(findTextNode(tree, "AI estimate")).toBeTruthy();
+    expect(findTextNode(tree, "Scan barcode")).toBeTruthy();
+    expect(findTextNode(tree, "REPEAT LAST")).toBeTruthy();
+    expect(findTextNode(tree, "RECENTS")).toBeTruthy();
+    // Quiet bottom links removed
+    expect(findTextNode(tree, "Or enter macros manually")).toBeFalsy();
+    expect(findTextNode(tree, "Use AI estimate")).toBeFalsy();
+  });
+
+  it("always shows PRIMARY modes even when handlers are missing", async () => {
+    const tree = await renderAddMealSheet({
+      repeatLast: null,
+      recents: [],
+      loading: false,
+      onLogAgain: () => {},
+      onLogRecent: () => {},
+      onShowManual: () => {},
+    });
+    expect(findTextNode(tree, "PRIMARY")).toBeTruthy();
+    expect(findTextNode(tree, "Enter macros manually")).toBeTruthy();
+    expect(findTextNode(tree, "AI estimate")).toBeTruthy();
+    expect(findTextNode(tree, "Scan barcode")).toBeTruthy();
+  });
+
   it("shows Repeat Last section when a previous meal exists", async () => {
     const tree = await renderAddMealSheet({
       repeatLast: REPEAT_LAST,
@@ -92,7 +129,7 @@ describe("AddMealSheet", () => {
     expect(findTextNode(tree, "Eggs and toast")).toBeTruthy();
   });
 
-  it("shows empty state when no repeat last and no recents", async () => {
+  it("shows empty state under PRIMARY when no history", async () => {
     const tree = await renderAddMealSheet({
       repeatLast: null,
       recents: [],
@@ -101,19 +138,8 @@ describe("AddMealSheet", () => {
       onLogRecent: () => {},
       onShowManual: () => {},
     });
+    expect(findTextNode(tree, "PRIMARY")).toBeTruthy();
     expect(findTextNode(tree, "Meals you log will show up here.")).toBeTruthy();
-  });
-
-  it("always shows the manual entry link", async () => {
-    const tree = await renderAddMealSheet({
-      repeatLast: null,
-      recents: [],
-      loading: false,
-      onLogAgain: () => {},
-      onLogRecent: () => {},
-      onShowManual: () => {},
-    });
-    expect(findTextNode(tree, "Or enter macros manually")).toBeTruthy();
   });
 
   it("calls onLogAgain when Log again button is pressed", async () => {
@@ -146,7 +172,7 @@ describe("AddMealSheet", () => {
     expect(onLogRecent).toHaveBeenCalledWith(RECENTS[0]);
   });
 
-  it("calls onShowManual when manual entry link is pressed", async () => {
+  it("calls onShowManual when Enter macros manually is pressed", async () => {
     const onShowManual = jest.fn();
     const tree = await renderAddMealSheet({
       repeatLast: null,
@@ -156,9 +182,41 @@ describe("AddMealSheet", () => {
       onLogRecent: () => {},
       onShowManual,
     });
-    const link = findPressableWithText(tree, "Or enter macros manually");
-    await act(async () => link.props.onPress());
+    const button = findPressableWithText(tree, "Enter macros manually");
+    await act(async () => button.props.onPress());
     expect(onShowManual).toHaveBeenCalledTimes(1);
+  });
+
+  it("calls onShowAi when AI estimate is pressed", async () => {
+    const onShowAi = jest.fn();
+    const tree = await renderAddMealSheet({
+      repeatLast: null,
+      recents: [],
+      loading: false,
+      onLogAgain: () => {},
+      onLogRecent: () => {},
+      onShowManual: () => {},
+      onShowAi,
+    });
+    const button = findPressableWithText(tree, "AI estimate");
+    await act(async () => button.props.onPress());
+    expect(onShowAi).toHaveBeenCalledTimes(1);
+  });
+
+  it("calls onShowScan when Scan barcode is pressed", async () => {
+    const onShowScan = jest.fn();
+    const tree = await renderAddMealSheet({
+      repeatLast: null,
+      recents: [],
+      loading: false,
+      onLogAgain: () => {},
+      onLogRecent: () => {},
+      onShowManual: () => {},
+      onShowScan,
+    });
+    const button = findPressableWithText(tree, "Scan barcode");
+    await act(async () => button.props.onPress());
+    expect(onShowScan).toHaveBeenCalledTimes(1);
   });
 
   it("displays macro summary correctly", async () => {
@@ -172,6 +230,7 @@ describe("AddMealSheet", () => {
     });
     expect(findTextNode(tree, "28P / 32C / 8F · 312 kcal")).toBeTruthy();
   });
+
   it("shows Last badge on Repeat Last card", async () => {
     const tree = await renderAddMealSheet({
       repeatLast: REPEAT_LAST,
@@ -183,25 +242,4 @@ describe("AddMealSheet", () => {
     });
     expect(findTextNode(tree, "Last")).toBeTruthy();
   });
-
-  it("exposes quiet AI and Scan links when handlers provided", async () => {
-    const onShowAi = jest.fn();
-    const onShowScan = jest.fn();
-    const tree = await renderAddMealSheet({
-      repeatLast: null,
-      recents: [],
-      loading: false,
-      onLogAgain: () => {},
-      onLogRecent: () => {},
-      onShowManual: () => {},
-      onShowAi,
-      onShowScan,
-    });
-    expect(findTextNode(tree, "Use AI estimate")).toBeTruthy();
-    expect(findTextNode(tree, "Scan barcode")).toBeTruthy();
-    const ai = findPressableWithText(tree, "Use AI estimate");
-    await act(async () => ai.props.onPress());
-    expect(onShowAi).toHaveBeenCalledTimes(1);
-  });
-
 });

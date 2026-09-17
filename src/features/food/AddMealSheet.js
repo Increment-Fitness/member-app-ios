@@ -1,5 +1,5 @@
-// Add-meal sheet first screen (mock A): Repeat Last + Recents, quiet manual /
-// AI / Scan links. No three equal MANUAL/SCAN/AI chips.
+// Add-meal sheet (mock D): PRIMARY modes first (Manual / AI / Scan), then
+// Repeat Last + Recents. Cream/navy outline pills; no quiet bottom links.
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { Card } from "../../core/components/Card";
@@ -20,7 +20,7 @@ function formatMealSummary(meal) {
 }
 
 /**
- * Compact outline pill used for Log / Log again (mock A).
+ * Compact outline pill used for Log / Log again.
  */
 function OutlinePill({ label, onPress }) {
   return (
@@ -36,6 +36,22 @@ function OutlinePill({ label, onPress }) {
 }
 
 /**
+ * Full-width primary mode button (navy outline, cream fill).
+ */
+function PrimaryModeButton({ label, onPress }) {
+  return (
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [styles.primaryModeButton, pressed && styles.pressed]}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+    >
+      <Text style={styles.primaryModeText}>{label}</Text>
+    </Pressable>
+  );
+}
+
+/**
  * @param {object} props
  * @param {object|null} props.repeatLast Last meal in this category (or null).
  * @param {Array} props.recents Recent meals across categories (deduped).
@@ -44,7 +60,7 @@ function OutlinePill({ label, onPress }) {
  * @param {(meal: object) => void} props.onLogRecent Logs a recent meal.
  * @param {() => void} props.onShowManual Reveals the manual entry form.
  * @param {() => void} [props.onShowAi] Opens the AI estimate path (mock C).
- * @param {() => void} [props.onShowScan] Opens barcode scan (quiet link).
+ * @param {() => void} [props.onShowScan] Opens barcode scan.
  */
 export function AddMealSheet({
   repeatLast,
@@ -72,6 +88,18 @@ export function AddMealSheet({
 
   return (
     <Card>
+      <View style={styles.primarySection}>
+        <Text style={styles.sectionLabel}>PRIMARY</Text>
+        <View style={styles.primaryModes}>
+          <PrimaryModeButton
+            label="Enter macros manually"
+            onPress={() => onShowManual?.()}
+          />
+          <PrimaryModeButton label="AI estimate" onPress={() => onShowAi?.()} />
+          <PrimaryModeButton label="Scan barcode" onPress={() => onShowScan?.()} />
+        </View>
+      </View>
+
       {hasRepeatLast ? (
         <View style={styles.repeatLastSection}>
           <Text style={styles.sectionLabel}>REPEAT LAST</Text>
@@ -114,35 +142,6 @@ export function AddMealSheet({
           <Text style={styles.emptyText}>Meals you log will show up here.</Text>
         </View>
       ) : null}
-
-      <Pressable
-        style={({ pressed }) => [styles.manualLink, pressed && styles.pressed]}
-        onPress={onShowManual}
-      >
-        <Text style={styles.manualLinkText}>Or enter macros manually</Text>
-      </Pressable>
-
-      {onShowAi || onShowScan ? (
-        <View style={styles.quietLinksRow}>
-          {onShowAi ? (
-            <Pressable
-              style={({ pressed }) => [styles.quietLink, pressed && styles.pressed]}
-              onPress={onShowAi}
-            >
-              <Text style={styles.quietLinkText}>Use AI estimate</Text>
-            </Pressable>
-          ) : null}
-          {onShowAi && onShowScan ? <Text style={styles.quietDot}>·</Text> : null}
-          {onShowScan ? (
-            <Pressable
-              style={({ pressed }) => [styles.quietLink, pressed && styles.pressed]}
-              onPress={onShowScan}
-            >
-              <Text style={styles.quietLinkText}>Scan barcode</Text>
-            </Pressable>
-          ) : null}
-        </View>
-      ) : null}
     </Card>
   );
 }
@@ -157,8 +156,31 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: COLORS.muted,
   },
+  primarySection: {
+    gap: 8,
+  },
+  primaryModes: {
+    gap: 10,
+  },
+  primaryModeButton: {
+    width: "100%",
+    borderWidth: 1,
+    borderColor: COLORS.navy,
+    borderRadius: 14,
+    backgroundColor: COLORS.card,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  primaryModeText: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: COLORS.navy,
+  },
   repeatLastSection: {
     gap: 8,
+    marginTop: 20,
   },
   sectionLabel: {
     fontSize: 10,
@@ -268,34 +290,5 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: COLORS.muted,
     textAlign: "center",
-  },
-  manualLink: {
-    marginTop: 20,
-    paddingVertical: 10,
-    alignItems: "center",
-  },
-  manualLinkText: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: COLORS.navy,
-  },
-  quietLinksRow: {
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
-    gap: 8,
-    paddingBottom: 4,
-  },
-  quietLink: {
-    paddingVertical: 4,
-  },
-  quietLinkText: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: COLORS.muted,
-  },
-  quietDot: {
-    fontSize: 12,
-    color: COLORS.muted2,
   },
 });
