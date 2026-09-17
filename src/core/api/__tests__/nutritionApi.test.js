@@ -5,11 +5,13 @@ const mockSelect = jest.fn(() => ({ eq: mockEq }));
 const mockUpsert = jest.fn(async () => ({ error: null }));
 const mockFrom = jest.fn(() => ({ select: mockSelect, upsert: mockUpsert }));
 const mockInvoke = jest.fn();
+const mockGetSession = jest.fn();
 
 jest.mock("../client", () => ({
   supabase: {
     from: (...args) => mockFrom(...args),
     functions: { invoke: (...args) => mockInvoke(...args) },
+    auth: { getSession: () => mockGetSession() },
   },
 }));
 
@@ -44,6 +46,7 @@ beforeEach(() => {
   jest.clearAllMocks();
   _resetMemCache();
   mockMaybeSingle.mockResolvedValue({ data: null, error: null });
+  mockGetSession.mockResolvedValue({ data: { session: { access_token: "test-token" } } });
   global.fetch = jest.fn();
 });
 
@@ -206,7 +209,10 @@ describe("estimateMacros", () => {
     mockInvoke.mockResolvedValue({ data: { protein_g: 42, carbs_g: 60, fat_g: 18 }, error: null });
     const r = await estimateMacros("6 oz chicken, 1 cup rice");
     expect(r).toEqual({ found: true, macros: { PROTEIN: 42, CARBS: 60, FAT: 18 } });
-    expect(mockInvoke).toHaveBeenCalledWith("estimate-macros", { body: { description: "6 oz chicken, 1 cup rice" } });
+    expect(mockInvoke).toHaveBeenCalledWith("estimate-macros", {
+      body: { description: "6 oz chicken, 1 cup rice" },
+      headers: { Authorization: "Bearer test-token" },
+    });
   });
   it("rounds and clamps the returned numbers", async () => {
     mockInvoke.mockResolvedValue({ data: { protein_g: 42.6, carbs_g: -3, fat_g: "x" }, error: null });
@@ -225,6 +231,12 @@ describe("estimateMacros", () => {
   });
   it("returns not-found without calling the function for empty input", async () => {
     const r = await estimateMacros("   ");
+    expect(r.found).toBe(false);
+    expect(mockInvoke).not.toHaveBeenCalled();
+  });
+  it("returns not-found when there is no session", async () => {
+    mockGetSession.mockResolvedValue({ data: { session: null } });
+    const r = await estimateMacros("chicken");
     expect(r.found).toBe(false);
     expect(mockInvoke).not.toHaveBeenCalled();
   });

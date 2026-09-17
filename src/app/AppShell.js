@@ -547,6 +547,7 @@ export function AppShell() {
   /** Calls the edge function and prefills the editable macro fields. */
   const estimateAiMacros = async () => {
     if (!canEditSelectedDay()) {
+      setAiMealDraft((current) => ({ ...current, status: "error" }));
       return;
     }
     const description = aiMealDraft.description.trim();
