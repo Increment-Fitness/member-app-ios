@@ -18,6 +18,7 @@ import { Card } from "../../core/components/Card";
 import { Tag } from "../../core/components/Tag";
 import { COLORS } from "../../core/design/colors";
 import { sharedStyles } from "../../core/design/sharedStyles";
+import { AddMealSheet } from "./AddMealSheet";
 import { BarcodeScannerModal } from "./BarcodeScannerModal";
 import { ScanConfirmModal } from "./ScanConfirmModal";
 import { MealRow } from "./MealRow";
@@ -75,6 +76,13 @@ export function FoodScreen({
   onCancelServings,
   isToday,
   isEditable,
+  repeatLast,
+  recents,
+  mealHistoryLoading,
+  onLogAgain,
+  onLogRecent,
+  onShowManualEntry,
+  showManualEntry,
 }) {
   const closeMealModal = onCloseMealCategory;
   // Per-serving base of the meal being edited, for the servings sheet preview.
@@ -160,27 +168,31 @@ export function FoodScreen({
           >
             <Pressable style={styles.foodModalCard} onPress={() => {}}>
               <View style={styles.foodModalHeader}>
-                <Text style={styles.foodModalTitle}>ADD TO {activeMealCategory}</Text>
-                <Tag label="CLOSE" outline onPress={closeMealModal} />
+                <Text style={styles.foodModalTitle}>Add to {(activeMealCategory ?? "").charAt(0) + (activeMealCategory ?? "").slice(1).toLowerCase()}</Text>
+                <Pressable
+                  style={({ pressed }) => [styles.closeButton, pressed && styles.closeButtonPressed]}
+                  onPress={closeMealModal}
+                >
+                  <Text style={styles.closeButtonText}>Close</Text>
+                  <Text style={styles.closeButtonIcon}>×</Text>
+                </Pressable>
               </View>
               <ScrollView
                 contentContainerStyle={styles.foodModalContent}
                 showsVerticalScrollIndicator={false}
                 keyboardShouldPersistTaps="handled"
               >
-                <Card>
-                  <View style={sharedStyles.chipWrap}>
-                    {["MANUAL INPUT", "SCAN LABEL", "AI ESTIMATE"].map((mode) => (
-                      <Tag
-                        key={mode}
-                        label={mode}
-                        hot={mealInputMode === mode}
-                        outline={mealInputMode !== mode}
-                        onPress={() => onSelectMealMode(mode)}
-                      />
-                    ))}
-                  </View>
-                  {mealInputMode === "MANUAL INPUT" ? (
+                {!showManualEntry ? (
+                  <AddMealSheet
+                    repeatLast={repeatLast}
+                    recents={recents}
+                    loading={mealHistoryLoading}
+                    onLogAgain={onLogAgain}
+                    onLogRecent={onLogRecent}
+                    onShowManual={onShowManualEntry}
+                  />
+                ) : (
+                  <Card>
                     <View style={styles.modePanel}>
                       <Text style={sharedStyles.sectionText}>Enter a food name and macros for {mealCategoryLabel}. Calories are calculated automatically.</Text>
                       <FieldLabel label="MEAL NAME" />
@@ -231,88 +243,8 @@ export function FoodScreen({
                         <ActionButton label="ADD FOOD" hot onPress={onAddManualMeal} />
                       </View>
                     </View>
-                  ) : null}
-                  {mealInputMode === "SCAN LABEL" ? (
-                    <View style={styles.modePanel}>
-                      <Text style={sharedStyles.sectionText}>Scan a product barcode to pull its name and nutrition into {mealCategoryLabel}.</Text>
-                      <View style={sharedStyles.actionRow}>
-                        <ActionButton label="OPEN CAMERA" hot onPress={onAddScannedMeal} />
-                      </View>
-                    </View>
-                  ) : null}
-                  {mealInputMode === "AI ESTIMATE" ? (
-                    <View style={styles.modePanel}>
-                      <Text style={sharedStyles.sectionText}>
-                        Describe what you ate (include amounts) and AI estimates the macros for {mealCategoryLabel}. You can adjust before adding.
-                      </Text>
-                      <FieldLabel label="MEAL DESCRIPTION" />
-                      <TextInput
-                        value={aiMealDraft.description}
-                        onChangeText={onChangeAiDescription}
-                        placeholder="6 oz grilled chicken, 1 cup white rice, 2 tbsp olive oil, side salad"
-                        placeholderTextColor={COLORS.muted}
-                        multiline
-                        style={[sharedStyles.mealEditorInput, styles.aiDescriptionInput]}
-                      />
-                      <View style={sharedStyles.actionRow}>
-                        <ActionButton
-                          label={aiMealDraft.status === "loading" ? "ESTIMATING..." : "ESTIMATE MACROS"}
-                          hot
-                          disabled={!aiMealDraft.description.trim() || aiMealDraft.status === "loading"}
-                          onPress={onEstimateAiMacros}
-                        />
-                      </View>
-                      {aiMealDraft.status === "error" ? (
-                        <Text style={sharedStyles.validationText}>
-                          Couldn't estimate — try again or edit the macros below.
-                        </Text>
-                      ) : null}
-                      {aiShowFields ? (
-                        <>
-                          <View style={styles.ingredientMacroGrid}>
-                            <View style={styles.macroField}>
-                              <FieldLabel label="PROTEIN (G)" />
-                              <TextInput
-                                value={aiMealDraft.protein}
-                                onChangeText={(value) => onChangeAiMacro("protein", value)}
-                                placeholder="Protein"
-                                placeholderTextColor={COLORS.muted}
-                                keyboardType="number-pad"
-                                style={styles.ingredientMacroInput}
-                              />
-                            </View>
-                            <View style={styles.macroField}>
-                              <FieldLabel label="CARBS (G)" />
-                              <TextInput
-                                value={aiMealDraft.carbs}
-                                onChangeText={(value) => onChangeAiMacro("carbs", value)}
-                                placeholder="Carbs"
-                                placeholderTextColor={COLORS.muted}
-                                keyboardType="number-pad"
-                                style={styles.ingredientMacroInput}
-                              />
-                            </View>
-                            <View style={styles.macroField}>
-                              <FieldLabel label="FAT (G)" />
-                              <TextInput
-                                value={aiMealDraft.fat}
-                                onChangeText={(value) => onChangeAiMacro("fat", value)}
-                                placeholder="Fat"
-                                placeholderTextColor={COLORS.muted}
-                                keyboardType="number-pad"
-                                style={styles.ingredientMacroInput}
-                              />
-                            </View>
-                          </View>
-                          <Text style={foodStyles.editorCalories}>Calories auto-update: {aiCalories} KCAL</Text>
-                          <View style={sharedStyles.actionRow}>
-                            <ActionButton label="ADD FOOD" hot onPress={onAddAiMeal} />
-                          </View>
-                        </>
-                      ) : null}
-                    </View>
-                  ) : null}
-                </Card>
+                  </Card>
+                )}
               </ScrollView>
             </Pressable>
           </KeyboardAvoidingView>
@@ -412,9 +344,26 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   foodModalTitle: {
-    fontSize: 12,
-    fontWeight: "900",
-    letterSpacing: 1,
+    fontSize: 16,
+    fontWeight: "800",
+    color: COLORS.ink,
+  },
+  closeButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  closeButtonPressed: {
+    opacity: 0.6,
+  },
+  closeButtonText: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: COLORS.ink,
+  },
+  closeButtonIcon: {
+    fontSize: 18,
+    fontWeight: "400",
     color: COLORS.ink,
   },
   foodModalContent: {
