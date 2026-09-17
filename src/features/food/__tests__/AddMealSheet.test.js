@@ -47,8 +47,12 @@ describe("AddMealSheet", () => {
       onLogAgain: () => {},
       onLogRecent: () => {},
       onShowManual: () => {},
+      onShowAi: () => {},
+      onShowScan: () => {},
     });
     expect(findTextNode(tree, "Loading meals...")).toBeTruthy();
+    expect(findTextNode(tree, "PRIMARY")).toBeTruthy();
+    expect(findTextNode(tree, "AI estimate")).toBeTruthy();
   });
 
   it("shows PRIMARY modes above Repeat Last and Recents", async () => {

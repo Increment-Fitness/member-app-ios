@@ -76,9 +76,24 @@ export function AddMealSheet({
   const hasRecents = recents && recents.length > 0;
   const isEmpty = !hasRepeatLast && !hasRecents;
 
+  const primaryModes = (
+    <View style={styles.primarySection}>
+      <Text style={styles.sectionLabel}>PRIMARY</Text>
+      <View style={styles.primaryModes}>
+        <PrimaryModeButton
+          label="Enter macros manually"
+          onPress={() => onShowManual?.()}
+        />
+        <PrimaryModeButton label="AI estimate" onPress={() => onShowAi?.()} />
+        <PrimaryModeButton label="Scan barcode" onPress={() => onShowScan?.()} />
+      </View>
+    </View>
+  );
+
   if (loading) {
     return (
       <Card>
+        {primaryModes}
         <View style={styles.loadingWrap}>
           <Text style={styles.loadingText}>Loading meals...</Text>
         </View>
@@ -88,17 +103,7 @@ export function AddMealSheet({
 
   return (
     <Card>
-      <View style={styles.primarySection}>
-        <Text style={styles.sectionLabel}>PRIMARY</Text>
-        <View style={styles.primaryModes}>
-          <PrimaryModeButton
-            label="Enter macros manually"
-            onPress={() => onShowManual?.()}
-          />
-          <PrimaryModeButton label="AI estimate" onPress={() => onShowAi?.()} />
-          <PrimaryModeButton label="Scan barcode" onPress={() => onShowScan?.()} />
-        </View>
-      </View>
+      {primaryModes}
 
       {hasRepeatLast ? (
         <View style={styles.repeatLastSection}>
