@@ -94,8 +94,8 @@ const styles = StyleSheet.create({
   },
   progressDropdownButton: {
     minHeight: 42,
-    borderWidth: 2,
-    borderColor: COLORS.line,
+    borderWidth: 1,
+    borderColor: COLORS.cardBorder,
     borderRadius: 16,
     backgroundColor: COLORS.card2,
     paddingHorizontal: 12,
@@ -123,7 +123,7 @@ const styles = StyleSheet.create({
   progressDropdownValue: {
     fontSize: 11,
     fontWeight: "800",
-    color: COLORS.ink,
+    color: COLORS.navy,
   },
   progressDropdownValueCompact: {
     fontSize: 8,
@@ -134,12 +134,12 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     borderWidth: 1,
-    borderColor: COLORS.line,
+    borderColor: COLORS.cardBorder,
     borderRadius: 16,
     backgroundColor: COLORS.card,
     padding: 6,
     gap: 4,
-    shadowColor: "#0B1440",
+    shadowColor: COLORS.navy,
     shadowOpacity: 0.08,
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 6 },
@@ -152,14 +152,14 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.card,
   },
   progressDropdownItemActive: {
-    backgroundColor: COLORS.signal,
+    backgroundColor: COLORS.navy,
   },
   progressDropdownItemText: {
     fontSize: 11,
     fontWeight: "800",
-    color: COLORS.ink,
+    color: COLORS.navy,
   },
   progressDropdownItemTextActive: {
-    color: "#FFFFFF",
+    color: COLORS.cream,
   },
 });

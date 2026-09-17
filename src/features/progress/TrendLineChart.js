@@ -186,7 +186,7 @@ const styles = StyleSheet.create({
     lineHeight: 24,
     fontWeight: "900",
     letterSpacing: -1,
-    color: COLORS.ink,
+    color: COLORS.navy,
   },
   trendCardMeta: {
     fontSize: 9,
@@ -206,7 +206,7 @@ const styles = StyleSheet.create({
     right: 0,
     top: 0,
     borderTopWidth: 1,
-    borderTopColor: COLORS.line,
+    borderTopColor: COLORS.cardBorder,
   },
   trendGridLineMid: {
     top: "50%",
@@ -215,7 +215,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     height: 3,
     borderRadius: 999,
-    backgroundColor: COLORS.signal,
+    backgroundColor: COLORS.navy,
   },
   trendPointHitbox: {
     position: "absolute",
@@ -230,12 +230,12 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     backgroundColor: COLORS.card,
     borderWidth: 2,
-    borderColor: COLORS.signal,
+    borderColor: COLORS.navy,
   },
   trendPointActive: {
     width: 14,
     height: 14,
-    backgroundColor: COLORS.signal,
+    backgroundColor: COLORS.navy,
   },
   trendLabelsRow: {
     flexDirection: "row",

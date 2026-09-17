@@ -173,8 +173,13 @@ export async function estimateMacros(description) {
     return NO_ESTIMATE;
   }
   try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      return NO_ESTIMATE;
+    }
     const { data, error } = await supabase.functions.invoke("estimate-macros", {
       body: { description: text },
+      headers: { Authorization: `Bearer ${session.access_token}` },
     });
     if (error || !data || data.error) {
       return NO_ESTIMATE;
