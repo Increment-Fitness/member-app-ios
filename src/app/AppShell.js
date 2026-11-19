@@ -42,6 +42,7 @@ import {
 } from "../features/food/utils/macros";
 import { ProgressScreen } from "../features/progress/ProgressScreen";
 import { SettingsScreen } from "../features/settings/SettingsScreen";
+import { buildSplitQueue } from "../features/workout/splitQueue";
 import { WorkoutScreen } from "../features/workout/WorkoutScreen";
 import { validateLiftDraft, validateLogSetDraft } from "../features/workout/validation";
 import { Header } from "./Header";
@@ -961,22 +962,10 @@ export function AppShell() {
   /** Switches splits and rebuilds the queue, resetting any open modals. */
   /**
    * Builds the queue for a split: a server template's exercises when the
-   * member has one by that name, else the built-in preset.
+   * member has one by that name. Ids are scoped to the selected day so a
+   * later workout cannot reuse the catalog exercise UUID (see splitQueue.js).
    */
-  const queueForSplit = (split) => {
-    const template = splitDays.find((day) => day.name.toUpperCase() === split.toUpperCase());
-    if (template && template.exercises.length) {
-      return template.exercises.map((exercise) => ({
-        id: exercise.id,
-        lift: exercise.name.toUpperCase(),
-        scheme: "--",
-        load: "--",
-      }));
-    }
-    // No built-in presets: an unknown split starts with an empty queue the
-    // member fills via + ADD LIFT.
-    return [];
-  };
+  const queueForSplit = (split) => buildSplitQueue(splitDays, split, selectedDate);
 
   const changeSplit = (split) => {
     if (!canEditSelectedDay()) {
