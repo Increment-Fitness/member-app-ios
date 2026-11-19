@@ -23,7 +23,8 @@ export function validateWeightValue(value) {
 }
 
 /**
- * Validates a reps input string. Whole numbers only.
+ * Validates a reps input string. Whole numbers of at least 1. Zero reps with
+ * a blank weight is the fully-empty default, not a logged set.
  *
  * @param {string} value Raw input.
  * @returns {string} Error message, or "" when valid.
@@ -33,8 +34,8 @@ export function validateRepsValue(value) {
   if (!trimmed) {
     return "Add your reps to continue.";
   }
-  if (!/^\d+$/.test(trimmed)) {
-    return "Use a whole number, like 8 or 10.";
+  if (!/^[1-9]\d*$/.test(trimmed)) {
+    return "Use a whole number of at least 1, like 8 or 10.";
   }
   return "";
 }
