@@ -31,7 +31,15 @@ export function isRawUuid(value) {
  * Opaque workout-exercise id for one catalog lift on one local day.
  * Not a UUID, so save_day will not reuse the catalog row.
  *
- * @param {string} isoDate "YYYY-MM-DD"
+ * `isoDate` is the local calendar day the member is logging — the same
+ * string save_day receives as `p_date`. Live sessions are stored at noon
+ * in that timezone (12:00 America/Denver is 18:00 UTC in MDT and 19:00 UTC
+ * in MST). Both instants are still that calendar day in Denver, so the
+ * date embedded here matches `(performed_at at time zone 'America/Denver')::date`.
+ * The id is not a UTC timestamp and it is not midnight UTC (that instant
+ * is the previous evening in Denver).
+ *
+ * @param {string} isoDate "YYYY-MM-DD" local calendar day (`p_date`).
  * @param {string} catalogExerciseId exercises.id from the split template.
  * @returns {string}
  */

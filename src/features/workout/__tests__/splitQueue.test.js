@@ -126,6 +126,12 @@ describe("buildSplitQueue", () => {
 
     expect(july[0].lift).toBe("ISO LATERAL ROW");
     expect(july[0].id).toBe(sessionWorkoutExerciseId("2026-07-28", CATALOG_ID));
+    expect(july[0].id).toBe(`wx:2026-07-28:${CATALOG_ID}`);
+    // Noon Denver on this date is 18:00 UTC (MDT) and still 2026-07-28 locally,
+    // which is the performed_at save_day stores for p_date. Not the previous
+    // evening, which is what midnight UTC would be in Denver.
+    expect(july[0].id).not.toContain("2026-07-27");
+    expect(sessionWorkoutExerciseId("2026-11-18", CATALOG_ID)).toBe(`wx:2026-11-18:${CATALOG_ID}`);
     expect(july[0].id).not.toBe(CATALOG_ID);
     expect(september[0].id).not.toBe(july[0].id);
     expect(isRawUuid(july[0].id)).toBe(false);
