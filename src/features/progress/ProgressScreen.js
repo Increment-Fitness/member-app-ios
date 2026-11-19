@@ -173,7 +173,7 @@ const styles = StyleSheet.create({
   progressCard: {
     borderWidth: 1,
     padding: 14,
-    shadowColor: "#0B1440",
+    shadowColor: COLORS.navy,
     shadowOpacity: 0.06,
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 4 },
@@ -198,7 +198,7 @@ const styles = StyleSheet.create({
   progressGoalSummaryDivider: {
     width: 1,
     alignSelf: "stretch",
-    backgroundColor: COLORS.line,
+    backgroundColor: COLORS.cardBorder,
   },
   progressGoalSummaryLabel: {
     fontSize: 9,
@@ -211,16 +211,16 @@ const styles = StyleSheet.create({
     lineHeight: 24,
     fontWeight: "900",
     letterSpacing: -1,
-    color: COLORS.ink,
+    color: COLORS.navy,
   },
   goalStepperRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     borderRadius: 14,
-    borderWidth: 2,
-    borderColor: COLORS.line,
-    backgroundColor: COLORS.paper2,
+    borderWidth: 1,
+    borderColor: COLORS.cardBorder,
+    backgroundColor: COLORS.card2,
     paddingHorizontal: 12,
     paddingVertical: 8,
   },
@@ -240,7 +240,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
     fontSize: 16,
     fontWeight: "900",
-    color: COLORS.ink,
+    color: COLORS.navy,
   },
   progressToolbar: {
     flexDirection: "row",

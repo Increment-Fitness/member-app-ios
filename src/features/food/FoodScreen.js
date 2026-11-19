@@ -1,5 +1,5 @@
-// FUEL tab: daily meal log plus the add-meal modal (manual entry, barcode
-// scan, past-meal search, and custom recipe builder).
+// FUEL tab: daily meal log plus the add-meal modal.
+// First screen = Recents + Repeat (mock A). Manual / AI / Scan are quiet paths.
 import {
   KeyboardAvoidingView,
   Modal,
@@ -18,6 +18,7 @@ import { Card } from "../../core/components/Card";
 import { Tag } from "../../core/components/Tag";
 import { COLORS } from "../../core/design/colors";
 import { sharedStyles } from "../../core/design/sharedStyles";
+import { AddMealSheet } from "./AddMealSheet";
 import { BarcodeScannerModal } from "./BarcodeScannerModal";
 import { ScanConfirmModal } from "./ScanConfirmModal";
 import { MealRow } from "./MealRow";
@@ -26,11 +27,7 @@ import { calculateCalories } from "./utils/macros";
 
 /**
  * Meal logging screen. Renders the day's meals grouped into the four fixed
- * categories, and hosts the "add to category" modal whose content switches
- * between manual input, label scanning, and the custom-meal recipe builder.
- *
- * All state lives in AppShell; this component is purely presentational and
- * receives drafts plus their mutation callbacks as props.
+ * categories, and hosts the "add to category" modal.
  *
  * @param {boolean} props.isToday True when the selected day is today.
  * @param {boolean} props.isEditable True when the selected day accepts edits.
@@ -75,9 +72,17 @@ export function FoodScreen({
   onCancelServings,
   isToday,
   isEditable,
+  repeatLast,
+  recents,
+  mealHistoryLoading,
+  onLogAgain,
+  onLogRecent,
+  onShowManualEntry,
+  showManualEntry,
+  onShowAiEstimate,
+  onShowScan,
 }) {
   const closeMealModal = onCloseMealCategory;
-  // Per-serving base of the meal being edited, for the servings sheet preview.
   const servingsEditResult = editingServingsMeal
     ? {
         title: editingServingsMeal.title,
@@ -112,6 +117,44 @@ export function FoodScreen({
   };
   const manualMealCalories = calculateCalories(manualMealMacros);
 
+  const showingRecents = !showManualEntry && mealInputMode === "MANUAL INPUT";
+  const showingAi = mealInputMode === "AI ESTIMATE";
+  const showingScan = mealInputMode === "SCAN LABEL";
+  const showingManual = showManualEntry && mealInputMode === "MANUAL INPUT";
+
+  const quietModeLinks = (exclude) => (
+    <View style={styles.quietLinksRow}>
+      {exclude !== "manual" ? (
+        <Pressable
+          style={({ pressed }) => [styles.quietLink, pressed && styles.pressed]}
+          onPress={onShowManualEntry}
+        >
+          <Text style={styles.quietLinkText}>Enter manually</Text>
+        </Pressable>
+      ) : null}
+      {exclude !== "manual" && exclude !== "scan" ? <Text style={styles.quietDot}>·</Text> : null}
+      {exclude !== "scan" ? (
+        <Pressable
+          style={({ pressed }) => [styles.quietLink, pressed && styles.pressed]}
+          onPress={onShowScan}
+        >
+          <Text style={styles.quietLinkText}>Scan barcode</Text>
+        </Pressable>
+      ) : null}
+      {exclude !== "ai" && (exclude === "manual" || exclude === "scan") ? (
+        <>
+          <Text style={styles.quietDot}>·</Text>
+          <Pressable
+            style={({ pressed }) => [styles.quietLink, pressed && styles.pressed]}
+            onPress={onShowAiEstimate}
+          >
+            <Text style={styles.quietLinkText}>Use AI estimate</Text>
+          </Pressable>
+        </>
+      ) : null}
+    </View>
+  );
+
   return (
     <>
       <ScrollView contentContainerStyle={sharedStyles.scrollContent} showsVerticalScrollIndicator={false}>
@@ -120,7 +163,14 @@ export function FoodScreen({
             <View key={section.category} style={styles.mealSection}>
               <View style={styles.mealSectionHeader}>
                 <Text style={styles.sectionTag}>{section.category}</Text>
-                {isEditable ? <Tag label="+ ADD" hot={activeMealCategory === section.category} outline={activeMealCategory !== section.category} onPress={() => onOpenMealCategory(section.category)} /> : null}
+                {isEditable ? (
+                  <Tag
+                    label="+ ADD"
+                    hot={activeMealCategory === section.category}
+                    outline={activeMealCategory !== section.category}
+                    onPress={() => onOpenMealCategory(section.category)}
+                  />
+                ) : null}
               </View>
               {section.items.length ? (
                 section.items.map((meal) => (
@@ -141,7 +191,9 @@ export function FoodScreen({
                   />
                 ))
               ) : (
-                <Text style={styles.emptySectionText}>{isEditable ? "No meals logged yet." : "No meals were logged."}</Text>
+                <Text style={styles.emptySectionText}>
+                  {isEditable ? "No meals logged yet." : "No meals were logged."}
+                </Text>
               )}
             </View>
           ))}
@@ -160,33 +212,50 @@ export function FoodScreen({
           >
             <Pressable style={styles.foodModalCard} onPress={() => {}}>
               <View style={styles.foodModalHeader}>
-                <Text style={styles.foodModalTitle}>ADD TO {activeMealCategory}</Text>
-                <Tag label="CLOSE" outline onPress={closeMealModal} />
+                <Text style={styles.foodModalTitle}>
+                  Add to{" "}
+                  {(activeMealCategory ?? "").charAt(0) +
+                    (activeMealCategory ?? "").slice(1).toLowerCase()}
+                </Text>
+                <Pressable
+                  style={({ pressed }) => [styles.closeButton, pressed && styles.pressed]}
+                  onPress={closeMealModal}
+                  accessibilityLabel="Close"
+                >
+                  <Text style={styles.closeButtonIcon}>✕</Text>
+                </Pressable>
               </View>
               <ScrollView
                 contentContainerStyle={styles.foodModalContent}
                 showsVerticalScrollIndicator={false}
                 keyboardShouldPersistTaps="handled"
               >
-                <Card>
-                  <View style={sharedStyles.chipWrap}>
-                    {["MANUAL INPUT", "SCAN LABEL", "AI ESTIMATE"].map((mode) => (
-                      <Tag
-                        key={mode}
-                        label={mode}
-                        hot={mealInputMode === mode}
-                        outline={mealInputMode !== mode}
-                        onPress={() => onSelectMealMode(mode)}
-                      />
-                    ))}
-                  </View>
-                  {mealInputMode === "MANUAL INPUT" ? (
+                {showingRecents ? (
+                  <AddMealSheet
+                    repeatLast={repeatLast}
+                    recents={recents}
+                    loading={mealHistoryLoading}
+                    onLogAgain={onLogAgain}
+                    onLogRecent={onLogRecent}
+                    onShowManual={onShowManualEntry}
+                    onShowAi={onShowAiEstimate}
+                    onShowScan={onShowScan}
+                  />
+                ) : null}
+
+                {showingManual ? (
+                  <Card>
                     <View style={styles.modePanel}>
-                      <Text style={sharedStyles.sectionText}>Enter a food name and macros for {mealCategoryLabel}. Calories are calculated automatically.</Text>
+                      <Text style={sharedStyles.sectionText}>
+                        Enter a food name and macros for {mealCategoryLabel}. Calories are calculated
+                        automatically.
+                      </Text>
                       <FieldLabel label="MEAL NAME" />
                       <TextInput
                         value={manualMealDraft.title}
-                        onChangeText={(value) => setManualMealDraft((current) => ({ ...current, title: value }))}
+                        onChangeText={(value) =>
+                          setManualMealDraft((current) => ({ ...current, title: value }))
+                        }
                         placeholder="Chicken rice bowl"
                         placeholderTextColor={COLORS.muted}
                         style={sharedStyles.mealEditorInput}
@@ -194,9 +263,11 @@ export function FoodScreen({
                       <View style={styles.ingredientMacroGrid}>
                         <View style={styles.macroField}>
                           <FieldLabel label="PROTEIN (G)" />
-                        <TextInput
+                          <TextInput
                             value={manualMealDraft.protein}
-                            onChangeText={(value) => setManualMealDraft((current) => ({ ...current, protein: value }))}
+                            onChangeText={(value) =>
+                              setManualMealDraft((current) => ({ ...current, protein: value }))
+                            }
                             placeholder="Protein"
                             placeholderTextColor={COLORS.muted}
                             keyboardType="number-pad"
@@ -205,9 +276,11 @@ export function FoodScreen({
                         </View>
                         <View style={styles.macroField}>
                           <FieldLabel label="CARBS (G)" />
-                        <TextInput
+                          <TextInput
                             value={manualMealDraft.carbs}
-                            onChangeText={(value) => setManualMealDraft((current) => ({ ...current, carbs: value }))}
+                            onChangeText={(value) =>
+                              setManualMealDraft((current) => ({ ...current, carbs: value }))
+                            }
                             placeholder="Carbs"
                             placeholderTextColor={COLORS.muted}
                             keyboardType="number-pad"
@@ -216,9 +289,11 @@ export function FoodScreen({
                         </View>
                         <View style={styles.macroField}>
                           <FieldLabel label="FAT (G)" />
-                        <TextInput
+                          <TextInput
                             value={manualMealDraft.fat}
-                            onChangeText={(value) => setManualMealDraft((current) => ({ ...current, fat: value }))}
+                            onChangeText={(value) =>
+                              setManualMealDraft((current) => ({ ...current, fat: value }))
+                            }
                             placeholder="Fat"
                             placeholderTextColor={COLORS.muted}
                             keyboardType="number-pad"
@@ -226,34 +301,34 @@ export function FoodScreen({
                           />
                         </View>
                       </View>
-                      <Text style={foodStyles.editorCalories}>Calories auto-update: {manualMealCalories} KCAL</Text>
+                      <Text style={foodStyles.editorCalories}>
+                        Calories auto-update: {manualMealCalories} KCAL
+                      </Text>
                       <View style={sharedStyles.actionRow}>
                         <ActionButton label="ADD FOOD" hot onPress={onAddManualMeal} />
                       </View>
+                      {quietModeLinks("manual")}
                     </View>
-                  ) : null}
-                  {mealInputMode === "SCAN LABEL" ? (
-                    <View style={styles.modePanel}>
-                      <Text style={sharedStyles.sectionText}>Scan a product barcode to pull its name and nutrition into {mealCategoryLabel}.</Text>
-                      <View style={sharedStyles.actionRow}>
-                        <ActionButton label="OPEN CAMERA" hot onPress={onAddScannedMeal} />
-                      </View>
+                  </Card>
+                ) : null}
+
+                {showingAi ? (
+                  <Card>
+                    <View style={styles.aiHeaderRow}>
+                      <Text style={styles.aiHeaderTitle}>Use AI estimate</Text>
+                      <Text style={styles.aiHeaderActive}>active</Text>
                     </View>
-                  ) : null}
-                  {mealInputMode === "AI ESTIMATE" ? (
                     <View style={styles.modePanel}>
-                      <Text style={sharedStyles.sectionText}>
-                        Describe what you ate (include amounts) and AI estimates the macros for {mealCategoryLabel}. You can adjust before adding.
-                      </Text>
-                      <FieldLabel label="MEAL DESCRIPTION" />
+                      <FieldLabel label="DESCRIPTION" />
                       <TextInput
                         value={aiMealDraft.description}
                         onChangeText={onChangeAiDescription}
-                        placeholder="6 oz grilled chicken, 1 cup white rice, 2 tbsp olive oil, side salad"
+                        placeholder="chicken bowl, rice, 1 tbsp olive oil"
                         placeholderTextColor={COLORS.muted}
                         multiline
                         style={[sharedStyles.mealEditorInput, styles.aiDescriptionInput]}
                       />
+                      <Text style={styles.aiHint}>Tap to edit description</Text>
                       <View style={sharedStyles.actionRow}>
                         <ActionButton
                           label={aiMealDraft.status === "loading" ? "ESTIMATING..." : "ESTIMATE MACROS"}
@@ -262,57 +337,93 @@ export function FoodScreen({
                           onPress={onEstimateAiMacros}
                         />
                       </View>
+
                       {aiMealDraft.status === "error" ? (
                         <Text style={sharedStyles.validationText}>
-                          Couldn't estimate — try again or edit the macros below.
+                          Couldn't estimate — try again or enter macros manually.
                         </Text>
                       ) : null}
+
                       {aiShowFields ? (
-                        <>
+                        <View style={styles.aiReadyCard}>
+                          <View style={styles.aiReadyHeader}>
+                            <View style={styles.readyBadge}>
+                              <Text style={styles.readyBadgeText}>Ready</Text>
+                            </View>
+                            <Text style={styles.aiReadyCaption}>Adjust before adding</Text>
+                          </View>
                           <View style={styles.ingredientMacroGrid}>
-                            <View style={styles.macroField}>
-                              <FieldLabel label="PROTEIN (G)" />
+                            <View style={styles.aiMacroBox}>
+                              <Text style={styles.aiMacroLabel}>PROTEIN (G)</Text>
                               <TextInput
                                 value={aiMealDraft.protein}
                                 onChangeText={(value) => onChangeAiMacro("protein", value)}
-                                placeholder="Protein"
+                                placeholder="0"
                                 placeholderTextColor={COLORS.muted}
                                 keyboardType="number-pad"
-                                style={styles.ingredientMacroInput}
+                                style={styles.aiMacroInput}
                               />
                             </View>
-                            <View style={styles.macroField}>
-                              <FieldLabel label="CARBS (G)" />
+                            <View style={styles.aiMacroBox}>
+                              <Text style={styles.aiMacroLabel}>CARBS (G)</Text>
                               <TextInput
                                 value={aiMealDraft.carbs}
                                 onChangeText={(value) => onChangeAiMacro("carbs", value)}
-                                placeholder="Carbs"
+                                placeholder="0"
                                 placeholderTextColor={COLORS.muted}
                                 keyboardType="number-pad"
-                                style={styles.ingredientMacroInput}
+                                style={styles.aiMacroInput}
                               />
                             </View>
-                            <View style={styles.macroField}>
-                              <FieldLabel label="FAT (G)" />
+                            <View style={styles.aiMacroBox}>
+                              <Text style={styles.aiMacroLabel}>FAT (G)</Text>
                               <TextInput
                                 value={aiMealDraft.fat}
                                 onChangeText={(value) => onChangeAiMacro("fat", value)}
-                                placeholder="Fat"
+                                placeholder="0"
                                 placeholderTextColor={COLORS.muted}
                                 keyboardType="number-pad"
-                                style={styles.ingredientMacroInput}
+                                style={styles.aiMacroInput}
                               />
                             </View>
                           </View>
-                          <Text style={foodStyles.editorCalories}>Calories auto-update: {aiCalories} KCAL</Text>
-                          <View style={sharedStyles.actionRow}>
-                            <ActionButton label="ADD FOOD" hot onPress={onAddAiMeal} />
+                          <View style={styles.aiCalorieRow}>
+                            <Text style={styles.aiCalorieLabel}>CALORIES</Text>
+                            <Text style={styles.aiCalorieValue}>{aiCalories} kcal · auto</Text>
                           </View>
-                        </>
+                          <Text style={styles.aiCalorieHint}>
+                            Recalculates when you edit P / C / F
+                          </Text>
+                        </View>
                       ) : null}
+
+                      {aiShowFields ? (
+                        <View style={sharedStyles.actionRow}>
+                          <ActionButton label="Add food" hot onPress={onAddAiMeal} />
+                        </View>
+                      ) : null}
+
+                      <Text style={styles.aiFailHint}>
+                        If estimate fails: retry or enter macros manually.
+                      </Text>
+                      {quietModeLinks("ai")}
                     </View>
-                  ) : null}
-                </Card>
+                  </Card>
+                ) : null}
+
+                {showingScan ? (
+                  <Card>
+                    <View style={styles.modePanel}>
+                      <Text style={sharedStyles.sectionText}>
+                        Scan a product barcode to pull its name and nutrition into {mealCategoryLabel}.
+                      </Text>
+                      <View style={sharedStyles.actionRow}>
+                        <ActionButton label="OPEN CAMERA" hot onPress={onAddScannedMeal} />
+                      </View>
+                      {quietModeLinks("scan")}
+                    </View>
+                  </Card>
+                ) : null}
               </ScrollView>
             </Pressable>
           </KeyboardAvoidingView>
@@ -374,15 +485,15 @@ const styles = StyleSheet.create({
     marginTop: 6,
     padding: 10,
     gap: 8,
-    borderWidth: 2,
-    borderColor: COLORS.line,
+    borderWidth: 1,
+    borderColor: COLORS.cardBorder,
     borderRadius: 18,
     backgroundColor: COLORS.card2,
   },
   foodModalOverlay: {
     flex: 1,
     justifyContent: "center",
-    backgroundColor: "rgba(10, 10, 10, 0.28)",
+    backgroundColor: "rgba(16, 24, 64, 0.28)",
     padding: 14,
   },
   foodModalAvoider: {
@@ -394,28 +505,44 @@ const styles = StyleSheet.create({
     maxWidth: 460,
     maxHeight: "100%",
     alignSelf: "center",
-    borderWidth: 2,
-    borderColor: COLORS.line,
+    borderWidth: 1,
+    borderColor: COLORS.cardBorder,
     borderRadius: 24,
-    backgroundColor: COLORS.paper,
+    backgroundColor: COLORS.cream,
     overflow: "hidden",
   },
   foodModalHeader: {
     paddingHorizontal: 14,
     paddingVertical: 12,
-    borderBottomWidth: 2,
-    borderBottomColor: COLORS.line,
-    backgroundColor: COLORS.paper2,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.cardBorder,
+    backgroundColor: COLORS.headerChrome,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     gap: 8,
   },
   foodModalTitle: {
-    fontSize: 12,
-    fontWeight: "900",
-    letterSpacing: 1,
-    color: COLORS.ink,
+    fontSize: 18,
+    fontWeight: "800",
+    color: COLORS.navy,
+  },
+  closeButton: {
+    width: 28,
+    height: 28,
+    borderWidth: 1,
+    borderColor: COLORS.navy,
+    borderRadius: 6,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  closeButtonIcon: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: COLORS.navy,
+  },
+  pressed: {
+    opacity: 0.6,
   },
   foodModalContent: {
     padding: 14,
@@ -432,19 +559,145 @@ const styles = StyleSheet.create({
   },
   ingredientMacroInput: {
     minHeight: 40,
-    borderWidth: 2,
-    borderColor: COLORS.line,
+    borderWidth: 1,
+    borderColor: COLORS.cardBorder,
     borderRadius: 14,
     backgroundColor: COLORS.card2,
     paddingHorizontal: 10,
     fontSize: 11,
     fontWeight: "700",
-    color: COLORS.ink,
+    color: COLORS.navy,
     textAlign: "center",
   },
   aiDescriptionInput: {
     minHeight: 64,
     paddingTop: 10,
     textAlignVertical: "top",
+  },
+  aiHeaderRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 4,
+  },
+  aiHeaderTitle: {
+    fontSize: 12,
+    fontWeight: "800",
+    color: COLORS.navy,
+  },
+  aiHeaderActive: {
+    fontSize: 11,
+    fontStyle: "italic",
+    color: COLORS.muted,
+  },
+  aiHint: {
+    fontSize: 11,
+    fontStyle: "italic",
+    color: COLORS.muted,
+    marginTop: -4,
+  },
+  aiReadyCard: {
+    borderWidth: 1,
+    borderColor: COLORS.cardBorder,
+    borderRadius: 16,
+    backgroundColor: COLORS.card,
+    padding: 12,
+    gap: 12,
+  },
+  aiReadyHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  readyBadge: {
+    backgroundColor: "rgba(16, 24, 64, 0.08)",
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderRadius: 8,
+  },
+  readyBadgeText: {
+    fontSize: 10,
+    fontWeight: "800",
+    color: COLORS.navy,
+  },
+  aiReadyCaption: {
+    fontSize: 11,
+    fontStyle: "italic",
+    color: COLORS.muted,
+  },
+  aiMacroBox: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: COLORS.cardBorder,
+    borderRadius: 10,
+    backgroundColor: COLORS.cream,
+    paddingVertical: 10,
+    paddingHorizontal: 6,
+    alignItems: "center",
+    gap: 6,
+  },
+  aiMacroLabel: {
+    fontSize: 8,
+    fontWeight: "800",
+    letterSpacing: 0.4,
+    color: COLORS.muted,
+  },
+  aiMacroInput: {
+    minHeight: 32,
+    width: "100%",
+    fontSize: 20,
+    fontWeight: "800",
+    color: COLORS.navy,
+    textAlign: "center",
+    padding: 0,
+  },
+  aiCalorieRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    borderTopWidth: 1,
+    borderTopColor: COLORS.cardBorder,
+    paddingTop: 10,
+  },
+  aiCalorieLabel: {
+    fontSize: 10,
+    fontWeight: "800",
+    letterSpacing: 0.6,
+    color: COLORS.muted,
+  },
+  aiCalorieValue: {
+    fontSize: 14,
+    fontWeight: "800",
+    color: COLORS.navy,
+  },
+  aiCalorieHint: {
+    fontSize: 11,
+    color: COLORS.muted,
+    marginTop: -4,
+  },
+  aiFailHint: {
+    fontSize: 11,
+    color: COLORS.muted,
+    textAlign: "center",
+  },
+  quietLinksRow: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 8,
+    marginTop: 8,
+    paddingVertical: 4,
+  },
+  quietLink: {
+    paddingVertical: 4,
+  },
+  quietLinkText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: COLORS.muted,
+  },
+  quietDot: {
+    fontSize: 12,
+    color: COLORS.muted2,
   },
 });

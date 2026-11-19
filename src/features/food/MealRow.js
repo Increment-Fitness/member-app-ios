@@ -96,7 +96,7 @@ export function MealRow({
 const styles = StyleSheet.create({
   mealRow: {
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.muted2,
+    borderBottomColor: COLORS.cardBorder,
     borderRadius: 16,
   },
   mealEditor: {

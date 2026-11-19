@@ -103,7 +103,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "900",
     letterSpacing: 0.8,
-    color: COLORS.ink,
+    color: COLORS.navy,
     textAlign: "center",
   },
   // Concrete max height guarantees the title + chart + sessions scroll as one
@@ -120,7 +120,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     backgroundColor: COLORS.card2,
     borderWidth: 1,
-    borderColor: COLORS.line,
+    borderColor: COLORS.cardBorder,
     paddingHorizontal: 12,
     paddingVertical: 8,
     marginBottom: 6,
@@ -139,11 +139,11 @@ const styles = StyleSheet.create({
   sessionAvg: {
     fontSize: 11,
     fontWeight: "800",
-    color: COLORS.ink,
+    color: COLORS.navy,
   },
   sessionSets: {
     fontSize: 11,
     fontWeight: "700",
-    color: COLORS.ink,
+    color: COLORS.navy,
   },
 });

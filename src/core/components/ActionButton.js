@@ -1,17 +1,18 @@
 // Primary pressable button used across all screens and modals.
+// v3 cream/navy: navy primary, cream outline secondary.
 import { Pressable, StyleSheet, Text } from "react-native";
 
 import { COLORS } from "../design/colors";
 import { sharedStyles } from "../design/sharedStyles";
 
 /**
- * Full-width capsule button with filled, hot (signal), outline, and disabled
- * treatments.
+ * Full-width capsule button with filled (navy), hot (navy), outline (cream
+ * fill + navy stroke), and disabled treatments.
  *
  * @param {object} props
  * @param {string} props.label Uppercase button text.
- * @param {boolean} [props.hot=false] Signal-colored emphasis variant.
- * @param {boolean} [props.outline=false] White-background outline variant.
+ * @param {boolean} [props.hot=false] Primary emphasis (solid navy).
+ * @param {boolean} [props.outline=false] Secondary: cream fill, navy stroke.
  * @param {boolean} [props.disabled=false] Disables presses and mutes colors.
  * @param {() => void} [props.onPress]
  */
@@ -47,8 +48,8 @@ const styles = StyleSheet.create({
     minHeight: 42,
     minWidth: 104,
     borderWidth: 2,
-    borderColor: COLORS.ink,
-    backgroundColor: COLORS.ink,
+    borderColor: COLORS.navy,
+    backgroundColor: COLORS.navy,
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: 12,
@@ -56,28 +57,29 @@ const styles = StyleSheet.create({
     borderRadius: 16,
   },
   actionButtonHot: {
-    backgroundColor: COLORS.signal,
-    borderColor: COLORS.signal,
+    backgroundColor: COLORS.navy,
+    borderColor: COLORS.navy,
   },
   actionButtonOutline: {
-    backgroundColor: COLORS.card,
+    backgroundColor: COLORS.cream,
+    borderColor: COLORS.navy,
   },
   actionButtonDisabled: {
-    backgroundColor: COLORS.paper2,
-    borderColor: COLORS.line,
+    backgroundColor: COLORS.card2,
+    borderColor: COLORS.cardBorder,
   },
   actionButtonText: {
-    color: COLORS.paper,
+    color: COLORS.cream,
     fontSize: 11,
     fontWeight: "800",
     letterSpacing: 1,
     textAlign: "center",
   },
   actionButtonTextHot: {
-    color: "#FFFFFF",
+    color: COLORS.cream,
   },
   actionButtonTextOutline: {
-    color: COLORS.ink,
+    color: COLORS.navy,
   },
   actionButtonTextDisabled: {
     color: COLORS.muted,

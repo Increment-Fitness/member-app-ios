@@ -114,7 +114,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: "900",
     letterSpacing: 0.4,
-    color: COLORS.ink,
+    color: COLORS.navy,
   },
   sub: {
     fontSize: 10,
@@ -125,10 +125,10 @@ const styles = StyleSheet.create({
   },
   input: {
     borderRadius: 14,
-    borderWidth: 2,
-    borderColor: COLORS.line,
+    borderWidth: 1,
+    borderColor: COLORS.cardBorder,
     backgroundColor: COLORS.card,
-    color: COLORS.ink,
+    color: COLORS.navy,
     fontSize: 16,
     fontWeight: "800",
     paddingHorizontal: 12,
@@ -137,8 +137,8 @@ const styles = StyleSheet.create({
   preview: {
     borderRadius: 16,
     backgroundColor: COLORS.card2,
-    borderWidth: 2,
-    borderColor: COLORS.line,
+    borderWidth: 1,
+    borderColor: COLORS.cardBorder,
     paddingHorizontal: 14,
     paddingVertical: 12,
     gap: 2,
@@ -148,7 +148,7 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontWeight: "900",
     letterSpacing: -0.6,
-    color: COLORS.ink,
+    color: COLORS.navy,
   },
   previewMacros: {
     fontSize: 11,

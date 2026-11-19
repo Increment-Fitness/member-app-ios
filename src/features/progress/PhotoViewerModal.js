@@ -100,9 +100,9 @@ const styles = StyleSheet.create({
   frame: {
     alignSelf: "center",
     borderRadius: 16,
-    borderWidth: 2,
-    borderColor: COLORS.line,
-    backgroundColor: COLORS.paper2,
+    borderWidth: 1,
+    borderColor: COLORS.cardBorder,
+    backgroundColor: COLORS.card2,
     overflow: "hidden",
   },
   date: {
@@ -110,6 +110,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "800",
     letterSpacing: 0.8,
-    color: COLORS.ink,
+    color: COLORS.navy,
   },
 });

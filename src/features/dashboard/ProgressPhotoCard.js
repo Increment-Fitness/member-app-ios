@@ -164,8 +164,8 @@ const styles = StyleSheet.create({
   tile: {
     flex: 1,
     borderRadius: 20,
-    borderWidth: 2,
-    borderColor: COLORS.line,
+    borderWidth: 1,
+    borderColor: COLORS.cardBorder,
     backgroundColor: COLORS.card,
     padding: 10,
     gap: 4,
@@ -183,7 +183,7 @@ const styles = StyleSheet.create({
     lineHeight: 24,
     fontWeight: "900",
     letterSpacing: -0.8,
-    color: COLORS.ink,
+    color: COLORS.navy,
   },
   tileSub: {
     fontSize: 8,
@@ -201,7 +201,7 @@ const styles = StyleSheet.create({
     alignSelf: "stretch",
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: COLORS.line,
-    backgroundColor: COLORS.paper2,
+    borderColor: COLORS.cardBorder,
+    backgroundColor: COLORS.card2,
   },
 });

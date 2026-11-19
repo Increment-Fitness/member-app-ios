@@ -44,8 +44,8 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     paddingHorizontal: 14,
     borderRadius: 14,
-    borderWidth: 2,
-    borderColor: COLORS.line,
+    borderWidth: 1,
+    borderColor: COLORS.cardBorder,
     backgroundColor: COLORS.card2,
     marginBottom: 8,
   },
@@ -56,7 +56,7 @@ const styles = StyleSheet.create({
   liftName: {
     fontSize: 13,
     fontWeight: "800",
-    color: COLORS.ink,
+    color: COLORS.navy,
   },
   lastSet: {
     fontSize: 10,

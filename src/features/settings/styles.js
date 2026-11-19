@@ -1,4 +1,5 @@
 // Styles for the settings profile rows.
+// v3 cream/navy reskin: soft hairline borders.
 import { StyleSheet } from "react-native";
 
 import { COLORS } from "../../core/design/colors";
@@ -13,7 +14,7 @@ export const settingsStyles = StyleSheet.create({
     gap: 8,
     paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.muted2,
+    borderBottomColor: COLORS.cardBorder,
   },
   settingsLabel: {
     fontSize: 10,

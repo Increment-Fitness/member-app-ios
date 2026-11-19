@@ -62,6 +62,6 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 8,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.muted2,
+    borderBottomColor: COLORS.cardBorder,
   },
 });

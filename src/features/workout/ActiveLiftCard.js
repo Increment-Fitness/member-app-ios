@@ -108,7 +108,7 @@ export function ActiveLiftCard({
             accessibilityLabel="More options"
             testID="overflow-menu-button"
           >
-            <Ionicons name="ellipsis-vertical" size={18} color={COLORS.ink} />
+            <Ionicons name="ellipsis-vertical" size={18} color={COLORS.navy} />
           </Pressable>
         ) : null}
       </View>
@@ -232,7 +232,7 @@ export function ActiveLiftCard({
             ]}
             testID="remove-from-day-button"
           >
-            <Ionicons name="trash-outline" size={14} color={COLORS.signal} />
+            <Ionicons name="trash-outline" size={14} color={COLORS.navy} />
             <Text style={styles.overflowMenuItemText}>REMOVE FROM DAY</Text>
           </Pressable>
         </View>
@@ -245,8 +245,8 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: COLORS.card,
     borderRadius: 20,
-    borderWidth: 2,
-    borderColor: COLORS.ink,
+    borderWidth: 1,
+    borderColor: COLORS.cardBorder,
     padding: 16,
     marginBottom: 12,
     gap: 12,
@@ -265,7 +265,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "900",
     letterSpacing: 0.5,
-    color: COLORS.ink,
+    color: COLORS.navy,
   },
   overflowButton: {
     width: 32,
@@ -280,11 +280,11 @@ const styles = StyleSheet.create({
     right: 16,
     minWidth: 180,
     borderWidth: 1,
-    borderColor: COLORS.line,
+    borderColor: COLORS.cardBorder,
     borderRadius: 12,
     backgroundColor: COLORS.card,
     padding: 4,
-    shadowColor: "#0B1440",
+    shadowColor: COLORS.navy,
     shadowOpacity: 0.12,
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 4 },
@@ -303,7 +303,7 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: "800",
     letterSpacing: 0.5,
-    color: COLORS.signal,
+    color: COLORS.navy,
   },
   // LAST SET block - prominent context for the prefilled values
   lastSetBlock: {
@@ -324,7 +324,7 @@ const styles = StyleSheet.create({
   lastSetValue: {
     fontSize: 16,
     fontWeight: "900",
-    color: COLORS.ink,
+    color: COLORS.navy,
     letterSpacing: 0.3,
   },
   inputRow: {
@@ -344,22 +344,22 @@ const styles = StyleSheet.create({
   bigInput: {
     fontSize: 32,
     fontWeight: "800",
-    color: COLORS.ink,
+    color: COLORS.navy,
     backgroundColor: COLORS.card2,
     borderRadius: 12,
-    borderWidth: 2,
-    borderColor: COLORS.line,
+    borderWidth: 1,
+    borderColor: COLORS.cardBorder,
     paddingHorizontal: 16,
     paddingVertical: 12,
     textAlign: "center",
   },
   inputError: {
-    borderColor: COLORS.signal,
+    borderColor: COLORS.navy,
   },
   errorText: {
     fontSize: 10,
     fontWeight: "600",
-    color: COLORS.signal,
+    color: COLORS.navy,
   },
   setsSection: {
     flexDirection: "row",
@@ -375,29 +375,29 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: COLORS.line,
+    borderColor: COLORS.cardBorder,
   },
   setNumber: {
     width: 20,
     height: 20,
     borderRadius: 10,
-    backgroundColor: COLORS.ink,
+    backgroundColor: COLORS.navy,
     alignItems: "center",
     justifyContent: "center",
   },
   setNumberText: {
     fontSize: 10,
     fontWeight: "800",
-    color: COLORS.paper,
+    color: COLORS.cream,
   },
   setText: {
     fontSize: 12,
     fontWeight: "700",
-    color: COLORS.ink,
+    color: COLORS.navy,
   },
-  // Rest section - owns visual hierarchy when active
+  // Rest section - navy block on card (v3: rest stays on the expanded card)
   restSection: {
-    backgroundColor: COLORS.ink,
+    backgroundColor: COLORS.navy,
     borderRadius: 14,
     padding: 14,
     gap: 12,
@@ -412,42 +412,42 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: "900",
     letterSpacing: 0.5,
-    color: COLORS.paper,
+    color: COLORS.cream,
     textAlign: "center",
   },
   restTimerDone: {
-    color: "#FFFFFF",
+    color: COLORS.cream,
   },
   restReadyMessage: {
     fontSize: 12,
     fontWeight: "600",
-    color: "rgba(255, 255, 255, 0.8)",
+    color: "rgba(239, 233, 225, 0.8)",
     textAlign: "center",
   },
   restBarTrack: {
     height: 6,
-    backgroundColor: "rgba(255, 255, 255, 0.3)",
+    backgroundColor: "rgba(239, 233, 225, 0.3)",
     borderRadius: 3,
     overflow: "hidden",
   },
   restBarFill: {
     height: "100%",
-    backgroundColor: COLORS.paper,
+    backgroundColor: COLORS.cream,
     borderRadius: 3,
   },
   // SKIP REST button - large, obvious, easy to hit
   skipRestButton: {
-    backgroundColor: "rgba(255, 255, 255, 0.15)",
+    backgroundColor: "rgba(239, 233, 225, 0.15)",
     borderRadius: 12,
     paddingVertical: 14,
     paddingHorizontal: 20,
     alignItems: "center",
     borderWidth: 2,
-    borderColor: "rgba(255, 255, 255, 0.3)",
+    borderColor: "rgba(239, 233, 225, 0.3)",
   },
   skipRestButtonDone: {
-    backgroundColor: "rgba(255, 255, 255, 0.25)",
-    borderColor: "rgba(255, 255, 255, 0.5)",
+    backgroundColor: "rgba(239, 233, 225, 0.25)",
+    borderColor: "rgba(239, 233, 225, 0.5)",
   },
   skipRestButtonPressed: {
     opacity: 0.7,
@@ -456,9 +456,9 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "800",
     letterSpacing: 1,
-    color: COLORS.paper,
+    color: COLORS.cream,
   },
   skipRestTextDone: {
-    color: "#FFFFFF",
+    color: COLORS.cream,
   },
 });

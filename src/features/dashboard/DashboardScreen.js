@@ -8,7 +8,6 @@ import { EmptyState } from "../../core/components/EmptyState";
 import { Tag } from "../../core/components/Tag";
 import { COLORS } from "../../core/design/colors";
 import { sharedStyles } from "../../core/design/sharedStyles";
-import { asciiProgress } from "./utils/asciiProgress";
 import { MacroRow } from "./MacroRow";
 import { WeightModal } from "./WeightModal";
 import { ProgressPhotoTile } from "./ProgressPhotoCard";
@@ -77,9 +76,17 @@ export function DashboardScreen({
             <Text style={styles.statSub}>
               {caloriesConsumed} EATEN · GOAL {caloriesGoal}
             </Text>
-            <Text style={styles.statBar} numberOfLines={1}>
-              {asciiProgress(progressPercent, 10)}
-            </Text>
+            <View style={styles.calorieTrack}>
+              <View
+                style={[
+                  styles.calorieFill,
+                  { width: `${Math.max(0, Math.min(progressPercent ?? 0, 100))}%` },
+                ]}
+              />
+              <View style={[styles.calorieTick, { left: "25%" }]} />
+              <View style={[styles.calorieTick, { left: "50%" }]} />
+              <View style={[styles.calorieTick, { left: "75%" }]} />
+            </View>
           </View>
         ) : (
           <Pressable
@@ -198,8 +205,8 @@ const styles = StyleSheet.create({
   statTile: {
     flex: 1,
     borderRadius: 20,
-    borderWidth: 2,
-    borderColor: COLORS.line,
+    borderWidth: 1,
+    borderColor: COLORS.cardBorder,
     backgroundColor: COLORS.card,
     padding: 10,
     gap: 4,
@@ -217,7 +224,7 @@ const styles = StyleSheet.create({
     lineHeight: 24,
     fontWeight: "900",
     letterSpacing: -0.8,
-    color: COLORS.ink,
+    color: COLORS.navy,
   },
   statValueRow: {
     flexDirection: "row",
@@ -241,11 +248,28 @@ const styles = StyleSheet.create({
     fontSize: 9,
     fontWeight: "800",
     letterSpacing: 0.6,
-    color: COLORS.signal,
+    color: COLORS.navy,
   },
-  statBar: {
-    fontSize: 9,
-    color: COLORS.ink,
+  calorieTrack: {
+    marginTop: 4,
+    alignSelf: "stretch",
+    height: 8,
+    borderRadius: 3,
+    backgroundColor: "rgba(16, 24, 64, 0.10)",
+    overflow: "hidden",
+    position: "relative",
+  },
+  calorieFill: {
+    height: "100%",
+    backgroundColor: COLORS.navy,
+    borderRadius: 3,
+  },
+  calorieTick: {
+    position: "absolute",
+    top: 0,
+    bottom: 0,
+    width: 2,
+    backgroundColor: COLORS.cream,
   },
   statAction: {
     marginTop: "auto",
@@ -260,7 +284,7 @@ const styles = StyleSheet.create({
     lineHeight: 24,
     fontWeight: "900",
     letterSpacing: -1.2,
-    color: COLORS.ink,
+    color: COLORS.navy,
   },
   exerciseList: {
     gap: 6,
@@ -272,14 +296,14 @@ const styles = StyleSheet.create({
     gap: 10,
     paddingVertical: 6,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.muted2,
+    borderBottomColor: COLORS.cardBorder,
   },
   exerciseName: {
     flex: 1,
     minWidth: 0,
     fontSize: 11,
     fontWeight: "800",
-    color: COLORS.ink,
+    color: COLORS.navy,
   },
   exerciseMeta: {
     fontSize: 10,

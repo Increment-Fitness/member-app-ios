@@ -136,7 +136,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "900",
     letterSpacing: 0.8,
-    color: COLORS.ink,
+    color: COLORS.navy,
   },
   strip: {
     flexDirection: "row",
@@ -150,9 +150,9 @@ const styles = StyleSheet.create({
     width: THUMB_WIDTH,
     height: THUMB_HEIGHT,
     borderRadius: 14,
-    borderWidth: 2,
-    borderColor: COLORS.line,
-    backgroundColor: COLORS.paper2,
+    borderWidth: 1,
+    borderColor: COLORS.cardBorder,
+    backgroundColor: COLORS.card2,
   },
   thumbDate: {
     marginTop: 4,

@@ -95,18 +95,18 @@ const styles = StyleSheet.create({
   weightInput: {
     flex: 1,
     minHeight: 42,
-    borderWidth: 2,
-    borderColor: COLORS.line,
+    borderWidth: 1,
+    borderColor: COLORS.cardBorder,
     borderRadius: 16,
     backgroundColor: COLORS.card2,
     paddingHorizontal: 12,
     fontSize: 18,
     fontWeight: "800",
-    color: COLORS.ink,
+    color: COLORS.navy,
   },
   weightInputUnit: {
     fontSize: 13,
     fontWeight: "900",
-    color: COLORS.ink,
+    color: COLORS.navy,
   },
 });
